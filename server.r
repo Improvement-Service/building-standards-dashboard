@@ -22,4 +22,11 @@ server <- function(input, output) {
         value = paste("500", "Responses"), "xxx Year to Date", icon = icon("user-friends"), color = "green"
       )
     })
+    
+##Create bar plot
+    output$ovrPerfBar <- renderPlot(
+       ggplot(data = dta) +
+         geom_bar(aes(x = Quarter, y = `Q1. test`, fill = Council), stat = "identity",
+                  position = "dodge")
+    )
 }

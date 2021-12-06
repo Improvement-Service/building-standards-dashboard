@@ -23,7 +23,10 @@ ui <- dashboardPage(
                 valueBoxOutput("performanceBox"), #performance for council
                 valueBoxOutput("scotPerfBox"),   #Scotland average performance
                 valueBoxOutput("respBox")
-                )
+                ),
+              fluidRow(
+                plotOutput("ovrPerfBar")
+              )
               ), 
       tabItem(tabName = "Qstns",
               h2("Performance by Question"))
