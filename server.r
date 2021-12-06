@@ -1,15 +1,19 @@
 server <- function(input, output) {
   
+
+  
 #Create performance box for selected Council  
   output$performanceBox <- renderValueBox({
+    laAv <- dta %>% filter(Council == input$LA_selection) %>% summarise(CncPerf = round(mean(`Q1. test`, na.rm = T),1))
     valueBox(
-      value = "8.1", "Council Satisfaction YTD", icon = icon("chart-bar"), color = "red"
+      value = laAv$CncPerf, "Council Satisfaction YTD", icon = icon("chart-bar"), color = "red"
     )
   })
 #Create performance box for Scotland
   output$scotPerfBox<- renderValueBox({
+    scotAv<- round(mean(dta$`Q1. test`, na.rm = T),1) ##calculate Scotland aerage
     valueBox(
-      value = "8.2", "Scotland Average", icon = icon("times"), color = "blue"
+      value = scotAv, "Scotland Average", icon = icon("times"), color = "blue"
     )
   })
 #Create responses valuebox

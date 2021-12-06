@@ -11,3 +11,5 @@ LA_Names <- c("Aberdeen City", "Aberdeenshire","Angus", "Argyll and Bute" ,
                 "North Ayrshire" ,"North Lanarkshire" ,"Orkney Islands","Perth and Kinross" ,   
                 "Renfrewshire", "Scottish Borders" ,"Shetland Islands" ,"South Ayrshire" ,    
                 "South Lanarkshire" ,"Stirling","West Dunbartonshire", "West Lothian")
+
+dta <- read_csv("ExData.csv")
