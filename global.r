@@ -1,6 +1,8 @@
 library(tidyverse)
 library(shiny)
 library(shinydashboard)
+library(shinyWidgets)
+library(plotly)
 
 #create a list of local authorty names for use in the UI
 LA_Names <- c("Aberdeen City", "Aberdeenshire","Angus", "Argyll and Bute" ,     

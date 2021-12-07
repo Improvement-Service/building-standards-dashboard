@@ -18,18 +18,56 @@ ui <- dashboardPage(
   dashboardBody(
     tabItems(
       tabItem(tabName = "PrfOvr",
-              h2("KPO4 Performance"), ###add something to say date most recently updated?
+              h2(paste("KPO4 Performance", "Date last updated:", format(Sys.time(), "%d %b %Y"))), ###add something to say date most recently updated?
               fluidRow(
                 valueBoxOutput("performanceBox"), #performance for council
                 valueBoxOutput("scotPerfBox"),   #Scotland average performance
                 valueBoxOutput("respBox")
                 ),
               fluidRow(
-                plotOutput("ovrPerfBar")
-              )
+                box(width = 8,
+                  plotOutput("ovrPerfBar")
+                  ),
+                tabBox(width = 4,
+                       title = "Respondents", 
+                       id = "RespOverViewTabs",
+                       tabPanel("Type",plotOutput("respDoughnut")),
+                       tabPanel("Reason", "Pie chart")
+                )
+               )
               ), 
       tabItem(tabName = "Qstns",
-              h2("Performance by Question"))
+              fluidRow(
+                h2("Performance by Question"),
+                column(4,
+              selectInput("Qstn_tab2", label = "Select Question",
+                          choices = c("Q1", "Q2", "Q3", "All Questions"),
+                          selected = "All Questions"
+                          )),
+              column(4,
+              prettyCheckboxGroup(
+                inputId = "Id047",
+                label = "Respondent", 
+                choices = c("Agent", "Builder", "Cat3"),
+                selected = c("Agent", "Builder", "Cat3"),
+                inline = TRUE,
+                icon = icon("check"),
+                status = "danger",
+                animation = "rotate"
+                )),
+              column(4,
+              prettyCheckboxGroup(
+                inputId = "Id048",
+                label = "Reasons", 
+                choices = c("For Warrant", "Reason2", "Reason3"),
+                selected = c("For Warrant", "Reason2", "Reason3"),
+                inline = TRUE,
+                icon = icon("check"),
+                status = "info",
+                animation = "pulse"
+              ))),
+              box(plotlyOutput("qstsPlot"))
+               )
     )
     
   )
