@@ -55,6 +55,17 @@ server <- function(input, output) {
       
     })
     
+##Alternative - create a pie chart in plotly
+    output$plotly_pie <- renderPlotly({
+     pfig <- plot_ly(data = dta,labels = ~Council, values = ~`Q1. test`) %>% 
+       add_pie(hole = 0.6)
+     pfig <- pfig %>% layout(title = "Test",
+                 xaxis = list(showgrid = FALSE, zeroline = FALSE, showticklabels = FALSE),
+                 yaxis = list(showgrid = FALSE, zeroline = FALSE, showticklabels = FALSE)
+                             )
+     pfig
+    })
+    
 ##Create graph to display results by questions
    output$qstsPlot <- renderPlotly({
     p <- ggplot(data = dta) +

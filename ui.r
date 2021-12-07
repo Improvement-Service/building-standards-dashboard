@@ -32,7 +32,7 @@ ui <- dashboardPage(
                        title = "Respondents", 
                        id = "RespOverViewTabs",
                        tabPanel("Type",plotOutput("respDoughnut")),
-                       tabPanel("Reason", "Pie chart")
+                       tabPanel("Reason", plotlyOutput("plotly_pie"))
                 )
                )
               ), 
