@@ -18,7 +18,7 @@ ui <- dashboardPage(
   dashboardBody(
     tabItems(
       tabItem(tabName = "PrfOvr",
-              h2(paste("KPO4 Performance", "Date last updated:", format(Sys.time(), "%d %b %Y"))), ###add something to say date most recently updated?
+              h2(paste("KPO4 Performance", "Date last updated:", format(Sys.time(), "%d %b %Y")),style = "margin-top:3px"), ###add something to say date most recently updated?
               fluidRow(
                 valueBoxOutput("performanceBox"), #performance for council
                 valueBoxOutput("scotPerfBox"),   #Scotland average performance
@@ -37,8 +37,8 @@ ui <- dashboardPage(
                )
               ), 
       tabItem(tabName = "Qstns",
+              h2("Performance by Question", style = "margin-top:3px"),
               fluidRow(
-                h2("Performance by Question"),
                 column(4,
               selectInput("Qstn_tab2", label = "Select Question",
                           choices = c("Q1", "Q2", "Q3", "All Questions"),
@@ -67,7 +67,14 @@ ui <- dashboardPage(
                 animation = "pulse"
               ))),
               box(plotlyOutput("qstsPlot"))
-               )
+               ),
+      tabItem(tabName = "RptDl",
+              h2("Report Download", style = "margin-top:3px"),
+              fluidRow(
+                box(width = 8, "graph"),
+                box(width = 4,textOutput("KPO4_text"))
+              )
+              )
     )
     
   )
