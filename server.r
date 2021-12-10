@@ -57,7 +57,7 @@ server <- function(input, output) {
     
 ##Alternative - create a pie chart in plotly
     output$plotly_pie <- renderPlotly({
-     pfig <- plot_ly(data = dta,labels = ~Council, values = ~`Q1. test`) %>% 
+     pfig <- plot_ly(data = dta,labels = ~Council, values = ~`Q1. test`, margin = c(0,0,0,0), autosize = F) %>% 
        add_pie(hole = 0.6)
      pfig <- pfig %>% layout(title = "Test",
                  xaxis = list(showgrid = FALSE, zeroline = FALSE, showticklabels = FALSE),
@@ -71,5 +71,21 @@ server <- function(input, output) {
     p <- ggplot(data = dta) +
       geom_bar(aes(x = Council, y = Quarter), stat= "identity")
     ggplotly(p)
+   })
+   
+   output$KPO4_text <- renderText({
+     local_auth <- "Aberdeen"
+     curr_year <- yr2fy(2022)
+     KPO4_ytd <- 8
+     hilow_kpo4 <- ifelse(KPO4_ytd > 7.5, "higher", "lower")
+     scotAv_kpo4 <- 7.8
+     abbel_kpo4 <- ifelse(KPO4_ytd > scotAv_kpo4, "higher", "lower")
+     
+     text_kpo <- paste("This indicator summarises performance across all questions, with differential
+                       weightings based on importance. For", local_auth,"in",curr_year, "overall
+                       performance is at", KPO4_ytd, "for the year to date.", "This is", hilow_kpo4,
+                       "than the Scotland average of", scotAv_kpo4,"and", abbel_kpo4,"than the target value
+                       of 7.5.")
+     text_kpo
    })
 }
