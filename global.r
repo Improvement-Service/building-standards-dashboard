@@ -4,6 +4,7 @@ library(shinydashboard)
 library(shinyWidgets)
 library(plotly)
 library(fy)
+library(readxl)
 
 #create a list of local authorty names for use in the UI
 LA_Names <- c("Aberdeen City", "Aberdeenshire","Angus", "Argyll and Bute" ,     
@@ -15,4 +16,6 @@ LA_Names <- c("Aberdeen City", "Aberdeenshire","Angus", "Argyll and Bute" ,
                 "Renfrewshire", "Scottish Borders" ,"Shetland Islands" ,"South Ayrshire" ,    
                 "South Lanarkshire" ,"Stirling","West Dunbartonshire", "West Lothian")
 
-dta <- read_csv("ExData.csv")
+dta <- read_excel("DummyData.xlsx", col_types = "text") %>% pivot_longer(cols = 11:23, names_to = "Indicator", values_to ="value") %>%
+  rename(LA  = "Q1. Please select a local authority")
+unpivot_data <-read_excel("DummyData.xlsx")

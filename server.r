@@ -69,8 +69,15 @@ server <- function(input, output) {
 ##Create graphs to display results by questions================================
   #First graph for full breakdown of responses in year to date  
    output$YTDqstsPlot <- renderPlotly({
-    p <- ggplot(data = dta) +
-      geom_bar(aes(x = Council, y = Quarter), stat= "identity")
+   if(input$Qstn_tab2 == "All Questions"){
+       qstnDta <- dta
+     }else{
+       qstnDta <-filter(dta, Indicator == input$Qstn_tab2)
+    }
+     qstnDta <- qstnDta %>% count(value)
+     
+     p <- ggplot(data = qstnDta) +
+      geom_bar(aes(x = value, y = n), stat= "identity")
     ggplotly(p)
    })
    #Second summary of %age Good/v.good by quarter

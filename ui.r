@@ -41,7 +41,7 @@ ui <- dashboardPage(
               fluidRow(
                 column(4,
               selectInput("Qstn_tab2", label = "Select Question",
-                          choices = c("Q1", "Q2", "Q3", "All Questions"),
+                          choices = c("All Questions", unique(dta$Indicator)),
                           selected = "All Questions"
                           )),
               column(4,
