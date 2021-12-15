@@ -10,9 +10,9 @@ server <- function(input, output) {
     )
   })
 #Create performance box for Scotland
-  output$scotPerfBox<- renderValueBox({
+  output$scotPerfBox<- renderInfoBox({
     scotAv<- round(mean(dta$`Q1. test`, na.rm = T),1) ##calculate Scotland average
-    valueBox(
+    infoBox(
       value = scotAv, "Scotland Average", icon = icon("times"), color = "blue"
     )
   })
@@ -66,13 +66,31 @@ server <- function(input, output) {
      pfig
     })
     
-##Create graph to display results by questions
-   output$qstsPlot <- renderPlotly({
+##Create graphs to display results by questions================================
+  #First graph for full breakdown of responses in year to date  
+   output$YTDqstsPlot <- renderPlotly({
     p <- ggplot(data = dta) +
       geom_bar(aes(x = Council, y = Quarter), stat= "identity")
     ggplotly(p)
    })
+   #Second summary of %age Good/v.good by quarter
+   output$qrtsQsplot <- renderPlotly({
+       p <- ggplot(data = dta) +
+         geom_bar(aes(x = Council, y = Quarter), stat= "identity")
+       ggplotly(p)
+   })
    
+##Report page outputs =====================================
+   
+   output$reportKPO4Plot <- renderPlotly({
+     p <- ggplot(data = dta) +
+       geom_bar(aes(x = Council, y = Quarter), stat= "identity") +
+       theme_bw()
+     ggplotly(p)     
+     })
+   
+   
+   ##Render text for KPO4 Overall perf to year
    output$KPO4_text <- renderText({
      local_auth <- "Aberdeen"
      curr_year <- yr2fy(2022)
@@ -87,5 +105,12 @@ server <- function(input, output) {
                        "than the Scotland average of", scotAv_kpo4,"and", abbel_kpo4,"than the target value
                        of 7.5.")
      text_kpo
+   })
+   
+   output$reportRespondents <- renderPlotly({
+     p <- ggplot(data = dta) +
+       geom_bar(aes(x = Council, y = Quarter), stat= "identity") +
+       theme_bw()
+     ggplotly(p)     
    })
 }

@@ -21,7 +21,7 @@ ui <- dashboardPage(
               h2(paste("KPO4 Performance", "Date last updated:", format(Sys.time(), "%d %b %Y")),style = "margin-top:3px"), ###add something to say date most recently updated?
               fluidRow(
                 valueBoxOutput("performanceBox"), #performance for council
-                valueBoxOutput("scotPerfBox"),   #Scotland average performance
+                infoBoxOutput("scotPerfBox"),   #Scotland average performance
                 valueBoxOutput("respBox")
                 ),
               fluidRow(
@@ -37,7 +37,7 @@ ui <- dashboardPage(
                )
               ), 
       tabItem(tabName = "Qstns",
-              h2("Performance by Question", style = "margin-top:3px"),
+             # h2("Performance by Question", style = "margin-top:3px"),
               fluidRow(
                 column(4,
               selectInput("Qstn_tab2", label = "Select Question",
@@ -66,13 +66,19 @@ ui <- dashboardPage(
                 status = "info",
                 animation = "pulse"
               ))),
-              box(plotlyOutput("qstsPlot"))
+              tabBox(width = 12,
+                    tabPanel("Year to Date",plotlyOutput("YTDqstsPlot")),
+                    tabPanel("Summary by Quarter", plotlyOutput("qrtsQsplot")))
                ),
       tabItem(tabName = "RptDl",
-              h2("Report Download", style = "margin-top:3px"),
+            #  h2("Report Download", style = "margin-top:3px"),
               fluidRow(
-                box(width = 8, "graph"),
+                box(width = 8, plotlyOutput("reportKPO4Plot")),
                 box(width = 4,textOutput("KPO4_text"))
+              ),
+              fluidRow(
+                box(width = 8, plotlyOutput("reportRespondents")),
+                box(width = 4,"text")
               )
               )
     )
