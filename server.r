@@ -1,34 +1,71 @@
 server <- function(input, output) {
   
-
+##Create outputs for KPO4 Summary Page===========================  
+  
+##calculated the KPO4 score based on weighted responses
+  KPOdta <- dta %>% mutate(value = as.numeric(value)) %>% mutate(KPO_weight = value-1)
+  KPOweights_multiplier <- outer(dta$Indicator == "Q4. Thinking of your engagement with [question(15510346)] Building Standards from beginning to end, how satisfied were you with the time taken to complete the process?",2)+
+    outer(dta$Indicator == "Q5. How would you rate the standard of communication provided by the Building Standards service following your initial contact or once your application had been submitted?",2) +
+    outer(dta$Indicator == "Q7. Overall, how satisfied were you with the service provided by [question(15510346)] Building Standards?",8)
+  KPOweights_multiplier <- replace(KPOweights_multiplier, KPOweights_multiplier==0, 1)
+  
+  KPOdta$KPO_weight <- KPOdta$KPO_weight * KPOweights_multiplier  
+  
+  ##get total and max values for Scotland and Selected LA by quarter
+  scot_max <- dta %>% mutate(maxAvailable = 4) %>% mutate(value = as.numeric(value))
+  scot_max$maxAvailable <- (scot_max$maxAvailable-1) * KPOweights_multiplier 
+  scot_max[is.na(scot_max$value), "maxAvailable"] <- NA
+  scot_max$KPO4_weighted <- (scot_max$value-1) * KPOweights_multiplier
+  ##calculate KPO4 for quarter for all results   
+  scot_max_sum <- scot_max %>% group_by(`Tracking Link`) %>%
+    summarise(across(c(maxAvailable,KPO4_weighted),sum, na.rm = T)) %>% 
+    bind_rows(summarise(.,across(where(is.numeric), sum),
+                        across(where(is.character), ~"Total")))  %>%
+    mutate(KPO_score = 1-KPO4_weighted/maxAvailable)
+  
+  
+  ##calculate KPO4 for quearter for selected local authority    
+  la_max_sum <- reactive({
+    
+    ##filter KPO data by local authority name
+    LA_num <- match(input$LA_selection, LA_Names)
+    
+    la_max_sum <- scot_max %>% filter(LA == 1) %>%          ##Filter using input for LA
+    group_by(`Tracking Link`) %>%
+    summarise(across(c(maxAvailable,KPO4_weighted),sum, na.rm = T)) %>% 
+    bind_rows(summarise(.,across(where(is.numeric), sum),
+                        across(where(is.character), ~"Total")))  %>%
+    mutate(KPO_score = 1-KPO4_weighted/maxAvailable)
+  })
   
 #Create performance box for selected Council  
   output$performanceBox <- renderValueBox({
-    laAv <- dta %>% filter(Council == input$LA_selection) %>% summarise(CncPerf = round(mean(`Q1. test`, na.rm = T),1))
+    la_max_sum <- la_max_sum()
     valueBox(
-      value = laAv$CncPerf, "Council Satisfaction YTD", icon = icon("chart-bar"), color = "red"
+      value = round(la_max_sum[la_max_sum$`Tracking Link` =="Total", "KPO_score"],2), "Council KPO4 YTD", icon = icon("chart-bar"), color = "red"
     )
   })
 #Create performance box for Scotland
   output$scotPerfBox<- renderInfoBox({
-    scotAv<- round(mean(dta$`Q1. test`, na.rm = T),1) ##calculate Scotland average
     infoBox(
-      value = scotAv, "Scotland Average", icon = icon("times"), color = "blue"
+      value = round(scot_max_sum[scot_max_sum$`Tracking Link` =="Total", "KPO_score"],2), "Scotland Average", icon = icon("times"), color = "blue"
     )
   })
 #Create responses valuebox
     output$respBox <- renderValueBox({
       valueBox(
-        value = paste("500", "Responses"), paste(500+300,"Year to Date"), icon = icon("user-friends"), color = "green"
+        value = paste(nrow(filter(unpivot_data, `Tracking Link` == "Quarter 1")), "Responses"), paste(nrow(unpivot_data),"Year to Date"), icon = icon("user-friends"), color = "green"
       )
     })
     
 ##Create bar plot for overall performance
-    output$ovrPerfBar <- renderPlot(
-       ggplot(data = dta) +
-         geom_bar(aes(x = Quarter, y = `Q1. test`, fill = Council), stat = "identity",
+    output$ovrPerfBar <- renderPlot({
+      la_max_sum <- la_max_sum()
+      
+       ggplot(data = la_max_sum) +
+         geom_bar(aes(x = `Tracking Link`, y = KPO_score), stat = "identity",
                   position = "dodge")
-    )
+    })
     
 ##Create doughnut for respondent types and reasons
     output$respDoughnut <- renderPlot({

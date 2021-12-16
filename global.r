@@ -19,4 +19,4 @@ LA_Names <- c("Aberdeen City", "Aberdeenshire","Angus", "Argyll and Bute" ,
 dta <- read_excel("DummyData.xlsx", col_types = "text") %>% select(!contains(c("Please explain your answer", "other comments"))) %>%
   pivot_longer(cols = 11:ncol(.), names_to = "Indicator", values_to ="value") %>%
   rename(LA  = "Q1. Please select a local authority")
-unpivot_data <-read_excel("DummyData.xlsx")
+unpivot_data <-read_excel("DummyData.xlsx") %>%  rename(LA  = "Q1. Please select a local authority")
