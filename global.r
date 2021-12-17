@@ -18,5 +18,7 @@ LA_Names <- c("Aberdeen City", "Aberdeenshire","Angus", "Argyll and Bute" ,
 
 dta <- read_excel("DummyData.xlsx", col_types = "text") %>% select(!contains(c("Please explain your answer", "other comments"))) %>%
   pivot_longer(cols = 11:ncol(.), names_to = "Indicator", values_to ="value") %>%
-  rename(LA  = "Q1. Please select a local authority")
+  rename(LA  = "Q1. Please select a local authority") 
+##NA values are coded as 5 by SmartSurvey - replace with NA
+dta$value <- replace(dta$value,dta$value == "5", NA)
 unpivot_data <-read_excel("DummyData.xlsx") %>%  rename(LA  = "Q1. Please select a local authority")
