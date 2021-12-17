@@ -104,23 +104,41 @@ server <- function(input, output) {
     })
     
 ##Create graphs to display results by questions================================
-  #First graph for full breakdown of responses in year to date  
+  
+    #First graph for full breakdown of responses in year to date  
    output$YTDqstsPlot <- renderPlotly({
    if(input$Qstn_tab2 == "All Questions"){
-       qstnDta <- dta
+       qstnDta <- dta %>% filter(value != "-")
      }else{
-       qstnDta <-filter(dta, Indicator == input$Qstn_tab2)
+       qstnDta <-filter(dta, Indicator == input$Qstn_tab2) %>% filter(value != "-")
     }
      qstnDta <- qstnDta %>% count(value)
-     
+  
      p <- ggplot(data = qstnDta) +
       geom_bar(aes(x = value, y = n), stat= "identity")
     ggplotly(p)
    })
-   #Second summary of %age Good/v.good by quarter
+   
+  #Second summary of %age Good/v.good by quarter
    output$qrtsQsplot <- renderPlotly({
-       p <- ggplot(data = dta) +
-         geom_bar(aes(x = Council, y = Quarter), stat= "identity")
+  ##filter dataset based on selected question   
+     if(input$Qstn_tab2 == "All Questions"){  
+       qstnDta <- dta
+     }else{
+         qstnDta <-filter(dta, Indicator == input$Qstn_tab2)
+       }
+   
+     qstnDta <- qstnDta %>%  count(`Tracking Link`,value)
+     qstnDta <- qstnDta %>% group_by(value) %>% summarise(., across(n, sum)) %>% mutate(`Tracking Link` = "YTD") %>%
+       select(3,1,2) %>%
+       bind_rows(qstnDta) %>%
+       group_by(`Tracking Link`) %>%
+       mutate(total_responses = sum(n)) %>%
+       ungroup()%>%
+       mutate(percentage_responses = n/total_responses)
+   
+       p <- ggplot(data = qstnDta ) +
+         geom_bar(aes(x = value, y = percentage_responses, fill = `Tracking Link`), stat= "identity", position = "dodge")
        ggplotly(p)
    })
    
