@@ -4,9 +4,9 @@ server <- function(input, output) {
   
 ##calculated the KPO4 score based on weighted responses
   KPOdta <- dta %>% mutate(value = as.numeric(value)) %>% mutate(KPO_weight = value-1)
-  KPOweights_multiplier <- outer(dta$Indicator == "Q4. Thinking of your engagement with [question(15510346)] Building Standards from beginning to end, how satisfied were you with the time taken to complete the process?",2)+
-    outer(dta$Indicator == "Q5. How would you rate the standard of communication provided by the Building Standards service following your initial contact or once your application had been submitted?",2) +
-    outer(dta$Indicator == "Q7. Overall, how satisfied were you with the service provided by [question(15510346)] Building Standards?",8)
+  KPOweights_multiplier <- outer(dta$Indicator == "Thinking of your engagement, how satisfied were you with the time taken to complete the process?",2)+
+    outer(dta$Indicator == "How would you rate the standard of communication provided?",2) +
+    outer(dta$Indicator == "Overall, how satisfied were you with the service provided?",8)
   KPOweights_multiplier <- replace(KPOweights_multiplier, KPOweights_multiplier==0, 1)
   
   KPOdta$KPO_weight <- KPOdta$KPO_weight * KPOweights_multiplier  
@@ -111,11 +111,30 @@ server <- function(input, output) {
        qstnDta <- dta %>% filter(value != "-")
      }else{
        qstnDta <-filter(dta, Indicator == input$Qstn_tab2) %>% filter(value != "-")
-    }
-     qstnDta <- qstnDta %>% count(value)
+       qstnDta$value <- factor(qstnDta$value,levels = c(1,2,3,4))
+            }
+     qstnDta <- qstnDta %>% count(value, .drop = F)
+     
+     if(input$Qstn_tab2 == "All Questions"){
+     qstnDta$named_value <- recode(qstnDta$value, "1" = "Very good/very satisfied/strongly agree",
+                                   "2" ="good/satisfied/agree",
+                                   "3" = "poor/dissatisfied/disagree",
+                                   "4" = "Very poor/very dissatisfied/strongly disagree")
+     } else if(input$Qstn_tab2 == "Quality of the information provided"|input$Qstn_tab2 =="Overall, how satisfied were you with the service provided?"){
+       qstnDta$named_value <- recode(qstnDta$value, "1" = "very satisfied",
+                                     "2" ="satisfied",
+                                     "3" = "dissatisfied",
+                                     "4" = "very dissatisfied")
+     } else{
+       qstnDta$named_value <- recode(qstnDta$value, "1" = "very good",
+                                     "2" ="good",
+                                     "3" = "poor",
+                                     "4" = "very poor")
+       qstnDta$named_value <- factor(qstnDta$named_value, levels  = c("very good", "good", "poor", "very poor"))
+     }
   
      p <- ggplot(data = qstnDta) +
-      geom_bar(aes(x = value, y = n), stat= "identity")
+      geom_bar(aes(x = reorder(named_value, as.numeric(value)), y = n), stat= "identity")
     ggplotly(p)
    })
    
