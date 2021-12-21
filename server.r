@@ -92,12 +92,21 @@ server <- function(input, output) {
     
 ##Create graphs to display results by questions================================
   
+    ##Create filtered dataset from checkboxes
+    qstn_dataset_filtered <- reactive({
+      names(dta) <- gsub("Q2[1-9\\.]+\\s","",names(dta), perl = T)
+      slctn <- input$Qs_resp_input
+      filter_data <- dta %>% filter(if_any(slctn, ~ . == 1))
+      filter_data
+    })
+    
     #First graph for full breakdown of responses in year to date  
    output$YTDqstsPlot <- renderPlotly({
+     filt_data <- qstn_dataset_filtered()
    if(input$Qstn_tab2 == "All Questions"){
-       qstnDta <- dta %>% filter(value != "-")
+       qstnDta <- filt_data %>% filter(value != "-")
      }else{
-       qstnDta <-filter(dta, Indicator == input$Qstn_tab2) %>% filter(value != "-")
+       qstnDta <-filter(filt_data, Indicator == input$Qstn_tab2) %>% filter(value != "-")
        qstnDta$value <- factor(qstnDta$value,levels = c(1,2,3,4))
             }
      qstnDta <- qstnDta %>% count(value, .drop = F)
