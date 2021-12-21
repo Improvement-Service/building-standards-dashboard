@@ -28,3 +28,13 @@ dta[dta$Indicator == "How would you rate the standard of communication provided 
 ##NA values are coded as 5 by SmartSurvey - replace with NA
 dta$value <- replace(dta$value,dta$value == "5", NA)
 unpivot_data <-read_excel("DummyData.xlsx") %>%  rename(LA  = "Q1. Please select a local authority")
+
+##Generate another dataframe with respondent types
+resp_dta <- unpivot_data %>% group_by(LA) %>% select(1:10)%>%
+  pivot_longer(cols = 3:10, names_to = "Question", values_to = "value")%>% 
+  group_by(LA,Question) %>%
+  count(value) %>%
+  mutate(perc = n/sum(n))
+resp_dta$question_type <- ifelse(grepl("Q2", resp_dta$Question), "Type", "Reason")
+resp_dta$Question <- gsub("Q[\\.1-9]+\\s", "", resp_dta$Question,perl = T)
+

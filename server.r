@@ -68,39 +68,26 @@ server <- function(input, output) {
     })
     
 ##Create doughnut for respondent types and reasons
-    output$respDoughnut <- renderPlot({
-  ##create data    
-      data <- data.frame(
-        category=c("A", "B", "C"),
-        count=c(10, 60, 30)
-      )
-      # Compute percentages
-      data$fraction = data$count / sum(data$count)
-      
-      # Compute the cumulative percentages (top of each rectangle)
-      data$ymax = cumsum(data$fraction)
-      
-      # Compute the bottom of each rectangle
-      data$ymin = c(0, head(data$ymax, n=-1))
-      
-      # Make the plot
-      ggplot(data, aes(ymax=ymax, ymin=ymin, xmax=4, xmin=3, fill=category)) +
-        geom_rect() +
-        coord_polar(theta="y") + # Try to remove that to understand how the chart is built initially
-        xlim(c(2, 4)) +
-        theme_void()
+    output$respDoughnut <- renderPlotly({
+  ##select data    
+      pc_resp_data <- resp_dta %>% filter(., question_type == "Type" & value == 1)
+      pfig <- ggplot(data = pc_resp_data) +
+        geom_col(aes(x = Question, y = perc))+
+        coord_flip()
+      ggplotly(pfig)
       
     })
     
 ##Alternative - create a pie chart in plotly
     output$plotly_pie <- renderPlotly({
-     pfig <- plot_ly(data = dta,labels = ~Council, values = ~`Q1. test`, margin = c(0,0,0,0), autosize = F) %>% 
-       add_pie(hole = 0.6)
-     pfig <- pfig %>% layout(title = "Test",
-                 xaxis = list(showgrid = FALSE, zeroline = FALSE, showticklabels = FALSE),
-                 yaxis = list(showgrid = FALSE, zeroline = FALSE, showticklabels = FALSE)
-                             )
-     pfig
+      ##select data   
+      pc_resp_data <- resp_dta %>% filter(., question_type == "Reason" & value == 1)
+      pc_resp_data$Question <- gsub(" for a building warrant","",pc_resp_data$Question)
+      pc_resp_data[pc_resp_data$Question == "During construction, including submission of a completion certificate", "Question"] <-"During construction" 
+      pfig <- ggplot(data = pc_resp_data) +
+        geom_col(aes(x = Question, y = perc))+
+        coord_flip()
+      ggplotly(pfig)
     })
     
 ##Create graphs to display results by questions================================
