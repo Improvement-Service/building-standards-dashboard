@@ -77,9 +77,9 @@ ui <- dashboardPage(
                 box(width = 4,textOutput("KPO4_text"))
               ),
               fluidRow(
-                box(width = 8, plotlyOutput("reportRespondents")),
-                box(width = 4,"text")
-              )
+                box(width = 8, plotlyOutput("respDoughnut_report")),
+                box(width = 4,textOutput("respondent_text_report"))
+               )
               )
     )
     
