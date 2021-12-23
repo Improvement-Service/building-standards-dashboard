@@ -48,8 +48,8 @@ ui <- dashboardPage(
               prettyCheckboxGroup(
                 inputId = "Qs_resp_input",
                 label = "Respondent", 
-                choices = c("Agent/Designer", "Applicant", "Contractor", "Other (please specify):"),
-                selected = c("Agent/Designer", "Applicant", "Contractor", "Other (please specify):"),
+                choices = c("Agent/Designer", "Applicant", "Contractor", "Other respondent"),
+                selected = c("Agent/Designer", "Applicant", "Contractor", "Other respondent"),
                 inline = TRUE,
                 icon = icon("check"),
                 status = "danger",
@@ -59,8 +59,8 @@ ui <- dashboardPage(
               prettyCheckboxGroup(
                 inputId = "Qs_reason_input",
                 label = "Reasons", 
-                choices = c("To discuss proposal", "Make application", "During construction", "Other"),
-                selected = c("To discuss proposal", "Make application", "During construction", "Other"),
+                choices = c("To discuss your proposal", "Make an application", "During construction", "Other reason"),
+                selected = c("To discuss your proposal", "Make an application", "During construction", "Other reason"),
                 inline = TRUE,
                 icon = icon("check"),
                 status = "info",

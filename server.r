@@ -94,9 +94,14 @@ server <- function(input, output) {
   
     ##Create filtered dataset from checkboxes
     qstn_dataset_filtered <- reactive({
-      names(dta) <- gsub("Q2[1-9\\.]+\\s","",names(dta), perl = T)
-      slctn <- input$Qs_resp_input
-      filter_data <- dta %>% filter(if_any(slctn, ~ . == 1))
+      names(dta) <- gsub("Q[1-9\\.]+\\s","",names(dta), perl = T)
+      dta$`Tracking Link` <- as.factor(dta$`Tracking Link`)
+    ##select applicant type  
+      slctn_respondent <- input$Qs_resp_input
+    ##select applicant reason using partial match
+      slctn_reason <- names(select(dta, contains(input$Qs_reason_input)))
+      filter_data <- dta %>% filter(if_any(slctn_respondent, ~ . == 1)) %>%
+        filter(if_any(slctn_reason, ~.==1))
       filter_data
     })
     
@@ -137,13 +142,15 @@ server <- function(input, output) {
   #Second summary of %age Good/v.good by quarter
    output$qrtsQsplot <- renderPlotly({
   ##filter dataset based on selected question   
+     qstn_dataset_filtered <- qstn_dataset_filtered()
+     qstn_dataset_filtered <- qstn_dataset_filtered %>% filter(value != "-")
      if(input$Qstn_tab2 == "All Questions"){  
-       qstnDta <- dta
+       qstnDta <- qstn_dataset_filtered
      }else{
-         qstnDta <-filter(dta, Indicator == input$Qstn_tab2)
+         qstnDta <-filter(qstn_dataset_filtered, Indicator == input$Qstn_tab2)
        }
-   
-     qstnDta <- qstnDta %>%  count(`Tracking Link`,value)
+     
+     qstnDta <- qstnDta %>%  count(`Tracking Link`,value, .drop =F)
      qstnDta <- qstnDta %>% group_by(value) %>% summarise(., across(n, sum)) %>% mutate(`Tracking Link` = "YTD") %>%
        select(3,1,2) %>%
        bind_rows(qstnDta) %>%
@@ -153,7 +160,7 @@ server <- function(input, output) {
        mutate(percentage_responses = n/total_responses)
    
        p <- ggplot(data = qstnDta ) +
-         geom_bar(aes(x = value, y = percentage_responses, fill = `Tracking Link`), stat= "identity", position = "dodge")
+         geom_bar(aes(x = `Tracking Link`, y = percentage_responses), stat= "identity", position = "dodge")
        ggplotly(p)
    })
    
