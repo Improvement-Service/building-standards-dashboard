@@ -24,7 +24,7 @@ server <- function(input, output) {
     mutate(KPO_score = 1-KPO4_weighted/maxAvailable)
   
   
-  ##calculate KPO4 for quearter for selected local authority    
+  ##calculate KPO4 for quarter for selected local authority    
   la_max_sum <- reactive({
     
     ##filter KPO data by local authority name
@@ -68,7 +68,10 @@ server <- function(input, output) {
     })
     
 ##Create doughnut for respondent types and reasons
-    output$respDoughnut <- renderPlotly({
+    
+  ##n.b. I am using the same output twice, in the UI, but this is not allowed, so this
+    #is the suggested workaround i.e. assign the output twice
+    output$respDoughnut_report <- output$respDoughnut <- renderPlotly({
   ##select data    
       pc_resp_data <- resp_dta %>% filter(., question_type == "Type" & value == 1)
       pfig <- ggplot(data = pc_resp_data) +
@@ -166,21 +169,32 @@ server <- function(input, output) {
    
 ##Report page outputs =====================================
    
+   report_kpo_data <- reactive({
+     la_max_sum <- la_max_sum()
+     
+     la_max_sum$id <- "local authority"
+     scot_max_sum$id <- "Scotland" 
+     
+     all_kpo_dta <- rbind(scot_max_sum, la_max_sum) %>% filter(`Tracking Link` == "Total")
+     all_kpo_dta
+   })
+   
    output$reportKPO4Plot <- renderPlotly({
-     p <- ggplot(data = dta) +
-       geom_bar(aes(x = Council, y = Quarter), stat= "identity") +
-       theme_bw()
-     ggplotly(p)     
+     all_kpo_data <- report_kpo_data()
+     ggplot(data = all_kpo_data) +
+       geom_bar(aes(x = `Tracking Link`, y = KPO_score, fill = id), stat = "identity",
+                position = "dodge")   
      })
    
    
    ##Render text for KPO4 Overall perf to year
    output$KPO4_text <- renderText({
-     local_auth <- "Aberdeen"
+     all_kpo_data <- report_kpo_data()
+     local_auth <- "Aberdeen City" ##will need to select LA based on log in details
      curr_year <- yr2fy(2022)
-     KPO4_ytd <- 8
+     KPO4_ytd <- all_kpo_data %>% filter(id == "local authority") %>% select(KPO_score)
      hilow_kpo4 <- ifelse(KPO4_ytd > 7.5, "higher", "lower")
-     scotAv_kpo4 <- 7.8
+     scotAv_kpo4 <- all_kpo_data %>% filter(id == "Scotland") %>% select(KPO_score)
      abbel_kpo4 <- ifelse(KPO4_ytd > scotAv_kpo4, "higher", "lower")
      
      text_kpo <- paste("This indicator summarises performance across all questions, with differential
@@ -191,10 +205,22 @@ server <- function(input, output) {
      text_kpo
    })
    
-   output$reportRespondents <- renderPlotly({
-     p <- ggplot(data = dta) +
-       geom_bar(aes(x = Council, y = Quarter), stat= "identity") +
-       theme_bw()
-     ggplotly(p)     
+   output$respondent_text_report <- renderText({
+     local_auth <- "Aberdeen City" ##will need to select LA based on log in details
+     resp_dta_filter <- resp_dta %>% filter(LA == 1) ##filter by LA
+     resp_number <- resp_dta_filter %>% ungroup() %>% filter(Question == "Agent/Designer") %>% summarise_at(vars(`n`), sum) %>%
+       select(`n`)
+     agent_perc <- resp_dta_filter[resp_dta_filter$Question == "Agent/Designer" & resp_dta_filter$value == 1 ,"perc"] *100
+     appli_perc <- resp_dta_filter[resp_dta_filter$Question == "Applicant" & resp_dta_filter$value == 1 ,"perc"] *100
+     contr_perc <- resp_dta_filter[resp_dta_filter$Question == "Contractor" & resp_dta_filter$value == 1 ,"perc"] *100
+    
+     txt_respondents <- paste0("Respondents were asked to provide details on the type of respondent they were, 
+     as well as their reason for contacting the Building Standards Service in", local_auth,".",
+     "Of the", resp_number, " respondents", agent_perc, "% were agents or designers,", appli_perc, "%
+     were applicants and", contr_perc, "% were contractors")
+     txt_respondents
    })
-}
+   
+    
+   
+   }
