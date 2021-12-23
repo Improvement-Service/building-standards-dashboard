@@ -39,6 +39,10 @@ resp_dta <- unpivot_data %>% group_by(LA) %>% select(1:10)%>%
   group_by(LA,Question) %>%
   count(value) %>%
   mutate(perc = n/sum(n))
+
+##Tidy the respondent types and reasons
 resp_dta$question_type <- ifelse(grepl("Q2", resp_dta$Question), "Type", "Reason")
+
+##Remove question numbers
 resp_dta$Question <- gsub("Q[\\.1-9]+\\s", "", resp_dta$Question,perl = T)
 
