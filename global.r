@@ -29,6 +29,10 @@ dta[dta$Indicator == "How would you rate the standard of communication provided 
 dta$value <- replace(dta$value,dta$value == "5", NA)
 unpivot_data <-read_excel("DummyData.xlsx") %>%  rename(LA  = "Q1. Please select a local authority")
 
+##tidy up other" column names for selecting data later
+dta <- dta %>% rename("Q2.4. Other respondent" = "Q2.4. Other (please specify):", 
+               "Q3.4. Other reason" = "Q3.4. Other (please specify):") 
+
 ##Generate another dataframe with respondent types
 resp_dta <- unpivot_data %>% group_by(LA) %>% select(1:10)%>%
   pivot_longer(cols = 3:10, names_to = "Question", values_to = "value")%>% 
