@@ -210,17 +210,29 @@ server <- function(input, output) {
      resp_dta_filter <- resp_dta %>% filter(LA == 1) ##filter by LA
      resp_number <- resp_dta_filter %>% ungroup() %>% filter(Question == "Agent/Designer") %>% summarise_at(vars(`n`), sum) %>%
        select(`n`)
-     agent_perc <- resp_dta_filter[resp_dta_filter$Question == "Agent/Designer" & resp_dta_filter$value == 1 ,"perc"] *100
-     appli_perc <- resp_dta_filter[resp_dta_filter$Question == "Applicant" & resp_dta_filter$value == 1 ,"perc"] *100
-     contr_perc <- resp_dta_filter[resp_dta_filter$Question == "Contractor" & resp_dta_filter$value == 1 ,"perc"] *100
+     agent_perc <- round(resp_dta_filter[resp_dta_filter$Question == "Agent/Designer" & resp_dta_filter$value == 1 ,"perc"] *100, 2)
+     appli_perc <- round(resp_dta_filter[resp_dta_filter$Question == "Applicant" & resp_dta_filter$value == 1 ,"perc"] *100, 2)
+     contr_perc <- round(resp_dta_filter[resp_dta_filter$Question == "Contractor" & resp_dta_filter$value == 1 ,"perc"] *100, 2)
     
      txt_respondents <- paste0("Respondents were asked to provide details on the type of respondent they were, 
      as well as their reason for contacting the Building Standards Service in", local_auth,".",
-     "Of the", resp_number, " respondents", agent_perc, "% were agents or designers,", appli_perc, "%
-     were applicants and", contr_perc, "% were contractors")
+     "Of the ", resp_number, " respondents ", agent_perc, "% were agents or designers,", appli_perc, "%
+     were applicants and ", contr_perc, "% were contractors.")
      txt_respondents
    })
    
-    
+   output$ovrPerfLine <- renderPlotly({
+     la_max_sum <- la_max_sum()
+     scot_max_sum$LA <- "Scotland"
+     la_max_sum$LA <- "Aberdeen City"
+     
+     quarts_dta <- rbind(scot_max_sum,la_max_sum) %>% filter(`Tracking Link` != "Total")
+     
+     plt <- ggplot(data = quarts_dta) +
+       geom_line(aes(x = `Tracking Link`, y = KPO_score, group = LA, colour = LA),
+                lwd = 1)
+     ggplotly(plt)
+   })
+   
    
    }
