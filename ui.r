@@ -79,7 +79,11 @@ ui <- dashboardPage(
               fluidRow(
                 box(width = 8, plotlyOutput("respDoughnut_report")),
                 box(width = 4,textOutput("respondent_text_report"))
-               )
+               ),
+            fluidRow(
+              box(width = 8, plotlyOutput("ovrPerfLine")),
+              box(width = 4, "text")
+            )
               )
     )
     
