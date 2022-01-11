@@ -82,7 +82,7 @@ ui <- dashboardPage(
                ),
             fluidRow(
               box(width = 8, plotlyOutput("ovrPerfLine")),
-              box(width = 4, "text")
+              box(width = 4, textOutput("quarter_text"))
             )
               )
     )
