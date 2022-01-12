@@ -83,6 +83,34 @@ ui <- dashboardPage(
             fluidRow(
               box(width = 8, plotlyOutput("ovrPerfLine")),
               box(width = 4, textOutput("quarter_text"))
+            ),
+            fluidRow(
+              box(width = 8, plotOutput("question_time_report")),
+              box(width = 4, "text")
+            ),
+            fluidRow(
+              box(width = 8, plotOutput("question_comms_report")),
+              box(width = 4, "text")
+            ),
+            fluidRow(
+              box(width = 8, plotOutput("question_info_report")),
+              box(width = 4, "text")
+            ),
+            fluidRow(
+              box(width = 8, plotOutput("question_staff_report")),
+              box(width = 4, "text")
+            ),
+            fluidRow(
+              box(width = 8, plotOutput("question_responsiveness_report")),
+              box(width = 4, "text")
+            ),
+            fluidRow(
+              box(width = 8, plotOutput("question_fair_report")),
+              box(width = 4, "text")
+            ),
+            fluidRow(
+              box(width = 8, plotOutput("question_overall_report")),
+              box(width = 4, "text")
             )
               )
     )
