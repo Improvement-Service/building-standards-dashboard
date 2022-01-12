@@ -110,25 +110,35 @@ server <- function(input, output) {
     
     #First graph for full breakdown of responses in year to date  
    output$YTDqstsPlot <- renderPlotly({
+     
      filt_data <- qstn_dataset_filtered()
+     
+    ##if a question is selected filter the dataset
    if(input$Qstn_tab2 == "All Questions"){
        qstnDta <- filt_data %>% filter(value != "-")
+       qstnDta$value <- factor(qstnDta$value,levels = c(1,2,3,4))
      }else{
        qstnDta <-filter(filt_data, Indicator == input$Qstn_tab2) %>% filter(value != "-")
        qstnDta$value <- factor(qstnDta$value,levels = c(1,2,3,4))
             }
      qstnDta <- qstnDta %>% count(value, .drop = F)
      
+     ##set  tickmarks to display on x axis
      if(input$Qstn_tab2 == "All Questions"){
      qstnDta$named_value <- recode(qstnDta$value, "1" = "Very good/very satisfied/strongly agree",
                                    "2" ="good/satisfied/agree",
                                    "3" = "poor/dissatisfied/disagree",
                                    "4" = "Very poor/very dissatisfied/strongly disagree")
-     } else if(input$Qstn_tab2 == "Quality of the information provided"|input$Qstn_tab2 =="Overall, how satisfied were you with the service provided?"){
+     } else if(input$Qstn_tab2 =="Overall, how satisfied were you with the service provided?"|input$Qstn_tab2 =="Thinking of your engagement, how satisfied were you with the time taken to complete the process?"){
        qstnDta$named_value <- recode(qstnDta$value, "1" = "very satisfied",
                                      "2" ="satisfied",
                                      "3" = "dissatisfied",
                                      "4" = "very dissatisfied")
+     }else if(input$Qstn_tab2  =="To what extent would you agree that you were treated fairly?"){
+       qstnDta$named_value <- recode(qstnDta$value, "1" = "strongly agree",
+                                     "2" ="agree",
+                                     "3" = "disagree",
+                                     "4" = "strongly disagree")
      } else{
        qstnDta$named_value <- recode(qstnDta$value, "1" = "very good",
                                      "2" ="good",
@@ -136,7 +146,7 @@ server <- function(input, output) {
                                      "4" = "very poor")
        qstnDta$named_value <- factor(qstnDta$named_value, levels  = c("very good", "good", "poor", "very poor"))
      }
-  
+  #generate basic barplot
      p <- ggplot(data = qstnDta) +
       geom_bar(aes(x = reorder(named_value, as.numeric(value)), y = n), stat= "identity")
     ggplotly(p)
@@ -277,5 +287,195 @@ server <- function(input, output) {
     
    })
    
+##create graph for Question 1 on report page
+   output$question_time_report <- renderPlot({
+     ##filter dataset based on selected question   
+     dta$`Tracking Link` <- as.factor(dta$`Tracking Link`)
+     #filter by local authority and question and count no. responses
+     qstnDta_LA <- dta %>% filter(Indicator == "Thinking of your engagement, how satisfied were you with the time taken to complete the process?") %>%
+       filter(LA == "1") %>% count(value, .drop =F) %>%
+       mutate(Selection = "LA")
+     
+     #get all data for this question and count no. responses, bind LA count
+     qstnDta <- dta %>% filter(Indicator == "Thinking of your engagement, how satisfied were you with the time taken to complete the process?") %>%
+       count(value, .drop =F) %>%
+       mutate(Selection = "Scotland") %>%
+       rbind(qstnDta_LA )
+    #Get percentage of responses for LA and Scotland 
+     qstnDta <- qstnDta %>% group_by(Selection) %>% mutate(perc_resp = n/sum(n))
+    #Recode the values for this question to be shown on tickmarks in x axis 
+     qstnDta$named_value <- recode(qstnDta$value, "1" = "very satisfied",
+                                   "2" ="satisfied",
+                                   "3" = "dissatisfied",
+                                   "4" = "very dissatisfied")
+    #create a graph
+     p <- ggplot(data = qstnDta ) +
+       geom_bar(aes(x = reorder(named_value, as.numeric(value)), y = perc_resp, fill =Selection), stat= "identity", position = "dodge")
+     p
+     
+   })
    
+   ##create graph for Question 2 on report page
+   output$question_comms_report <- renderPlot({
+     ##filter dataset based on selected question   
+     dta$`Tracking Link` <- as.factor(dta$`Tracking Link`)
+     #filter by local authority and question and count no. responses
+     qstnDta_LA <- dta %>% filter(Indicator == "How would you rate the standard of communication provided?") %>%
+       filter(LA == "1") %>% count(value, .drop =F) %>%
+       mutate(Selection = "LA")
+     
+     #get all data for this question and count no. responses, bind LA count
+     qstnDta <- dta %>% filter(Indicator == "How would you rate the standard of communication provided?") %>%
+       count(value, .drop =F) %>%
+       mutate(Selection = "Scotland") %>%
+       rbind(qstnDta_LA )
+     #Get percentage of responses for LA and Scotland 
+     qstnDta <- qstnDta %>% group_by(Selection) %>% mutate(perc_resp = n/sum(n))
+     #Recode the values for this question to be shown on tickmarks in x axis 
+     qstnDta$named_value <- recode(qstnDta$value, "1" = "very good",
+                                   "2" ="good",
+                                   "3" = "poor",
+                                   "4" = "very poor")
+     #create a graph
+     p <- ggplot(data = qstnDta ) +
+       geom_bar(aes(x = reorder(named_value, as.numeric(value)), y = perc_resp, fill =Selection), stat= "identity", position = "dodge")
+     p
+     
+   })
+  
+   ##create graph for Question 3 on report page
+   output$question_info_report <- renderPlot({
+     ##filter dataset based on selected question   
+     dta$`Tracking Link` <- as.factor(dta$`Tracking Link`)
+     #filter by local authority and question and count no. responses
+     qstnDta_LA <- dta %>% filter(Indicator == "Quality of the information provided") %>%
+       filter(LA == "1") %>% count(value, .drop =F) %>%
+       mutate(Selection = "LA")
+     
+     #get all data for this question and count no. responses, bind LA count
+     qstnDta <- dta %>% filter(Indicator == "Quality of the information provided") %>%
+       count(value, .drop =F) %>%
+       mutate(Selection = "Scotland") %>%
+       rbind(qstnDta_LA )
+     #Get percentage of responses for LA and Scotland 
+     qstnDta <- qstnDta %>% group_by(Selection) %>% mutate(perc_resp = n/sum(n))
+     #Recode the values for this question to be shown on tickmarks in x axis 
+     qstnDta$named_value <- recode(qstnDta$value, "1" = "very good",
+                                   "2" ="good",
+                                   "3" = "poor",
+                                   "4" = "very poor")
+     #create a graph
+     p <- ggplot(data = qstnDta ) +
+       geom_bar(aes(x = reorder(named_value, as.numeric(value)), y = perc_resp, fill =Selection), stat= "identity", position = "dodge")
+     p
+     
+   })
+   ##create graph for Question 4 on report page
+   output$question_staff_report <- renderPlot({
+     ##filter dataset based on selected question   
+     dta$`Tracking Link` <- as.factor(dta$`Tracking Link`)
+     #filter by local authority and question and count no. responses
+     qstnDta_LA <- dta %>% filter(Indicator == "Service offered by staff") %>%
+       filter(LA == "1") %>% count(value, .drop =F) %>%
+       mutate(Selection = "LA")
+     
+     #get all data for this question and count no. responses, bind LA count
+     qstnDta <- dta %>% filter(Indicator == "Service offered by staff") %>%
+       count(value, .drop =F) %>%
+       mutate(Selection = "Scotland") %>%
+       rbind(qstnDta_LA )
+     #Get percentage of responses for LA and Scotland 
+     qstnDta <- qstnDta %>% group_by(Selection) %>% mutate(perc_resp = n/sum(n))
+     #Recode the values for this question to be shown on tickmarks in x axis 
+     qstnDta$named_value <- recode(qstnDta$value, "1" = "very good",
+                                   "2" ="good",
+                                   "3" = "poor",
+                                   "4" = "very poor")
+     #create a graph
+     p <- ggplot(data = qstnDta ) +
+       geom_bar(aes(x = reorder(named_value, as.numeric(value)), y = perc_resp, fill =Selection), stat= "identity", position = "dodge")
+     p
+     
+   })
+   ##create graph for Question 5 on report page
+   output$question_responsiveness_report <- renderPlot({
+     ##filter dataset based on selected question   
+     dta$`Tracking Link` <- as.factor(dta$`Tracking Link`)
+     #filter by local authority and question and count no. responses
+     qstnDta_LA <- dta %>% filter(Indicator == "Responsiveness to any queries or issues raised") %>%
+       filter(LA == "1") %>% count(value, .drop =F) %>%
+       mutate(Selection = "LA")
+     
+     #get all data for this question and count no. responses, bind LA count
+     qstnDta <- dta %>% filter(Indicator == "Responsiveness to any queries or issues raised") %>%
+       count(value, .drop =F) %>%
+       mutate(Selection = "Scotland") %>%
+       rbind(qstnDta_LA )
+     #Get percentage of responses for LA and Scotland 
+     qstnDta <- qstnDta %>% group_by(Selection) %>% mutate(perc_resp = n/sum(n))
+     #Recode the values for this question to be shown on tickmarks in x axis 
+     qstnDta$named_value <- recode(qstnDta$value, "1" = "very good",
+                                   "2" ="good",
+                                   "3" = "poor",
+                                   "4" = "very poor")
+     #create a graph
+     p <- ggplot(data = qstnDta ) +
+       geom_bar(aes(x = reorder(named_value, as.numeric(value)), y = perc_resp, fill =Selection), stat= "identity", position = "dodge")
+     p
+     
+   })
+   ##create graph for Question 6 on report page
+   output$question_fair_report <- renderPlot({
+     ##filter dataset based on selected question   
+     dta$`Tracking Link` <- as.factor(dta$`Tracking Link`)
+     #filter by local authority and question and count no. responses
+     qstnDta_LA <- dta %>% filter(Indicator == "To what extent would you agree that you were treated fairly?"   ) %>%
+       filter(LA == "1") %>% count(value, .drop =F) %>%
+       mutate(Selection = "LA")
+     
+     #get all data for this question and count no. responses, bind LA count
+     qstnDta <- dta %>% filter(Indicator == "To what extent would you agree that you were treated fairly?"   ) %>%
+       count(value, .drop =F) %>%
+       mutate(Selection = "Scotland") %>%
+       rbind(qstnDta_LA )
+     #Get percentage of responses for LA and Scotland 
+     qstnDta <- qstnDta %>% group_by(Selection) %>% mutate(perc_resp = n/sum(n))
+     #Recode the values for this question to be shown on tickmarks in x axis 
+     qstnDta$named_value <- recode(qstnDta$value, "1" = "strongly agree",
+                                   "2" ="agree",
+                                   "3" = "disagree",
+                                   "4" = "strongly disagree")
+     #create a graph
+     p <- ggplot(data = qstnDta ) +
+       geom_bar(aes(x = reorder(named_value, as.numeric(value)), y = perc_resp, fill =Selection), stat= "identity", position = "dodge")
+     p
+     
+   })
+   ##create graph for Question 7 on report page
+   output$question_overall_report <- renderPlot({
+     ##filter dataset based on selected question   
+     dta$`Tracking Link` <- as.factor(dta$`Tracking Link`)
+     #filter by local authority and question and count no. responses
+     qstnDta_LA <- dta %>% filter(Indicator == "Overall, how satisfied were you with the service provided?") %>%
+       filter(LA == "1") %>% count(value, .drop =F) %>%
+       mutate(Selection = "LA")
+     
+     #get all data for this question and count no. responses, bind LA count
+     qstnDta <- dta %>% filter(Indicator == "Overall, how satisfied were you with the service provided?") %>%
+       count(value, .drop =F) %>%
+       mutate(Selection = "Scotland") %>%
+       rbind(qstnDta_LA )
+     #Get percentage of responses for LA and Scotland 
+     qstnDta <- qstnDta %>% group_by(Selection) %>% mutate(perc_resp = n/sum(n))
+     #Recode the values for this question to be shown on tickmarks in x axis 
+     qstnDta$named_value <- recode(qstnDta$value, "1" = "very satisfied",
+                                   "2" ="satisfied",
+                                   "3" = "dissatisfied",
+                                   "4" = "very dissatisfied")
+     #create a graph
+     p <- ggplot(data = qstnDta ) +
+       geom_bar(aes(x = reorder(named_value, as.numeric(value)), y = perc_resp, fill =Selection), stat= "identity", position = "dodge")
+     p
+     
+   })
    }
