@@ -21,7 +21,7 @@ ui <- dashboardPage(
               h2(paste("KPO4 Performance", "Date last updated:", format(Sys.time(), "%d %b %Y")),style = "margin-top:3px"), ###add something to say date most recently updated?
               fluidRow(
                 valueBoxOutput("performanceBox"), #performance for council
-                infoBoxOutput("scotPerfBox"),   #Scotland average performance
+                valueBoxOutput("scotPerfBox"),   #Scotland average performance
                 valueBoxOutput("respBox")
                 ),
               fluidRow(
@@ -74,7 +74,7 @@ ui <- dashboardPage(
             #  h2("Report Download", style = "margin-top:3px"),
               fluidRow(
                 box(width = 8, plotlyOutput("reportKPO4Plot")),
-                box(width = 4,textOutput("KPO4_text"))
+                box(width = 4,textOutput("KPO4_text_report"))
               ),
               fluidRow(
                 box(width = 8, plotlyOutput("respDoughnut_report")),
@@ -86,31 +86,31 @@ ui <- dashboardPage(
             ),
             fluidRow(
               box(width = 8, plotOutput("question_time_report")),
-              box(width = 4, "text")
+              box(width = 4, textOutput("question_time_report_text"))
             ),
             fluidRow(
               box(width = 8, plotOutput("question_comms_report")),
-              box(width = 4, "text")
+              box(width = 4, textOutput("question_comms_report_text"))
             ),
             fluidRow(
               box(width = 8, plotOutput("question_info_report")),
-              box(width = 4, "text")
+              box(width = 4, textOutput("question_info_report_text"))
             ),
             fluidRow(
               box(width = 8, plotOutput("question_staff_report")),
-              box(width = 4, "text")
+              box(width = 4, textOutput("question_staff_report_text"))
             ),
             fluidRow(
               box(width = 8, plotOutput("question_responsiveness_report")),
-              box(width = 4, "text")
+              box(width = 4, textOutput("question_responsiveness_report_text"))
             ),
             fluidRow(
               box(width = 8, plotOutput("question_fair_report")),
-              box(width = 4, "text")
+              box(width = 4, textOutput("question_fair_report_text"))
             ),
             fluidRow(
               box(width = 8, plotOutput("question_overall_report")),
-              box(width = 4, "text")
+              box(width = 4, "")
             )
               )
     )

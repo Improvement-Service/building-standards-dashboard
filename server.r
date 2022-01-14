@@ -46,8 +46,8 @@ server <- function(input, output) {
     )
   })
 #Create performance box for Scotland
-  output$scotPerfBox<- renderInfoBox({
-    infoBox(
+  output$scotPerfBox<- renderValueBox({
+   valueBox(
       value = round(scot_max_sum[scot_max_sum$`Tracking Link` =="Total", "KPO_score"],2), "Scotland Average", icon = icon("times"), color = "blue"
     )
   })
@@ -67,7 +67,7 @@ server <- function(input, output) {
                   position = "dodge")
     })
     
-##Create doughnut for respondent types and reasons
+##Create barplot for respondent types and reasons
     
   ##n.b. I am using the same output twice, in the UI, but this is not allowed, so this
     #is the suggested workaround i.e. assign the output twice
@@ -199,21 +199,23 @@ server <- function(input, output) {
    
    
    ##Render text for KPO4 Overall perf to year
-   output$KPO4_text <- renderText({
-     all_kpo_data <- report_kpo_data()
+   output$KPO4_text_report <- renderText({
+  ##Only select the full year data - 
+    ##this will need to be updated when more than one yar is available   
+     all_kpo_data <- report_kpo_data() %>% filter(`Tracking Link` == "Total")
      local_auth <- "Aberdeen City" ##will need to select LA based on log in details
      curr_year <- yr2fy(2022)
-     KPO4_ytd <- all_kpo_data %>% filter(id == "local authority") %>% select(KPO_score)
+     KPO4_ytd <- all_kpo_data %>% filter(id == "local authority") %>% pull(KPO_score)
      hilow_kpo4 <- ifelse(KPO4_ytd > 7.5, "higher", "lower")
-     scotAv_kpo4 <- all_kpo_data %>% filter(id == "Scotland") %>% select(KPO_score)
+     scotAv_kpo4 <- all_kpo_data %>% filter(id == "Scotland") %>% pull(KPO_score)
      abbel_kpo4 <- ifelse(KPO4_ytd > scotAv_kpo4, "higher", "lower")
      
-     text_kpo <- paste("This indicator summarises performance across all questions, with differential
-                       weightings based on importance. For", local_auth,"in",curr_year, "overall
-                       performance is at", KPO4_ytd, "for the year to date.", "This is", hilow_kpo4,
-                       "than the Scotland average of", scotAv_kpo4,"and", abbel_kpo4,"than the target value
+     text_kpo <- paste0("This indicator summarises performance across all questions, with differential
+                       weightings based on importance. For ", local_auth," in ",curr_year, " overall
+                       performance is at ", KPO4_ytd, " for the year to date. ", "This is ", hilow_kpo4,
+                       " than the Scotland average of ", scotAv_kpo4," and ", abbel_kpo4," than the target value
                        of 7.5.")
-     text_kpo
+     return(text_kpo)
    })
    
    output$respondent_text_report <- renderText({
@@ -284,13 +286,16 @@ server <- function(input, output) {
                      " Quarter 3, and stands at", Q4_kpo)
     
     final_text <- ifelse(no_quarts == 1, Q1_text, ifelse(no_quarts == 2, Q2_text, ifelse(no_quarts == 3, Q3_text, Q4_text)))
-    
+    final_text
    })
    
-##create graph for Question 1 on report page
-   output$question_time_report <- renderPlot({
+##create graph and text for Question 1 on report page=================
+
+   ##generate data to be used in graph and text
+   question_time_data_report <- reactive({
      ##filter dataset based on selected question   
-     dta$`Tracking Link` <- as.factor(dta$`Tracking Link`)
+     dta <- dta %>% filter(value != "-")
+     dta$`value` <- as.factor(dta$`value`)
      #filter by local authority and question and count no. responses
      qstnDta_LA <- dta %>% filter(Indicator == "Thinking of your engagement, how satisfied were you with the time taken to complete the process?") %>%
        filter(LA == "1") %>% count(value, .drop =F) %>%
@@ -301,13 +306,18 @@ server <- function(input, output) {
        count(value, .drop =F) %>%
        mutate(Selection = "Scotland") %>%
        rbind(qstnDta_LA )
-    #Get percentage of responses for LA and Scotland 
+     #Get percentage of responses for LA and Scotland 
      qstnDta <- qstnDta %>% group_by(Selection) %>% mutate(perc_resp = n/sum(n))
-    #Recode the values for this question to be shown on tickmarks in x axis 
+     #Recode the values for this question to be shown on tickmarks in x axis 
      qstnDta$named_value <- recode(qstnDta$value, "1" = "very satisfied",
                                    "2" ="satisfied",
                                    "3" = "dissatisfied",
                                    "4" = "very dissatisfied")
+     qstnDta
+   })
+   
+   output$question_time_report <- renderPlot({
+     qstnDta <- question_time_data_report() 
     #create a graph
      p <- ggplot(data = qstnDta ) +
        geom_bar(aes(x = reorder(named_value, as.numeric(value)), y = perc_resp, fill =Selection), stat= "identity", position = "dodge")
@@ -315,10 +325,77 @@ server <- function(input, output) {
      
    })
    
-   ##create graph for Question 2 on report page
-   output$question_comms_report <- renderPlot({
+   # satisfaction with time taken text
+   output$question_time_report_text <- renderText({
+     #load data and split into Scotland and LA datasets
+     qstnDta <- question_time_data_report() 
+     qstnDta_LA <- qstnDta %>% filter(Selection == "LA")
+     qstnDta_scot<- qstnDta %>% filter(Selection == "Scotland")
+     #get total percentage good or very good 
+     total_good <- filter(qstnDta_LA, value %in% c(1,2) & Selection == "LA") %>% pull(perc_resp) %>%
+       sum()
+     #if this is above 55% then overall is positive, otherwise negative/balances
+     pos_or_neg <- ifelse(total_good > 0.55, "mainly positive.", ifelse(total_good < 0.45, "mainly negative.", "balanced."))
+     
+     #get the name for the maximum value in LA dataset. If more than one paste these together
+     max_name <- as.character(qstnDta_LA %>% filter(n == max(n)) %>% pull(named_value))
+     if(length(max_name >1)){
+       max_name <- paste(max_name, collapse = " & ")
+     }
+     #Get the pecentage for the highest response and paste together if multiple
+     max_perc <- qstnDta_LA %>% filter(n == max(n)) %>% pull(perc_resp)
+     if(length(max_perc) >1){
+       max_perc <- paste(paste(max_perc, collapse = " & "), "percent respectively.")
+     } else{
+       max_perc <- paste0(max_perc, "percent.")
+     }
+     
+     #Gte second highest value
+     sec_val <- sort(qstnDta_LA$n, partial= 3)[3]
+     #Filter for second highest value's name
+     sec_name <- qstnDta_LA %>% filter(n == sec_val) %>% pull(named_value)
+     if(length(sec_name) >1){
+       sec_name <- paste(sec_name, collapse = " & ")
+     }
+     
+     #Filter for second highest value's value
+     sec_perc <- qstnDta_LA %>% filter(n == sec_val) %>% pull(perc_resp)
+     if(length(sec_perc) >1){
+       sec_perc <- paste(paste(sec_perc, collapse = " & "), "percent respectively.")
+     }else{
+       sec_perc <- paste0(sec_perc, "percent.")
+     }
+     
+     #get most frequent response for Scotland
+     scot_max_name <- as.character(qstnDta_scot %>% filter(n == max(n)) %>% pull(named_value))
+     
+     if(length(scot_max_name) >1){
+       scot_max_name <- paste(scot_max_name, collapse = " & ")
+     }
+     #get percentage for most frequent Scotland level response
+     scot_max_perc <- qstnDta_scot %>% filter(n == max(n)) %>% pull(perc_resp)
+     if(length(scot_max_perc) >1){
+       scot_max_perc <- paste(paste(scot_max_perc, collapse = " & "), "percent respectively.")
+     } else{
+       scot_max_perc <- paste0(scot_max_perc, "percent.")
+     }
+     
+     #Paste it all together!
+     
+     paste("In this year to date for the question \"Thinking of your engagement, how satisfied were you with the time taken to complete the process?\" responses have been",
+           pos_or_neg, "with",total_good,"percent saying that they were very satisfied or satisfied. The greatest proportion of respondents said they were", max_name,
+           "at", max_perc, "This was followed by", sec_name, "at", sec_perc,
+           "For Scotland overall, most respondents said that they were",scot_max_name,
+           "at", scot_max_perc)
+   })
+   
+  ##create graph and text for Question 2 on report page========
+   ##generate data to be used in graph and text
+   question_comms_data_report <- reactive({
      ##filter dataset based on selected question   
-     dta$`Tracking Link` <- as.factor(dta$`Tracking Link`)
+     dta <- dta %>% filter(value != "-")
+     ##filter dataset based on selected question   
+     dta$`value` <- as.factor(dta$`value`)
      #filter by local authority and question and count no. responses
      qstnDta_LA <- dta %>% filter(Indicator == "How would you rate the standard of communication provided?") %>%
        filter(LA == "1") %>% count(value, .drop =F) %>%
@@ -332,21 +409,92 @@ server <- function(input, output) {
      #Get percentage of responses for LA and Scotland 
      qstnDta <- qstnDta %>% group_by(Selection) %>% mutate(perc_resp = n/sum(n))
      #Recode the values for this question to be shown on tickmarks in x axis 
-     qstnDta$named_value <- recode(qstnDta$value, "1" = "very good",
+     qstnDta$named_value <- as.character(recode(qstnDta$value, "1" = "very good",
                                    "2" ="good",
                                    "3" = "poor",
-                                   "4" = "very poor")
+                                   "4" = "very poor"))
+     qstnDta
+   })
+   
      #create a graph
+     output$question_comms_report <- renderPlot({
+       qstnDta <- question_comms_data_report()
      p <- ggplot(data = qstnDta ) +
        geom_bar(aes(x = reorder(named_value, as.numeric(value)), y = perc_resp, fill =Selection), stat= "identity", position = "dodge")
      p
      
    })
+     
+     # satisfaction with comms taken text
+     output$question_comms_report_text <- renderText({
+       #load data and split into Scotland and LA datasets
+       qstnDta <- question_comms_data_report() 
+       qstnDta_LA <- qstnDta %>% filter(Selection == "LA")
+       qstnDta_scot<- qstnDta %>% filter(Selection == "Scotland")
+       #get total percentage good or very good 
+       total_good <- filter(qstnDta_LA, value %in% c(1,2) & Selection == "LA") %>% pull(perc_resp) %>%
+         sum()
+       #if this is above 55% then overall is positive, otherwise negative/balances
+       pos_or_neg <- ifelse(total_good > 0.55, "mainly positive.", ifelse(total_good < 0.45, "mainly negative.", "balanced."))
+       
+       #get the name for the maximum value in LA dataset. If more than one paste these together
+       max_name <- as.character(qstnDta_LA %>% filter(n == max(n)) %>% pull(named_value))
+       if(length(max_name >1)){
+         max_name <- paste(max_name, collapse = " & ")
+       }
+       #Get the pecentage for the highest response and paste together if multiple
+       max_perc <- qstnDta_LA %>% filter(n == max(n)) %>% pull(perc_resp)
+       if(length(max_perc) >1){
+         max_perc <- paste(paste(max_perc, collapse = " & "), "percent respectively.")
+       } else{
+         max_perc <- paste0(max_perc, "percent.")
+       }
+       
+       #Gte second highest value
+       sec_val <- sort(qstnDta_LA$n, partial= 3)[3]
+       #Filter for second highest value's name
+       sec_name <- qstnDta_LA %>% filter(n == sec_val) %>% pull(named_value)
+       if(length(sec_name) >1){
+         sec_name <- paste(sec_name, collapse = " & ")
+       }
+       
+       #Filter for second highest value's value
+       sec_perc <- qstnDta_LA %>% filter(n == sec_val) %>% pull(perc_resp)
+       if(length(sec_perc) >1){
+         sec_perc <- paste(paste(sec_perc, collapse = " & "), "percent respectively.")
+       }else{
+         sec_perc <- paste0(sec_perc, "percent.")
+       }
+       
+       #get most frequent response for Scotland
+       scot_max_name <- as.character(qstnDta_scot %>% filter(n == max(n)) %>% pull(named_value))
+       
+       if(length(scot_max_name) >1){
+         scot_max_name <- paste(scot_max_name, collapse = " & ")
+       }
+       #get percentage for most frequent Scotland level response
+       scot_max_perc <- qstnDta_scot %>% filter(n == max(n)) %>% pull(perc_resp)
+       if(length(scot_max_perc) >1){
+         scot_max_perc <- paste(paste(scot_max_perc, collapse = " & "), "percent respectively.")
+       } else{
+         scot_max_perc <- paste0(scot_max_perc, "percent.")
+       }
+       
+       #Paste it all together!
+       
+       paste("In this year to date for the question \"How would you rate the standard of communication provided?\" responses have been",
+             pos_or_neg, "with",total_good,"percent saying that it was good or very good. The greatest proportion of respondents said they felt it was", max_name,
+             "at", max_perc, "This was followed by", sec_name, "at", sec_perc,
+             "For Scotland overall, most respondents said that communication was",scot_max_name,
+             "at", scot_max_perc)
+     })
   
-   ##create graph for Question 3 on report page
-   output$question_info_report <- renderPlot({
+   ##create graph and text for Question 3 on report page==========
+     ##generate data to be used in graph and text
+     question_info_data_report <- reactive({
+       dta <- dta %>% filter(value != "-")
      ##filter dataset based on selected question   
-     dta$`Tracking Link` <- as.factor(dta$`Tracking Link`)
+     dta$`value` <- as.factor(dta$`value`)
      #filter by local authority and question and count no. responses
      qstnDta_LA <- dta %>% filter(Indicator == "Quality of the information provided") %>%
        filter(LA == "1") %>% count(value, .drop =F) %>%
@@ -364,16 +512,85 @@ server <- function(input, output) {
                                    "2" ="good",
                                    "3" = "poor",
                                    "4" = "very poor")
+     qstnDta
+    })
+     output$question_info_report <- renderPlot({
+       qstnDta <- question_info_data_report()
      #create a graph
      p <- ggplot(data = qstnDta ) +
        geom_bar(aes(x = reorder(named_value, as.numeric(value)), y = perc_resp, fill =Selection), stat= "identity", position = "dodge")
      p
-     
    })
-   ##create graph for Question 4 on report page
-   output$question_staff_report <- renderPlot({
+     
+     # satisfaction with info text
+     output$question_info_report_text <- renderText({
+       #load data and split into Scotland and LA datasets
+       qstnDta <- question_info_data_report() 
+       qstnDta_LA <- qstnDta %>% filter(Selection == "LA")
+       qstnDta_scot<- qstnDta %>% filter(Selection == "Scotland")
+       #get total percentage good or very good 
+       total_good <- filter(qstnDta_LA, value %in% c(1,2) & Selection == "LA") %>% pull(perc_resp) %>%
+         sum()
+       #if this is above 55% then overall is positive, otherwise negative/balances
+       pos_or_neg <- ifelse(total_good > 0.55, "mainly positive.", ifelse(total_good < 0.45, "mainly negative.", "balanced."))
+       
+       #get the name for the maximum value in LA dataset. If more than one paste these together
+       max_name <- as.character(qstnDta_LA %>% filter(n == max(n)) %>% pull(named_value))
+       if(length(max_name >1)){
+         max_name <- paste(max_name, collapse = " & ")
+       }
+       #Get the pecentage for the highest response and paste together if multiple
+       max_perc <- qstnDta_LA %>% filter(n == max(n)) %>% pull(perc_resp)
+       if(length(max_perc) >1){
+         max_perc <- paste(paste(max_perc, collapse = " & "), "percent respectively.")
+       } else{
+         max_perc <- paste0(max_perc, "percent.")
+       }
+       
+       #Gte second highest value
+       sec_val <- sort(qstnDta_LA$n, partial= 3)[3]
+       #Filter for second highest value's name
+       sec_name <- qstnDta_LA %>% filter(n == sec_val) %>% pull(named_value)
+       if(length(sec_name) >1){
+         sec_name <- paste(sec_name, collapse = " & ")
+       }
+       
+       #Filter for second highest value's value
+       sec_perc <- qstnDta_LA %>% filter(n == sec_val) %>% pull(perc_resp)
+       if(length(sec_perc) >1){
+         sec_perc <- paste(paste(sec_perc, collapse = " & "), "percent respectively.")
+       }else{
+         sec_perc <- paste0(sec_perc, "percent.")
+       }
+       
+       #get most frequent response for Scotland
+       scot_max_name <- as.character(qstnDta_scot %>% filter(n == max(n)) %>% pull(named_value))
+       
+       if(length(scot_max_name) >1){
+         scot_max_name <- paste(scot_max_name, collapse = " & ")
+       }
+       #get percentage for most frequent Scotland level response
+       scot_max_perc <- qstnDta_scot %>% filter(n == max(n)) %>% pull(perc_resp)
+       if(length(scot_max_perc) >1){
+         scot_max_perc <- paste(paste(scot_max_perc, collapse = " & "), "percent respectively.")
+       } else{
+         scot_max_perc <- paste0(scot_max_perc, "percent.")
+       }
+       
+       #Paste it all together!
+       
+       paste("In this year to date for the question \"Quality of the information provided\" responses have been",
+             pos_or_neg, "with",total_good,"percent saying that it was good or very good. The greatest proportion of respondents said they felt it was", max_name,
+             "at", max_perc, "This was followed by", sec_name, "at", sec_perc,
+             "For Scotland overall, most respondents said that the information they received was",scot_max_name,
+             "at", scot_max_perc)
+     })
+     
+   ##create graph and text for Question 4 on report page=============
+     question_staff_data_report <- reactive({
+       dta <- dta %>% filter(value != "-")
      ##filter dataset based on selected question   
-     dta$`Tracking Link` <- as.factor(dta$`Tracking Link`)
+     dta$`value` <- as.factor(dta$`value`)
      #filter by local authority and question and count no. responses
      qstnDta_LA <- dta %>% filter(Indicator == "Service offered by staff") %>%
        filter(LA == "1") %>% count(value, .drop =F) %>%
@@ -391,16 +608,87 @@ server <- function(input, output) {
                                    "2" ="good",
                                    "3" = "poor",
                                    "4" = "very poor")
+     qstnDta
+      })
      #create a graph
+     output$question_staff_report <- renderPlot({
+       qstnDta <- question_staff_data_report() 
      p <- ggplot(data = qstnDta ) +
        geom_bar(aes(x = reorder(named_value, as.numeric(value)), y = perc_resp, fill =Selection), stat= "identity", position = "dodge")
      p
      
    })
-   ##create graph for Question 5 on report page
-   output$question_responsiveness_report <- renderPlot({
-     ##filter dataset based on selected question   
-     dta$`Tracking Link` <- as.factor(dta$`Tracking Link`)
+     
+     # satisfaction with staff text
+     output$question_staff_report_text <- renderText({
+       #load data and split into Scotland and LA datasets
+       qstnDta <- question_staff_data_report() 
+       qstnDta_LA <- qstnDta %>% filter(Selection == "LA")
+       qstnDta_scot<- qstnDta %>% filter(Selection == "Scotland")
+       #get total percentage good or very good 
+       total_good <- filter(qstnDta_LA, value %in% c(1,2) & Selection == "LA") %>% pull(perc_resp) %>%
+         sum()
+       #if this is above 55% then overall is positive, otherwise negative/balances
+       pos_or_neg <- ifelse(total_good > 0.55, "mainly positive.", ifelse(total_good < 0.45, "mainly negative.", "balanced."))
+       
+       #get the name for the maximum value in LA dataset. If more than one paste these together
+       max_name <- as.character(qstnDta_LA %>% filter(n == max(n)) %>% pull(named_value))
+       if(length(max_name >1)){
+         max_name <- paste(max_name, collapse = " & ")
+       }
+       #Get the pecentage for the highest response and paste together if multiple
+       max_perc <- qstnDta_LA %>% filter(n == max(n)) %>% pull(perc_resp)
+       if(length(max_perc) >1){
+         max_perc <- paste(paste(max_perc, collapse = " & "), "percent respectively.")
+       } else{
+         max_perc <- paste0(max_perc, "percent.")
+       }
+       
+       #Gte second highest value
+       sec_val <- sort(qstnDta_LA$n, partial= 3)[3]
+       #Filter for second highest value's name
+       sec_name <- qstnDta_LA %>% filter(n == sec_val) %>% pull(named_value)
+       if(length(sec_name) >1){
+         sec_name <- paste(sec_name, collapse = " & ")
+       }
+       
+       #Filter for second highest value's value
+       sec_perc <- qstnDta_LA %>% filter(n == sec_val) %>% pull(perc_resp)
+       if(length(sec_perc) >1){
+         sec_perc <- paste(paste(sec_perc, collapse = " & "), "percent respectively.")
+       }else{
+         sec_perc <- paste0(sec_perc, "percent.")
+       }
+       
+       #get most frequent response for Scotland
+       scot_max_name <- as.character(qstnDta_scot %>% filter(n == max(n)) %>% pull(named_value))
+       
+       if(length(scot_max_name) >1){
+         scot_max_name <- paste(scot_max_name, collapse = " & ")
+       }
+       #get percentage for most frequent Scotland level response
+       scot_max_perc <- qstnDta_scot %>% filter(n == max(n)) %>% pull(perc_resp)
+       if(length(scot_max_perc) >1){
+         scot_max_perc <- paste(paste(scot_max_perc, collapse = " & "), "percent respectively.")
+       } else{
+         scot_max_perc <- paste0(scot_max_perc, "percent.")
+       }
+       
+       #Paste it all together!
+       
+       paste("In this year to date for the question for how they would rate the \"Service offered by staff\" responses have been",
+             pos_or_neg, "with",total_good,"percent saying that it was good or very good. The greatest proportion of respondents said they felt it was", max_name,
+             "at", max_perc, "This was followed by", sec_name, "at", sec_perc,
+             "For Scotland overall, most respondents said that the service received was",scot_max_name,
+             "at", scot_max_perc)
+     })
+     
+  ##create graph and text for Question 5 on report page-------------------
+   
+     question_responsiveness_data_report <- reactive({
+       dta <- dta %>% filter(value != "-")
+      ##filter dataset based on selected question   
+     dta$`value` <- as.factor(dta$`value`)
      #filter by local authority and question and count no. responses
      qstnDta_LA <- dta %>% filter(Indicator == "Responsiveness to any queries or issues raised") %>%
        filter(LA == "1") %>% count(value, .drop =F) %>%
@@ -418,16 +706,84 @@ server <- function(input, output) {
                                    "2" ="good",
                                    "3" = "poor",
                                    "4" = "very poor")
+     qstnDta
+      })
      #create a graph
+     output$question_responsiveness_report <- renderPlot({
+       qstnDta <-  question_responsiveness_data_report() 
      p <- ggplot(data = qstnDta ) +
        geom_bar(aes(x = reorder(named_value, as.numeric(value)), y = perc_resp, fill =Selection), stat= "identity", position = "dodge")
      p
+      })
+     # satisfaction with responsiveness text
+     output$question_responsiveness_report_text <- renderText({
+       #load data and split into Scotland and LA datasets
+       qstnDta <-  question_responsiveness_data_report() 
+       qstnDta_LA <- qstnDta %>% filter(Selection == "LA")
+       qstnDta_scot<- qstnDta %>% filter(Selection == "Scotland")
+       #get total percentage good or very good 
+       total_good <- filter(qstnDta_LA, value %in% c(1,2) & Selection == "LA") %>% pull(perc_resp) %>%
+         sum()
+       #if this is above 55% then overall is positive, otherwise negative/balances
+       pos_or_neg <- ifelse(total_good > 0.55, "mainly positive.", ifelse(total_good < 0.45, "mainly negative.", "balanced."))
+       
+       #get the name for the maximum value in LA dataset. If more than one paste these together
+       max_name <- as.character(qstnDta_LA %>% filter(n == max(n)) %>% pull(named_value))
+       if(length(max_name >1)){
+         max_name <- paste(max_name, collapse = " & ")
+       }
+       #Get the pecentage for the highest response and paste together if multiple
+       max_perc <- qstnDta_LA %>% filter(n == max(n)) %>% pull(perc_resp)
+       if(length(max_perc) >1){
+         max_perc <- paste(paste(max_perc, collapse = " & "), "percent respectively.")
+       } else{
+         max_perc <- paste0(max_perc, "percent.")
+       }
+       
+       #Gte second highest value
+       sec_val <- sort(qstnDta_LA$n, partial= 3)[3]
+       #Filter for second highest value's name
+       sec_name <- qstnDta_LA %>% filter(n == sec_val) %>% pull(named_value)
+       if(length(sec_name) >1){
+         sec_name <- paste(sec_name, collapse = " & ")
+       }
+       
+       #Filter for second highest value's value
+       sec_perc <- qstnDta_LA %>% filter(n == sec_val) %>% pull(perc_resp)
+       if(length(sec_perc) >1){
+         sec_perc <- paste(paste(sec_perc, collapse = " & "), "percent respectively.")
+       }else{
+         sec_perc <- paste0(sec_perc, "percent.")
+       }
+       
+       #get most frequent response for Scotland
+       scot_max_name <- as.character(qstnDta_scot %>% filter(n == max(n)) %>% pull(named_value))
+       
+       if(length(scot_max_name) >1){
+         scot_max_name <- paste(scot_max_name, collapse = " & ")
+       }
+       #get percentage for most frequent Scotland level response
+       scot_max_perc <- qstnDta_scot %>% filter(n == max(n)) %>% pull(perc_resp)
+       if(length(scot_max_perc) >1){
+         scot_max_perc <- paste(paste(scot_max_perc, collapse = " & "), "percent respectively.")
+       } else{
+         scot_max_perc <- paste0(scot_max_perc, "percent.")
+       }
+       
+       #Paste it all together!
+       
+       paste("In this year to date for the question for how they would rate the \"Responsiveness to any queries or issues raised\" responses have been",
+             pos_or_neg, "with",total_good,"percent saying that it was good or very good. The greatest proportion of respondents said they felt it was", max_name,
+             "at", max_perc, "This was followed by", sec_name, "at", sec_perc,
+             "For Scotland overall, most respondents said that responsiveness was",scot_max_name,
+             "at", scot_max_perc)
+     })
      
-   })
-   ##create graph for Question 6 on report page
-   output$question_fair_report <- renderPlot({
+   ##create graph and text for Question 6 on report page---------
+     question_fairly_data_report <- reactive({
+       dta <- dta %>% filter(value != "-")
      ##filter dataset based on selected question   
-     dta$`Tracking Link` <- as.factor(dta$`Tracking Link`)
+     dta$`value` <- as.factor(dta$`value`)
      #filter by local authority and question and count no. responses
      qstnDta_LA <- dta %>% filter(Indicator == "To what extent would you agree that you were treated fairly?"   ) %>%
        filter(LA == "1") %>% count(value, .drop =F) %>%
@@ -445,16 +801,84 @@ server <- function(input, output) {
                                    "2" ="agree",
                                    "3" = "disagree",
                                    "4" = "strongly disagree")
+     qstnDta
+     })
      #create a graph
+     output$question_fair_report <- renderPlot({
+       qstnDta <- question_fairly_data_report()
      p <- ggplot(data = qstnDta ) +
        geom_bar(aes(x = reorder(named_value, as.numeric(value)), y = perc_resp, fill =Selection), stat= "identity", position = "dodge")
      p
+        })
+     # satisfaction with responsiveness text
+     output$question_fair_report_text <- renderText({
+       #load data and split into Scotland and LA datasets
+       qstnDta <-  question_fairly_data_report() 
+       qstnDta_LA <- qstnDta %>% filter(Selection == "LA")
+       qstnDta_scot<- qstnDta %>% filter(Selection == "Scotland")
+       #get total percentage good or very good 
+       total_good <- filter(qstnDta_LA, value %in% c(1,2) & Selection == "LA") %>% pull(perc_resp) %>%
+         sum()
+       #if this is above 55% then overall is positive, otherwise negative/balances
+       pos_or_neg <- ifelse(total_good > 0.55, "mainly positive.", ifelse(total_good < 0.45, "mainly negative.", "balanced."))
+       
+       #get the name for the maximum value in LA dataset. If more than one paste these together
+       max_name <- as.character(qstnDta_LA %>% filter(n == max(n)) %>% pull(named_value))
+       if(length(max_name >1)){
+         max_name <- paste(max_name, collapse = " & ")
+       }
+       #Get the pecentage for the highest response and paste together if multiple
+       max_perc <- qstnDta_LA %>% filter(n == max(n)) %>% pull(perc_resp)
+       if(length(max_perc) >1){
+         max_perc <- paste(paste(max_perc, collapse = " & "), "percent respectively.")
+       } else{
+         max_perc <- paste0(max_perc, "percent.")
+       }
+       
+       #Gte second highest value
+       sec_val <- sort(qstnDta_LA$n, partial= 3)[3]
+       #Filter for second highest value's name
+       sec_name <- qstnDta_LA %>% filter(n == sec_val) %>% pull(named_value)
+       if(length(sec_name) >1){
+         sec_name <- paste(sec_name, collapse = " & ")
+       }
+       
+       #Filter for second highest value's value
+       sec_perc <- qstnDta_LA %>% filter(n == sec_val) %>% pull(perc_resp)
+       if(length(sec_perc) >1){
+         sec_perc <- paste(paste(sec_perc, collapse = " & "), "percent respectively.")
+       }else{
+         sec_perc <- paste0(sec_perc, "percent.")
+       }
+       
+       #get most frequent response for Scotland
+       scot_max_name <- as.character(qstnDta_scot %>% filter(n == max(n)) %>% pull(named_value))
+       
+       if(length(scot_max_name) >1){
+         scot_max_name <- paste(scot_max_name, collapse = " & ")
+       }
+       #get percentage for most frequent Scotland level response
+       scot_max_perc <- qstnDta_scot %>% filter(n == max(n)) %>% pull(perc_resp)
+       if(length(scot_max_perc) >1){
+         scot_max_perc <- paste(paste(scot_max_perc, collapse = " & "), "percent respectively.")
+       } else{
+         scot_max_perc <- paste0(scot_max_perc, "percent.")
+       }
+       
+       #Paste it all together!
+       
+       paste("In this year to date for the question for how they would respond to the question \"To what extent would you agree that you were treated fairly?\" responses have been",
+             pos_or_neg, "with",total_good,"percent saying that they agree or strongly agree. The greatest proportion of respondents said they", max_name,
+             "with the statement at", max_perc, "This was followed by", sec_name, "at", sec_perc,
+             "For Scotland overall, most respondents said that they",scot_max_name,
+             "at", scot_max_perc)
+     })
      
-   })
-   ##create graph for Question 7 on report page
-   output$question_overall_report <- renderPlot({
+   ##create graph for Question 7 on report page===========
+     question_overall_data_report <- reactive({
      ##filter dataset based on selected question   
-     dta$`Tracking Link` <- as.factor(dta$`Tracking Link`)
+     dta <- dta %>% filter(value != "-")
+     dta$`value` <- factor(dta$`value`, levels = c(1,2,3,4,"-"))
      #filter by local authority and question and count no. responses
      qstnDta_LA <- dta %>% filter(Indicator == "Overall, how satisfied were you with the service provided?") %>%
        filter(LA == "1") %>% count(value, .drop =F) %>%
@@ -472,10 +896,77 @@ server <- function(input, output) {
                                    "2" ="satisfied",
                                    "3" = "dissatisfied",
                                    "4" = "very dissatisfied")
+     qstnDta 
+     })
      #create a graph
+     output$question_overall_report <- renderPlot({
+       qstnDta <- 
      p <- ggplot(data = qstnDta ) +
        geom_bar(aes(x = reorder(named_value, as.numeric(value)), y = perc_resp, fill =Selection), stat= "identity", position = "dodge")
      p
+      })
      
-   })
+     # satisfaction with responsiveness text
+     output$question_fair_report_text <- renderText({
+       #load data and split into Scotland and LA datasets
+       qstnDta <-  question_fairly_data_report() 
+       qstnDta_LA <- qstnDta %>% filter(Selection == "LA")
+       qstnDta_scot<- qstnDta %>% filter(Selection == "Scotland")
+       #get total percentage good or very good 
+       total_good <- filter(qstnDta_LA, value %in% c(1,2) & Selection == "LA") %>% pull(perc_resp) %>%
+         sum()
+       #if this is above 55% then overall is positive, otherwise negative/balances
+       pos_or_neg <- ifelse(total_good > 0.55, "mainly positive.", ifelse(total_good < 0.45, "mainly negative.", "balanced."))
+       
+       #get the name for the maximum value in LA dataset. If more than one paste these together
+       max_name <- as.character(qstnDta_LA %>% filter(n == max(n)) %>% pull(named_value))
+       if(length(max_name >1)){
+         max_name <- paste(max_name, collapse = " & ")
+       }
+       #Get the pecentage for the highest response and paste together if multiple
+       max_perc <- qstnDta_LA %>% filter(n == max(n)) %>% pull(perc_resp)
+       if(length(max_perc) >1){
+         max_perc <- paste(paste(max_perc, collapse = " & "), "percent respectively.")
+       } else{
+         max_perc <- paste0(max_perc, "percent.")
+       }
+       
+       #Gte second highest value
+       sec_val <- sort(qstnDta_LA$n, partial= 3)[3]
+       #Filter for second highest value's name
+       sec_name <- qstnDta_LA %>% filter(n == sec_val) %>% pull(named_value)
+       if(length(sec_name) >1){
+         sec_name <- paste(sec_name, collapse = " & ")
+       }
+       
+       #Filter for second highest value's value
+       sec_perc <- qstnDta_LA %>% filter(n == sec_val) %>% pull(perc_resp)
+       if(length(sec_perc) >1){
+         sec_perc <- paste(paste(sec_perc, collapse = " & "), "percent respectively.")
+       }else{
+         sec_perc <- paste0(sec_perc, "percent.")
+       }
+       
+       #get most frequent response for Scotland
+       scot_max_name <- as.character(qstnDta_scot %>% filter(n == max(n)) %>% pull(named_value))
+       
+       if(length(scot_max_name) >1){
+         scot_max_name <- paste(scot_max_name, collapse = " & ")
+       }
+       #get percentage for most frequent Scotland level response
+       scot_max_perc <- qstnDta_scot %>% filter(n == max(n)) %>% pull(perc_resp)
+       if(length(scot_max_perc) >1){
+         scot_max_perc <- paste(paste(scot_max_perc, collapse = " & "), "percent respectively.")
+       } else{
+         scot_max_perc <- paste0(scot_max_perc, "percent.")
+       }
+       
+       #Paste it all together!
+       
+       paste("In this year to date for the question for how they would respond to the question \"Overall, how satisfied were you with the service provided?\" responses have been",
+             pos_or_neg, "with",total_good,"percent saying that they were very satisfied or satisfied. The greatest proportion of respondents said they felt ", max_name,
+             "at", max_perc, "This was followed by", sec_name, "at", sec_perc,
+             "For Scotland overall, most respondents said that they were",scot_max_name,
+             "at", scot_max_perc)
+     })
    }
