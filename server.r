@@ -21,7 +21,8 @@ server <- function(input, output) {
     summarise(across(c(maxAvailable,KPO4_weighted),sum, na.rm = T)) %>% 
     bind_rows(summarise(.,across(where(is.numeric), sum),
                         across(where(is.character), ~"Total")))  %>%
-    mutate(KPO_score = 1-KPO4_weighted/maxAvailable)
+    ##generate the KPO score (out of 10)    
+    mutate(KPO_score = (1-KPO4_weighted/maxAvailable)*10)
   
   
   ##calculate KPO4 for quarter for selected local authority    
@@ -35,7 +36,8 @@ server <- function(input, output) {
     summarise(across(c(maxAvailable,KPO4_weighted),sum, na.rm = T)) %>% 
     bind_rows(summarise(.,across(where(is.numeric), sum),
                         across(where(is.character), ~"Total")))  %>%
-    mutate(KPO_score = 1-KPO4_weighted/maxAvailable)
+  ##generate the KPO score (out of 10)    
+    mutate(KPO_score = (1-KPO4_weighted/maxAvailable)*10)
   })
   
 #Create performance box for selected Council  
@@ -67,11 +69,11 @@ server <- function(input, output) {
                   position = "dodge")
     })
     
-##Create barplot for respondent types and reasons
+##Create barplots for respondent types and reasons---
     
   ##n.b. I am using the same output twice, in the UI, but this is not allowed, so this
     #is the suggested workaround i.e. assign the output twice
-    output$respDoughnut_report <- output$respDoughnut <- renderPlotly({
+    output$resp_type_graph_report <- output$respDoughnut <- renderPlotly({
   ##select data    
       pc_resp_data <- resp_dta %>% filter(., question_type == "Type" & value == 1)
       pfig <- ggplot(data = pc_resp_data) +
@@ -81,8 +83,8 @@ server <- function(input, output) {
       
     })
     
-##Alternative - create a pie chart in plotly
-    output$plotly_pie <- renderPlotly({
+##Create plot for respondent reason for contacting
+    output$resp_reason_graph_report <- output$plotly_pie <- renderPlotly({
       ##select data   
       pc_resp_data <- resp_dta %>% filter(., question_type == "Reason" & value == 1)
       pc_resp_data$Question <- gsub(" for a building warrant","",pc_resp_data$Question)
@@ -178,7 +180,8 @@ server <- function(input, output) {
    })
    
 ##Report page outputs =====================================
-   
+
+   #create data for kpo in report page   
    report_kpo_data <- reactive({
      la_max_sum <- la_max_sum()
      
@@ -188,7 +191,7 @@ server <- function(input, output) {
      all_kpo_dta <- rbind(scot_max_sum, la_max_sum)
      all_kpo_dta
    })
-   
+  #create plot for KPO in report page 
    output$reportKPO4Plot <- renderPlotly({
      all_kpo_data <- report_kpo_data()
      all_kpo_data <- all_kpo_data %>% filter(`Tracking Link` == "Total")
@@ -217,23 +220,61 @@ server <- function(input, output) {
                        of 7.5.")
      return(text_kpo)
    })
-   
-   output$respondent_text_report <- renderText({
+  ##Text for respondent types 
+   output$respondent_type_text_report <- renderText({
      local_auth <- "Aberdeen City" ##will need to select LA based on log in details
-     resp_dta_filter <- resp_dta %>% filter(LA == 1) ##filter by LA
+     resp_dta_filter <- resp_dta %>% filter(LA == 1 & question_type == "Type") ##filter by LA
+     #get total responses for using as percentage denominator
      resp_number <- resp_dta_filter %>% ungroup() %>% filter(Question == "Agent/Designer") %>% summarise_at(vars(`n`), sum) %>%
        select(`n`)
-     agent_perc <- round(resp_dta_filter[resp_dta_filter$Question == "Agent/Designer" & resp_dta_filter$value == 1 ,"perc"] *100, 2)
-     appli_perc <- round(resp_dta_filter[resp_dta_filter$Question == "Applicant" & resp_dta_filter$value == 1 ,"perc"] *100, 2)
-     contr_perc <- round(resp_dta_filter[resp_dta_filter$Question == "Contractor" & resp_dta_filter$value == 1 ,"perc"] *100, 2)
-    
+     #create variables for percentages for different groups
+     agent_perc <- round(resp_dta_filter[resp_dta_filter$Question == "Agent/Designer" & resp_dta_filter$value == 1 ,"perc"] *100, 2) %>% pull(perc)
+     appli_perc <- round(resp_dta_filter[resp_dta_filter$Question == "Applicant" & resp_dta_filter$value == 1 ,"perc"] *100, 2) %>% pull(perc)
+     contr_perc <- round(resp_dta_filter[resp_dta_filter$Question == "Contractor" & resp_dta_filter$value == 1 ,"perc"] *100, 2) %>% pull(perc)
+     other_perc <- round(resp_dta_filter[resp_dta_filter$Question == "Other (please specify):" & resp_dta_filter$value == 1 ,"perc"] *100, 2) %>% pull(perc)
+     #if any are 0 then replace with "none"
+     agent_perc <-ifelse(isEmpty(agent_perc), "none", paste0(agent_perc,"%"))
+     appli_perc <-ifelse(isEmpty(appli_perc), "none", paste0(appli_perc,"%"))
+     contr_perc <-ifelse(isEmpty(contr_perc), "none", paste0(contr_perc,"%"))
+     other_perc <- ifelse(isEmpty(other_perc), "No respondents", paste0(other_perc, "%"))
+      #paste all text together
      txt_respondents <- paste0("Respondents were asked to provide details on the type of respondent they were, 
      as well as their reason for contacting the Building Standards Service in", local_auth,".",
-     "Of the ", resp_number, " respondents ", agent_perc, "% were agents or designers,", appli_perc, "%
-     were applicants and ", contr_perc, "% were contractors.")
+     "Of the ", resp_number, " respondents ", agent_perc, " were agents or designers,", appli_perc, "
+     were applicants and ", contr_perc, " were contractors. ", other_perc, " said they were an other respondent type.")
      txt_respondents
    })
    
+   ##Text for respondent reason
+   output$respondent_reason_text_report <- renderText({
+     local_auth <- "Aberdeen City" ##will need to select LA based on log in details
+     resp_dta_filter <- resp_dta %>% filter(LA == 1 & question_type == "Reason") ##filter by LA
+     ##Get a total no. of respondents for working out percentages
+     resp_number <- resp_dta_filter %>% ungroup() %>% filter(Question == "To make an application for a building warrant") %>% summarise_at(vars(`n`), sum) %>%
+       select(`n`)
+     #Calculate percentages for each response type
+     discuss_perc <- round(resp_dta_filter[resp_dta_filter$Question == "To discuss your proposal before applying for a building warrant" & resp_dta_filter$value == 1 ,"perc"] *100, 2) %>% pull(perc)
+     appli_perc <- round(resp_dta_filter[resp_dta_filter$Question == "To make an application for a building warrant" & resp_dta_filter$value == 1 ,"perc"] *100, 2) %>% pull(perc)
+     constr_perc <- round(resp_dta_filter[resp_dta_filter$Question == "During construction, including submission of a completion certificate" & resp_dta_filter$value == 1 ,"perc"] *100, 2) %>% pull(perc)
+     other_perc <- round(resp_dta_filter[resp_dta_filter$Question == "Other (please specify):" & resp_dta_filter$value == 1 ,"perc"] *100, 2) %>% pull(perc)
+     
+     #if any are 0 then replace with "none"
+     discuss_perc <-ifelse(isEmpty(discuss_perc), "none", paste0(discuss_perc,"%"))
+     appli_perc <-ifelse(isEmpty(appli_perc), "none", paste0(appli_perc,"%"))
+     constr_perc <-ifelse(isEmpty(constr_perc), "none", paste0(constr_perc,"%"))
+     other_perc <- ifelse(isEmpty(other_perc), "No respondents", paste0(other_perc, "%"))
+     
+     #paste all text together
+     txt_respondents <- paste0("Respondents were asked to provide details on the type of respondent they were, 
+     as well as their reason for contacting the Building Standards Service in", local_auth,".",
+     "Of the ", resp_number, " respondents ", discuss_perc, " contacted the local authority to discuss their proposal before applying for a building warrant,",
+      appli_perc, " were making an application for a warrant and ", constr_perc, " contacted the service during construction. ",
+     other_perc, " contacted the service for some other reason.")
+     txt_respondents
+   })
+   
+   
+#Graph output for performance over time 
    output$ovrPerfLine <- renderPlotly({
      la_max_sum <- la_max_sum()
      scot_max_sum$LA <- "Scotland"
@@ -246,6 +287,7 @@ server <- function(input, output) {
                 lwd = 1)
      ggplotly(plt)
    })
+   
 ##render text for quarter by quarter performance   
    output$quarter_text <- renderText({
     #get the number of quarters for rendering the text
@@ -772,7 +814,7 @@ server <- function(input, output) {
        
        #Paste it all together!
        
-       paste("In this year to date for the question for how they would rate the \"Responsiveness to any queries or issues raised\" responses have been",
+       paste("In this year to date for the question on how they would rate the \"Responsiveness to any queries or issues raised\" responses have been",
              pos_or_neg, "with",total_good,"percent saying that it was good or very good. The greatest proportion of respondents said they felt it was", max_name,
              "at", max_perc, "This was followed by", sec_name, "at", sec_perc,
              "For Scotland overall, most respondents said that responsiveness was",scot_max_name,
@@ -867,7 +909,7 @@ server <- function(input, output) {
        
        #Paste it all together!
        
-       paste("In this year to date for the question for how they would respond to the question \"To what extent would you agree that you were treated fairly?\" responses have been",
+       paste("In this year to date for the question \"To what extent would you agree that you were treated fairly?\" responses have been",
              pos_or_neg, "with",total_good,"percent saying that they agree or strongly agree. The greatest proportion of respondents said they", max_name,
              "with the statement at", max_perc, "This was followed by", sec_name, "at", sec_perc,
              "For Scotland overall, most respondents said that they",scot_max_name,
@@ -900,16 +942,16 @@ server <- function(input, output) {
      })
      #create a graph
      output$question_overall_report <- renderPlot({
-       qstnDta <- 
+       qstnDta <- question_overall_data_report() 
      p <- ggplot(data = qstnDta ) +
        geom_bar(aes(x = reorder(named_value, as.numeric(value)), y = perc_resp, fill =Selection), stat= "identity", position = "dodge")
      p
       })
      
      # satisfaction with responsiveness text
-     output$question_fair_report_text <- renderText({
+     output$question_overall_report_text <- renderText({
        #load data and split into Scotland and LA datasets
-       qstnDta <-  question_fairly_data_report() 
+       qstnDta <-  question_overall_data_report() 
        qstnDta_LA <- qstnDta %>% filter(Selection == "LA")
        qstnDta_scot<- qstnDta %>% filter(Selection == "Scotland")
        #get total percentage good or very good 
@@ -963,10 +1005,42 @@ server <- function(input, output) {
        
        #Paste it all together!
        
-       paste("In this year to date for the question for how they would respond to the question \"Overall, how satisfied were you with the service provided?\" responses have been",
+       paste("In this year to date for the question \"Overall, how satisfied were you with the service provided?\" responses have been",
              pos_or_neg, "with",total_good,"percent saying that they were very satisfied or satisfied. The greatest proportion of respondents said they felt ", max_name,
              "at", max_perc, "This was followed by", sec_name, "at", sec_perc,
              "For Scotland overall, most respondents said that they were",scot_max_name,
              "at", scot_max_perc)
      })
+     
+##Generate download from report page-------------
+     output$report <- downloadHandler(
+       # For PDF output, change this to "report.pdf"
+       filename = "report.pdf",
+       content = function(file) {
+         # Copy the report file to a temporary directory before processing it, in
+         # case we don't have write permissions to the current working dir (which
+         # can happen when deployed).
+         tempReport <- file.path(tempdir(), "report.Rmd")
+         file.copy("report.Rmd", tempReport, overwrite = TRUE)
+         
+         # Set up parameters to pass to Rmd document
+         params <- list(n = question_time_data_report())
+         
+         # Knit the document, passing in the `params` list, and eval it in a
+         # child of the global environment (this isolates the code in the document
+         # from the code in this app).
+         rmarkdown::render(tempReport, output_file = file,
+                           params = params,
+                           envir = new.env(parent = globalenv())
+         )
+       }
+     )
+     
+  ##Generate Data download to Excel====================
+     output$all_data_dl <- downloadHandler(
+       filename = paste("All_Data", ".csv", sep = ""),
+       content = function(file) {
+         write.csv(dl_all_data, file)
+       }
+     )
    }
