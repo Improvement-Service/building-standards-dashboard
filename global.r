@@ -27,7 +27,10 @@ dta[dta$Indicator == "How would you rate the standard of communication provided 
 
 ##NA values are coded as 5 by SmartSurvey - replace with NA
 dta$value <- replace(dta$value,dta$value == "5", NA)
+#create data that is not pivoted for download
 unpivot_data <-read_excel("DummyData.xlsx") %>%  rename(LA  = "Q1. Please select a local authority")
+dl_all_data <- unpivot_data%>% filter(LA == "1")
+
 
 ##tidy up other" column names for selecting data later
 dta <- dta %>% rename("Q2.4. Other respondent" = "Q2.4. Other (please specify):", 
@@ -46,3 +49,7 @@ resp_dta$question_type <- ifelse(grepl("Q2", resp_dta$Question), "Type", "Reason
 ##Remove question numbers
 resp_dta$Question <- gsub("Q[\\.1-9]+\\s", "", resp_dta$Question,perl = T)
 
+#custom function for checking if vector is empty
+isEmpty <- function(x) {
+  return(length(x)==0)
+}
