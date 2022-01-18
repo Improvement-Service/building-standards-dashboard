@@ -72,14 +72,19 @@ ui <- dashboardPage(
                ),
       tabItem(tabName = "RptDl",
             #  h2("Report Download", style = "margin-top:3px"),
+            downloadBttn("report", "Generate report"),
               fluidRow(
                 box(width = 8, plotlyOutput("reportKPO4Plot")),
                 box(width = 4,textOutput("KPO4_text_report"))
               ),
               fluidRow(
-                box(width = 8, plotlyOutput("respDoughnut_report")),
-                box(width = 4,textOutput("respondent_text_report"))
+                box(width = 8, plotlyOutput("resp_type_graph_report")),
+                box(width = 4,textOutput("respondent_type_text_report"))
                ),
+            fluidRow(
+              box(width = 8, plotlyOutput("resp_reason_graph_report")),
+              box(width = 4,textOutput("respondent_reason_text_report"))
+            ),
             fluidRow(
               box(width = 8, plotlyOutput("ovrPerfLine")),
               box(width = 4, textOutput("quarter_text"))
@@ -110,8 +115,12 @@ ui <- dashboardPage(
             ),
             fluidRow(
               box(width = 8, plotOutput("question_overall_report")),
-              box(width = 4, "")
+              box(width = 4, textOutput("question_overall_report_text"))
             )
+              ),
+      tabItem(tabName = "DtDl",
+              downloadBttn("all_data_dl", label = "Download all data", style = "jelly")
+              
               )
     )
     
