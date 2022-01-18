@@ -1,0 +1,81 @@
+---
+title: "Dynamic report"
+output: pdf_document
+params:
+  n: NA
+---
+
+```{r echo = F}
+library(knitr)
+opts_chunk$set(tidy.opts=list(width.cutoff=60),tidy=TRUE)
+```
+
+```{r echo = F}
+# The `params` object is available in the document.
+dta <- params$n
+```
+
+```{r echo=FALSE, comment= ""}
+#load data and split into Scotland and LA datasets
+     qstnDta <- dta
+     qstnDta_LA <- qstnDta %>% filter(Selection == "LA")
+     qstnDta_scot<- qstnDta %>% filter(Selection == "Scotland")
+     #get total percentage good or very good 
+     total_good <- filter(qstnDta_LA, value %in% c(1,2) & Selection == "LA") %>% pull(perc_resp) %>%
+       sum()
+     #if this is above 55% then overall is positive, otherwise negative/balances
+     pos_or_neg <- ifelse(total_good > 0.55, "mainly positive.", ifelse(total_good < 0.45, "mainly negative.", "balanced."))
+     
+     #get the name for the maximum value in LA dataset. If more than one paste these together
+     max_name <- as.character(qstnDta_LA %>% filter(n == max(n)) %>% pull(named_value))
+     if(length(max_name >1)){
+       max_name <- paste(max_name, collapse = " & ")
+     }
+     #Get the pecentage for the highest response and paste together if multiple
+     max_perc <- qstnDta_LA %>% filter(n == max(n)) %>% pull(perc_resp)
+     if(length(max_perc) >1){
+       max_perc <- paste(paste(max_perc, collapse = " & "), "percent respectively.")
+     } else{
+       max_perc <- paste0(max_perc, "percent.")
+     }
+     
+     #Gte second highest value
+     sec_val <- sort(qstnDta_LA$n, partial= 3)[3]
+     #Filter for second highest value's name
+     sec_name <- qstnDta_LA %>% filter(n == sec_val) %>% pull(named_value)
+     if(length(sec_name) >1){
+       sec_name <- paste(sec_name, collapse = " & ")
+     }
+     
+     #Filter for second highest value's value
+     sec_perc <- qstnDta_LA %>% filter(n == sec_val) %>% pull(perc_resp)
+     if(length(sec_perc) >1){
+       sec_perc <- paste(paste(sec_perc, collapse = " & "), "percent respectively.")
+     }else{
+       sec_perc <- paste0(sec_perc, " percent.")
+     }
+     
+     #get most frequent response for Scotland
+     scot_max_name <- as.character(qstnDta_scot %>% filter(n == max(n)) %>% pull(named_value))
+     
+     if(length(scot_max_name) >1){
+       scot_max_name <- paste(scot_max_name, collapse = " & ")
+     }
+     #get percentage for most frequent Scotland level response
+     scot_max_perc <- qstnDta_scot %>% filter(n == max(n)) %>% pull(perc_resp)
+     if(length(scot_max_perc) >1){
+       scot_max_perc <- paste(paste(scot_max_perc, collapse = " & "), "percent respectively.")
+     } else{
+       scot_max_perc <- paste0(scot_max_perc, "percent.")
+     }
+```
+
+###Time takens
+In this year to date for the question "Thinking of your engagement, how satisfied were you with the time taken to complete the process?"" responses have been `r pos_or_neg` with `r total_good` percent saying that they were very satisfied or satisfied. The greatest proportion of respondents said they were `r max_name` at `r max_perc` This was followed by `r sec_name` at `r sec_perc` For Scotland overall, most respondents said that they were `r scot_max_name` at `r scot_max_perc`
+
+A plot of `params$n` random points.
+
+```{r echo = F}
+     ggplot(data = dta ) +
+       geom_bar(aes(x = reorder(named_value, as.numeric(value)), y = perc_resp, fill =Selection), stat= "identity", position = "dodge")
+     ```
