@@ -190,20 +190,60 @@ server <- function(input, output) {
        ungroup()%>%
        mutate(percentage_responses = n/total_responses*100)
      
-       p <- ggplot(data = qstnDta ) +
-         geom_bar(aes(x = `Tracking Link`, y = percentage_responses, fill = value), 
+     
+     ##set labels for response groups
+     qstnDta$labels <- qstnDta$value
+     if(input$Qstn_tab2 == "All Questions"){
+       qstnDta$labels<- recode(qstnDta$labels, "1" = "Very good/very satisfied/strongly agree",
+                                     "2" ="good/satisfied/agree",
+                                     "3" = "poor/dissatisfied/disagree",
+                                     "4" = "Very poor/very dissatisfied/strongly disagree")
+       qstnDta$labels <- factor(qstnDta$labels, levels  = c(
+         "Very good/very satisfied/strongly agree",
+         "good/satisfied/agree", 
+         "poor/dissatisfied/disagree",
+         "Very poor/very dissatisfied/strongly disagree"))
+     } else if(input$Qstn_tab2 =="Overall, how satisfied were you with the service provided?"|input$Qstn_tab2 =="Thinking of your engagement, how satisfied were you with the time taken to complete the process?"){
+      qstnDta$labels <- recode(qstnDta$labels, "1" = "very satisfied",
+                                     "2" ="satisfied",
+                                     "3" = "dissatisfied",
+                                     "4" = "very dissatisfied")
+      qstnDta$labels <- factor(qstnDta$labels, levels  = c("very satisfied",
+                                                           "satisfied",
+                                                           "dissatisfied",
+                                                           "very dissatisfied"))
+     }else if(input$Qstn_tab2  =="To what extent would you agree that you were treated fairly?"){
+       qstnDta$labels <- recode(qstnDta$labels, "1" = "strongly agree",
+                                     "2" ="agree",
+                                     "3" = "disagree",
+                                     "4" = "strongly disagree")
+       qstnDta$labels <- factor(qstnDta$labels, levels  = c("strongly agree",
+                                                            "agree",
+                                                            "disagree",
+                                                            "strongly disagree"))
+     } else{
+       qstnDta$labels <- recode(qstnDta$labels, "1" = "very good",
+                                     "2" ="good",
+                                     "3" = "poor",
+                                     "4" = "very poor")
+       qstnDta$labels <- factor(qstnDta$labels, levels  = c("very good", "good", "poor", "very poor"))
+     }
+     
+     Labels <- levels(qstnDta$labels)
+       
+     # Create plot  
+     p <- ggplot(data = qstnDta ) +
+         geom_bar(aes(x = `Tracking Link`, y = percentage_responses, fill = labels), 
                   stat= "identity", 
                   position = "stack",
                   width = 0.7, 
                   colour = "black"
                   ) +
          theme_classic() +
-         scale_fill_brewer(palette = "RdYlGn", direction = -1)
-         scale_fill_manual(values = c("1" = "forestgreen",
-                                      "2" = "lightgreen",
-                                      "3" = "darkorange",
-                                      "4" = "firebrick"))
-        
+        scale_fill_manual(breaks = Labels, 
+                         values = c("forestgreen", "lightgreen", "darkorange", "firebrick")
+                         )
+     
        ggplotly(p)
    })
    
