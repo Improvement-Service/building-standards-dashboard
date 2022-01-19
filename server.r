@@ -190,9 +190,6 @@ server <- function(input, output) {
        ungroup()%>%
        mutate(percentage_responses = n/total_responses*100)
      
-     #Count how many quarters there are - this will be used to colour them in the plot
-     rds <- length(unique(qstnDta$`Tracking Link`))-1
-   
        p <- ggplot(data = qstnDta ) +
          geom_bar(aes(x = `Tracking Link`, y = percentage_responses, fill = value), 
                   stat= "identity", 
@@ -202,6 +199,11 @@ server <- function(input, output) {
                   ) +
          theme_classic() +
          scale_fill_brewer(palette = "RdYlGn", direction = -1)
+         scale_fill_manual(values = c("1" = "forestgreen",
+                                      "2" = "lightgreen",
+                                      "3" = "darkorange",
+                                      "4" = "firebrick"))
+        
        ggplotly(p)
    })
    
