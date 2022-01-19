@@ -54,4 +54,3 @@ isEmpty <- function(x) {
   return(length(x)==0)
 }
 
-#test

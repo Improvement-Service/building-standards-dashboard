@@ -168,6 +168,9 @@ server <- function(input, output) {
                width = 0.7, 
                colour = "black"
                )+
+       ggtitle(input$Qstn_tab2)+
+       xlab("Response")+
+       ylab("Number of responses")+
        theme_classic()
     ggplotly(p)
    })
@@ -239,9 +242,13 @@ server <- function(input, output) {
                   width = 0.7, 
                   colour = "black"
                   ) +
+       ggtitle(input$Qstn_tab2)+
+       xlab("")+
+       ylab("Percentage of responses")+
          theme_classic() +
         scale_fill_manual(breaks = Labels, 
-                         values = c("forestgreen", "lightgreen", "darkorange", "firebrick")
+                         values = c("forestgreen", "lightgreen", "darkorange", "firebrick"),
+                         name = "Responses"
                          )
      
        ggplotly(p)
