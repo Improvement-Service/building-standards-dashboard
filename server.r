@@ -61,12 +61,24 @@ server <- function(input, output) {
     })
     
 ##Create bar plot for overall performance
-    output$ovrPerfBar <- renderPlot({
+    output$ovrPerfBar <- renderPlotly({
       la_max_sum <- la_max_sum()
+      
+      #rename Total as year to date
+      la_max_sum$`Tracking Link` <- recode(la_max_sum$`Tracking Link`, "Total" = "Year to Date")
+      #Count how many quarters there are - this will be used to colour them red in the plot
+      rds <- length(unique(la_max_sum$`Tracking Link`))-1
       
        ggplot(data = la_max_sum) +
          geom_bar(aes(x = `Tracking Link`, y = KPO_score), stat = "identity",
-                  position = "dodge")
+                  position = "dodge", fill = c(rep("cadetblue3", rds), "grey13"), width = 0.7, colour = "black") +
+         theme_classic() +
+         scale_y_continuous(limits = c(0,10), expand = c(0, 0))+
+         ggtitle("KPO4 Performance by Quarter and YTD")+
+         ylab("KPO 4 Score") +
+         xlab("Response period") +
+         theme(axis.text.x = element_text(size = 12),
+               axis.title = element_text(size = 13))
     })
     
 ##Create barplots for respondent types and reasons---
