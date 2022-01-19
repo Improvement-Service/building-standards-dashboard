@@ -26,7 +26,7 @@ ui <- dashboardPage(
                 ),
               fluidRow(
                 box(width = 8,
-                  plotOutput("ovrPerfBar")
+                  plotlyOutput("ovrPerfBar")
                   ),
                 tabBox(width = 4,
                        title = "Respondents", 
