@@ -160,9 +160,15 @@ server <- function(input, output) {
                                      "4" = "very poor")
        qstnDta$named_value <- factor(qstnDta$named_value, levels  = c("very good", "good", "poor", "very poor"))
      }
-  #generate basic barplot
+  #generate barplot
      p <- ggplot(data = qstnDta) +
-      geom_bar(aes(x = reorder(named_value, as.numeric(value)), y = n), stat= "identity")
+      geom_bar(aes(x = reorder(named_value, as.numeric(value)), y = n), 
+               stat= "identity",
+               fill = "cadetblue3", 
+               width = 0.7, 
+               colour = "black"
+               )+
+       theme_classic()
     ggplotly(p)
    })
    
@@ -178,16 +184,24 @@ server <- function(input, output) {
        }
      
      qstnDta <- qstnDta %>%  count(`Tracking Link`,value, .drop =F)
-     qstnDta <- qstnDta %>% group_by(value) %>% summarise(., across(n, sum)) %>% mutate(`Tracking Link` = "YTD") %>%
-       select(3,1,2) %>%
-       bind_rows(qstnDta) %>%
+     qstnDta <- qstnDta %>% 
        group_by(`Tracking Link`) %>%
        mutate(total_responses = sum(n)) %>%
        ungroup()%>%
-       mutate(percentage_responses = n/total_responses)
+       mutate(percentage_responses = n/total_responses*100)
+     
+     #Count how many quarters there are - this will be used to colour them in the plot
+     rds <- length(unique(qstnDta$`Tracking Link`))-1
    
        p <- ggplot(data = qstnDta ) +
-         geom_bar(aes(x = `Tracking Link`, y = percentage_responses), stat= "identity", position = "dodge")
+         geom_bar(aes(x = `Tracking Link`, y = percentage_responses, fill = value), 
+                  stat= "identity", 
+                  position = "stack",
+                  width = 0.7, 
+                  colour = "black"
+                  ) +
+         theme_classic() +
+         scale_fill_brewer(palette = "RdYlGn", direction = -1)
        ggplotly(p)
    })
    
