@@ -106,15 +106,15 @@ ui <- dashboardPage(
               box(width = 4, textOutput("question_staff_report_text"))
             ),
             fluidRow(
-              box(width = 8, plotOutput("question_responsiveness_report")),
+              box(width = 8, plotlyOutput("question_responsiveness_report")),
               box(width = 4, textOutput("question_responsiveness_report_text"))
             ),
             fluidRow(
-              box(width = 8, plotOutput("question_fair_report")),
+              box(width = 8, plotlyOutput("question_fair_report")),
               box(width = 4, textOutput("question_fair_report_text"))
             ),
             fluidRow(
-              box(width = 8, plotOutput("question_overall_report")),
+              box(width = 8, plotlyOutput("question_overall_report")),
               box(width = 4, textOutput("question_overall_report_text"))
             )
               ),
