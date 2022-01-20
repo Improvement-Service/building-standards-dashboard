@@ -90,7 +90,7 @@ ui <- dashboardPage(
               box(width = 4, textOutput("quarter_text"))
             ),
             fluidRow(
-              box(width = 8, plotOutput("question_time_report")),
+              box(width = 8, plotlyOutput("question_time_report")),
               box(width = 4, textOutput("question_time_report_text"))
             ),
             fluidRow(

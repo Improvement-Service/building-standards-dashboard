@@ -194,7 +194,7 @@ server <- function(input, output) {
        group_by(`Tracking Link`) %>%
        mutate(total_responses = sum(n)) %>%
        ungroup()%>%
-       mutate(`Percentage of responses` = round((n/total_responses*100),1))
+       mutate(`% of responses` = round((n/total_responses*100),1))
      
      
      ##set labels for response groups
@@ -242,7 +242,7 @@ server <- function(input, output) {
     
      # Create plot  
      p <- ggplot(data = qstnDta ) +
-         geom_bar(aes(x = Quarter, y = `Percentage of responses`, fill = Response), 
+         geom_bar(aes(x = Quarter, y = `% of responses`, fill = Response), 
                   stat= "identity", 
                   position = "stack",
                   width = 0.7, 
@@ -345,8 +345,8 @@ server <- function(input, output) {
      other_perc <- ifelse(isEmpty(other_perc), "No respondents", paste0(other_perc, "%"))
       #paste all text together
      txt_respondents <- paste0("Respondents were asked to provide details on the type of respondent they were, 
-     as well as their reason for contacting the Building Standards Service in", local_auth,".",
-     "Of the ", resp_number, " respondents ", agent_perc, " were agents or designers,", appli_perc, "
+     as well as their reason for contacting the Building Standards Service in", local_auth,". ",
+     "Of the ", resp_number, " respondents ", agent_perc, " were agents or designers, ", appli_perc, "
      were applicants and ", contr_perc, " were contractors. ", other_perc, " said they were an other respondent type.")
      txt_respondents
    })
@@ -372,8 +372,8 @@ server <- function(input, output) {
      
      #paste all text together
      txt_respondents <- paste0("Respondents were asked to provide details on the type of respondent they were, 
-     as well as their reason for contacting the Building Standards Service in", local_auth,".",
-     "Of the ", resp_number, " respondents ", discuss_perc, " contacted the local authority to discuss their proposal before applying for a building warrant,",
+     as well as their reason for contacting the Building Standards Service in ", local_auth,". ",
+     "Of the ", resp_number, " respondents ", discuss_perc, " contacted the local authority to discuss their proposal before applying for a building warrant, ",
       appli_perc, " were making an application for a warrant and ", constr_perc, " contacted the service during construction. ",
      other_perc, " contacted the service for some other reason.")
      txt_respondents
@@ -387,10 +387,18 @@ server <- function(input, output) {
      la_max_sum$LA <- "Aberdeen City"
      
      quarts_dta <- rbind(scot_max_sum,la_max_sum) %>% filter(`Tracking Link` != "Total")
+     quarts_dta$KPO_score <- round(quarts_dta$KPO_score,1)
      
      plt <- ggplot(data = quarts_dta) +
        geom_line(aes(x = `Tracking Link`, y = KPO_score, group = LA, colour = LA),
-                lwd = 1)
+                lwd = 1)+
+       scale_color_manual( 
+            values = c("cadetblue3", "dimgrey"))+
+       ggtitle("KPO 4 Score - Over time")+
+       ylim(0,10)+
+       xlab("")+
+       ylab("KPO 4 Score")+
+       theme_classic()
      ggplotly(plt)
    })
    
@@ -410,10 +418,10 @@ server <- function(input, output) {
     Q2_kpo <- all_kpo_data %>% filter(`Tracking Link` == "Quarter 2", id == "local authority") %>%
       select(KPO_score)
     #compare quarter 2 and quarter 1
-    comp_Q12 <- ifelse(Q2_kpo > Q1_kpo+0.2, "rose", ifelse(Q2_kpo < Q1_kpo-0.2, "fell", "stayed the same"))
+    comp_Q12 <- ifelse(Q2_kpo > Q1_kpo+0.2, "rose", ifelse(Q2_kpo < Q1_kpo-0.2, "fell", "stayed the same "))
     #render text for quarter 2                   
     Q2_text<- paste0(Q1_text,"Performance then ", comp_Q12,
-            "in Quarter 2 to stand at", Q2_kpo)
+            "in Quarter 2 to stand at ", Q2_kpo)
     
     #filter to get KPO for quarter 3
     Q3_kpo <- all_kpo_data %>% filter(`Tracking Link` == "Quarter 3", id == "local authority") %>%
@@ -455,7 +463,7 @@ server <- function(input, output) {
        mutate(Selection = "Scotland") %>%
        rbind(qstnDta_LA )
      #Get percentage of responses for LA and Scotland 
-     qstnDta <- qstnDta %>% group_by(Selection) %>% mutate(perc_resp = n/sum(n))
+     qstnDta <- qstnDta %>% group_by(Selection) %>% mutate(perc_resp = round((n/sum(n))*100,1))
      #Recode the values for this question to be shown on tickmarks in x axis 
      qstnDta$named_value <- recode(qstnDta$value, "1" = "very satisfied",
                                    "2" ="satisfied",
@@ -464,12 +472,31 @@ server <- function(input, output) {
      qstnDta
    })
    
-   output$question_time_report <- renderPlot({
+   output$question_time_report <- renderPlotly({
      qstnDta <- question_time_data_report() 
     #create a graph
      p <- ggplot(data = qstnDta ) +
-       geom_bar(aes(x = reorder(named_value, as.numeric(value)), y = perc_resp, fill =Selection), stat= "identity", position = "dodge")
-     p
+       geom_bar(aes(
+         x = reorder(named_value, as.numeric(value)), 
+         y = perc_resp,
+         fill = Selection,
+         text = paste(
+           Selection, 
+           paste("Response:", named_value), 
+           paste("% of Responses:", perc_resp),
+           sep = "\n")
+         ), 
+         stat= "identity", 
+         position = "dodge",
+         width = 0.7, 
+         colour = "black")+
+       scale_fill_manual( 
+         values = c("LA" = "cadetblue3", "Scotland" = "dimgrey"), name = "")+
+       ggtitle("Satisfaction with time taken - Year To Date")+
+       xlab("Responses")+
+       ylab("Percentage of Responses")+
+       theme_classic()
+     ggplotly(p, tooltip = "text")
      
    })
    
@@ -483,7 +510,7 @@ server <- function(input, output) {
      total_good <- filter(qstnDta_LA, value %in% c(1,2) & Selection == "LA") %>% pull(perc_resp) %>%
        sum()
      #if this is above 55% then overall is positive, otherwise negative/balances
-     pos_or_neg <- ifelse(total_good > 0.55, "mainly positive.", ifelse(total_good < 0.45, "mainly negative.", "balanced."))
+     pos_or_neg <- ifelse(total_good > 0.55, "mainly positive,", ifelse(total_good < 0.45, "mainly negative,", "balanced,"))
      
      #get the name for the maximum value in LA dataset. If more than one paste these together
      max_name <- as.character(qstnDta_LA %>% filter(n == max(n)) %>% pull(named_value))
@@ -495,7 +522,7 @@ server <- function(input, output) {
      if(length(max_perc) >1){
        max_perc <- paste(paste(max_perc, collapse = " & "), "percent respectively.")
      } else{
-       max_perc <- paste0(max_perc, "percent.")
+       max_perc <- paste0(max_perc, " percent.")
      }
      
      #Gte second highest value
@@ -511,7 +538,7 @@ server <- function(input, output) {
      if(length(sec_perc) >1){
        sec_perc <- paste(paste(sec_perc, collapse = " & "), "percent respectively.")
      }else{
-       sec_perc <- paste0(sec_perc, "percent.")
+       sec_perc <- paste0(sec_perc, " percent.")
      }
      
      #get most frequent response for Scotland
@@ -525,7 +552,7 @@ server <- function(input, output) {
      if(length(scot_max_perc) >1){
        scot_max_perc <- paste(paste(scot_max_perc, collapse = " & "), "percent respectively.")
      } else{
-       scot_max_perc <- paste0(scot_max_perc, "percent.")
+       scot_max_perc <- paste0(scot_max_perc, " percent.")
      }
      
      #Paste it all together!
