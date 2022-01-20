@@ -239,9 +239,7 @@ server <- function(input, output) {
      
      #Change column titles in dataset to fix hover labels
      qstnDta <- qstnDta %>% rename(Quarter = `Tracking Link`)
-     
     
-       
      # Create plot  
      p <- ggplot(data = qstnDta ) +
          geom_bar(aes(x = Quarter, y = `Percentage of responses`, fill = Response), 
@@ -272,15 +270,40 @@ server <- function(input, output) {
      scot_max_sum$id <- "Scotland" 
      
      all_kpo_dta <- rbind(scot_max_sum, la_max_sum)
+     #Round figures
+     all_kpo_dta$KPO_score <- round(all_kpo_dta$KPO_score,1)
      all_kpo_dta
+     
+     
+     
    })
   #create plot for KPO in report page 
    output$reportKPO4Plot <- renderPlotly({
      all_kpo_data <- report_kpo_data()
      all_kpo_data <- all_kpo_data %>% filter(`Tracking Link` == "Total")
-     ggplot(data = all_kpo_data) +
-       geom_bar(aes(x = `Tracking Link`, y = KPO_score, fill = id), stat = "identity",
-                position = "dodge")   
+     
+     p <- ggplot(data = all_kpo_data) +
+       geom_bar(aes(
+         x = `Tracking Link`, 
+         y = KPO_score, 
+         fill = id,
+         text = paste("Year to date", id, paste("KPO 4 Score:", KPO_score),sep = "\n")), 
+         stat = "identity",
+         position = "dodge",
+         width = 0.7, 
+         colour = "black")+
+       scale_fill_manual( 
+         values = c("local authority" = "cadetblue3", "Scotland" = "dimgrey"), name = "")+
+       ylim(0,10)+ 
+       ggtitle("KPO 4 Score - Year To Date")+
+       xlab("")+
+       ylab("KPO 4 Score")+
+       theme_classic()+
+       theme(axis.text.x=element_blank(),
+             axis.ticks.x=element_blank())
+     
+     ggplotly(p, tooltip = "text")
+     
      })
    
    
@@ -298,8 +321,8 @@ server <- function(input, output) {
      
      text_kpo <- paste0("This indicator summarises performance across all questions, with differential
                        weightings based on importance. For ", local_auth," in ",curr_year, " overall
-                       performance is at ", KPO4_ytd, " for the year to date. ", "This is ", hilow_kpo4,
-                       " than the Scotland average of ", scotAv_kpo4," and ", abbel_kpo4," than the target value
+                       performance is at ", KPO4_ytd, " for the year to date. ", "This is ",abbel_kpo4,
+                       " than the Scotland average of ", scotAv_kpo4," and ", hilow_kpo4," than the target value
                        of 7.5.")
      return(text_kpo)
    })
