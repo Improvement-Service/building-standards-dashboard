@@ -102,7 +102,7 @@ ui <- dashboardPage(
               box(width = 4, textOutput("question_info_report_text"))
             ),
             fluidRow(
-              box(width = 8, plotOutput("question_staff_report")),
+              box(width = 8, plotlyOutput("question_staff_report")),
               box(width = 4, textOutput("question_staff_report_text"))
             ),
             fluidRow(
