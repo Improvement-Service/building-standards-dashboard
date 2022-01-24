@@ -1,4 +1,4 @@
-server <- function(input, output) {
+server <- function(input, output, session) {
   
 ##Create outputs for KPO4 Summary Page===========================  
   
@@ -43,20 +43,21 @@ server <- function(input, output) {
 #Create performance box for selected Council  
   output$performanceBox <- renderValueBox({
     la_max_sum <- la_max_sum()
+    kpo_colr <- ifelse(la_max_sum[la_max_sum$`Tracking Link` =="Total", "KPO_score"] > 7.5, "green", ifelse(la_max_sum[la_max_sum$`Tracking Link` =="Total", "KPO_score"] < 6.5, "red", "orange"))
     valueBox(
-      value = round(la_max_sum[la_max_sum$`Tracking Link` =="Total", "KPO_score"],2), "Council KPO4 YTD", icon = icon("chart-bar"), color = "red"
+      value = round(la_max_sum[la_max_sum$`Tracking Link` =="Total", "KPO_score"],2), "Council KPO4 YTD", icon = icon("chart-bar"), color = kpo_colr
     )
   })
 #Create performance box for Scotland
   output$scotPerfBox<- renderValueBox({
    valueBox(
-      value = round(scot_max_sum[scot_max_sum$`Tracking Link` =="Total", "KPO_score"],2), "Scotland Average", icon = icon("times"), color = "blue"
+      value = round(scot_max_sum[scot_max_sum$`Tracking Link` =="Total", "KPO_score"],2), "Scotland Average", icon = icon("times"), color = "navy"
     )
   })
 #Create responses valuebox
     output$respBox <- renderValueBox({
       valueBox(
-        value = paste(nrow(filter(unpivot_data, `Tracking Link` == "Quarter 1")), "Responses"), paste(nrow(unpivot_data),"Year to Date"), icon = icon("user-friends"), color = "green"
+        value = paste(nrow(filter(unpivot_data, `Tracking Link` == "Quarter 1")), "Responses"), paste(nrow(unpivot_data),"Year to Date"), icon = icon("user-friends"), color = "light-blue"
       )
     })
     
@@ -66,15 +67,17 @@ server <- function(input, output) {
       
       #rename Total as year to date
       la_max_sum$`Tracking Link` <- recode(la_max_sum$`Tracking Link`, "Total" = "Year to Date")
-      #Count how many quarters there are - this will be used to colour them red in the plot
-      rds <- length(unique(la_max_sum$`Tracking Link`))-1
+     
+        ##Set colours for quarter by kpo4
+      kpo_clrs <- la_max_sum %>% filter(`Tracking Link` != "Year to Date") %>% pull(KPO_score)
+      clrs <- ifelse(kpo_clrs >7.5, "green", ifelse(kpo_clrs <6.5, "red", "orange"))
       
-       ggplot(data = la_max_sum) +
+      ggplot(data = la_max_sum) +
          geom_bar(aes(x = `Tracking Link`, y = KPO_score), stat = "identity",
-                  position = "dodge", fill = c(rep("cadetblue3", rds), "grey13"), width = 0.7, colour = "black") +
+                  position = "dodge", fill = c(clrs, "grey13"), width = 0.7, colour = "black") +
          theme_classic() +
          scale_y_continuous(limits = c(0,10), expand = c(0, 0))+
-         ggtitle("KPO4 Performance by Quarter and YTD")+
+         ggtitle("KPO4 performance by quarter and YTD")+
          ylab("KPO 4 Score") +
          xlab("Response period") +
          theme(axis.text.x = element_text(size = 12),
@@ -89,8 +92,11 @@ server <- function(input, output) {
   ##select data    
       pc_resp_data <- resp_dta %>% filter(., question_type == "Type" & value == 1)
       pfig <- ggplot(data = pc_resp_data) +
-        geom_col(aes(x = Question, y = perc))+
-        coord_flip()
+        geom_col(aes(x = Question, y = perc), fill = "cadetblue3", colour = "black")+
+        coord_flip() +
+        theme_classic()+
+        scale_y_continuous( expand = c(0, 0))
+        
       ggplotly(pfig)
       
     })
@@ -99,11 +105,15 @@ server <- function(input, output) {
     output$resp_reason_graph_report <- output$plotly_pie <- renderPlotly({
       ##select data   
       pc_resp_data <- resp_dta %>% filter(., question_type == "Reason" & value == 1)
-      pc_resp_data$Question <- gsub(" for a building warrant","",pc_resp_data$Question)
       pc_resp_data[pc_resp_data$Question == "During construction, including submission of a completion certificate", "Question"] <-"During construction" 
-      pfig <- ggplot(data = pc_resp_data) +
-        geom_col(aes(x = Question, y = perc))+
-        coord_flip()
+      pc_resp_data[pc_resp_data$Question == "To discuss your proposal before applying for a building warrant", "Question"] <-"Discuss proposal" 
+      pc_resp_data[pc_resp_data$Question == "To make an application for a building warrant", "Question"] <-"Make application" 
+     
+       pfig <- ggplot(data = pc_resp_data) +
+        geom_col(aes(x = Question, y = perc),fill = "cadetblue3", colour = "black")+
+        coord_flip() +
+        theme_classic()+
+        scale_y_continuous( expand = c(0, 0))
       ggplotly(pfig)
     })
     
@@ -174,6 +184,7 @@ server <- function(input, output) {
        ggtitle(input$Qstn_tab2)+
        xlab("Response")+
        ylab("Number of responses")+
+       scale_y_continuous(expand = c(0, 0))+
        theme_classic()
     ggplotly(p, tooltip = "text")
    })
@@ -248,6 +259,7 @@ server <- function(input, output) {
                   width = 0.7, 
                   colour = "black"
                   ) +
+       scale_y_continuous(expand = c(0, 0))+
        ggtitle(input$Qstn_tab2)+
        xlab("")+
      #  ylab("Percentage of responses")+
@@ -292,12 +304,14 @@ server <- function(input, output) {
          position = "dodge",
          width = 0.7, 
          colour = "black")+
+       scale_y_continuous(expand = c(0, 0))+
        scale_fill_manual( 
          values = c("local authority" = "cadetblue3", "Scotland" = "dimgrey"), name = "")+
        ylim(0,10)+ 
-       ggtitle("KPO 4 Score - Year To Date")+
+       ggtitle("KPO 4 score - Year to Date")+
        xlab("")+
        ylab("KPO 4 Score")+
+       scale_y_continuous(expand = c(0, 0))+
        theme_classic()+
        theme(axis.text.x=element_blank(),
              axis.ticks.x=element_blank())
@@ -394,7 +408,7 @@ server <- function(input, output) {
                 lwd = 1)+
        scale_color_manual( 
             values = c("cadetblue3", "dimgrey"))+
-       ggtitle("KPO 4 Score - Over time")+
+       ggtitle("KPO 4 score - over time")+
        ylim(0,10)+
        xlab("")+
        ylab("KPO 4 Score")+
@@ -490,9 +504,10 @@ server <- function(input, output) {
          position = "dodge",
          width = 0.7, 
          colour = "black")+
+       scale_y_continuous(expand = c(0, 0))+
        scale_fill_manual( 
          values = c("LA" = "cadetblue3", "Scotland" = "dimgrey"), name = "")+
-       ggtitle("Satisfaction with time taken - Year To Date")+
+       ggtitle("Satisfaction with time taken - Year to Date")+
        xlab("Responses")+
        ylab("Percentage of Responses")+
        theme_classic()
@@ -618,9 +633,10 @@ server <- function(input, output) {
          colour = "black") +
        scale_fill_manual( 
          values = c("LA" = "cadetblue3", "Scotland" = "dimgrey"), name = "")+
-       ggtitle("Standard of Communication - Year To Date")+
+       ggtitle("Standard of communication - Year to Date")+
        xlab("Responses")+
        ylab("Percentage of Responses")+
+       scale_y_continuous(expand = c(0, 0))+
        theme_classic()
      ggplotly(p, tooltip = "text")
    })
@@ -740,9 +756,10 @@ server <- function(input, output) {
          width = 0.7, 
          colour = "black"
          ) +
+       scale_y_continuous(expand = c(0, 0))+
        scale_fill_manual( 
          values = c("LA" = "cadetblue3", "Scotland" = "dimgrey"), name = "")+
-       ggtitle("Quality of Information - Year To Date")+
+       ggtitle("Quality of information - Year to Date")+
        xlab("Responses")+
        ylab("Percentage of Responses")+
        theme_classic()
@@ -864,9 +881,10 @@ server <- function(input, output) {
          width = 0.7, 
          colour = "black"
          ) +
+       scale_y_continuous(expand = c(0, 0))+
        scale_fill_manual( 
          values = c("LA" = "cadetblue3", "Scotland" = "dimgrey"), name = "")+
-       ggtitle("Service offered by staff - Year To Date")+
+       ggtitle("Service offered by staff - Year to Date")+
        xlab("Responses")+
        ylab("Percentage of Responses")+
        theme_classic()
@@ -989,9 +1007,10 @@ server <- function(input, output) {
          width = 0.7, 
          colour = "black"
          ) +
+       scale_y_continuous(expand = c(0, 0))+
        scale_fill_manual( 
          values = c("LA" = "cadetblue3", "Scotland" = "dimgrey"), name = "")+
-       ggtitle("Responsiveness to queries or issues - Year To Date")+
+       ggtitle("Responsiveness to queries or issues - Year to Date")+
        xlab("Responses")+
        ylab("Percentage of Responses")+
        theme_classic()
@@ -1114,7 +1133,8 @@ server <- function(input, output) {
          )+
        scale_fill_manual( 
          values = c("LA" = "cadetblue3", "Scotland" = "dimgrey"), name = "")+
-       ggtitle("Would you agree you were treated fairly - Year To Date")+
+       scale_y_continuous(expand = c(0, 0))+
+        ggtitle("Would you agree you were treated fairly - Year to Date")+
        xlab("Responses")+
        ylab("Percentage of Responses")+
        theme_classic()
@@ -1234,9 +1254,10 @@ server <- function(input, output) {
          width = 0.7, 
          colour = "black"
          ) +
+       scale_y_continuous(expand = c(0, 0))+
        scale_fill_manual( 
          values = c("LA" = "cadetblue3", "Scotland" = "dimgrey"), name = "")+
-       ggtitle("Overall Satisfaction - Year To Date")+
+       ggtitle("Overall satisfaction - Year to Date")+
        xlab("Responses")+
        ylab("Percentage of Responses")+
        theme_classic()
@@ -1345,4 +1366,5 @@ server <- function(input, output) {
          write.csv(dl_all_data, file)
        }
      )
-   }
+     
+ }
