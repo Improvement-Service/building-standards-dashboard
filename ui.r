@@ -75,47 +75,47 @@ ui <- dashboardPage(
             downloadBttn("report", "Generate report"),
               fluidRow(
                 box(width = 8, plotlyOutput("reportKPO4Plot")),
-                box(width = 4,textOutput("KPO4_text_report"))
+                box(width = 4,style = "font-size:18px",textOutput("KPO4_text_report"))
               ),
               fluidRow(
                 box(width = 8, plotlyOutput("resp_type_graph_report")),
-                box(width = 4,textOutput("respondent_type_text_report"))
+                box(width = 4,style = "font-size:18px",textOutput("respondent_type_text_report"))
                ),
             fluidRow(
               box(width = 8, plotlyOutput("resp_reason_graph_report")),
-              box(width = 4,textOutput("respondent_reason_text_report"))
+              box(width = 4,style = "font-size:18px",textOutput("respondent_reason_text_report"))
             ),
             fluidRow(
               box(width = 8, plotlyOutput("ovrPerfLine")),
-              box(width = 4, textOutput("quarter_text"))
+              box(width = 4, style = "font-size:18px",textOutput("quarter_text"))
             ),
             fluidRow(
               box(width = 8, plotlyOutput("question_time_report")),
-              box(width = 4, textOutput("question_time_report_text"))
+              box(width = 4, style = "font-size:18px",textOutput("question_time_report_text"))
             ),
             fluidRow(
               box(width = 8, plotlyOutput("question_comms_report")),
-              box(width = 4, textOutput("question_comms_report_text"))
+              box(width = 4, style = "font-size:18px",textOutput("question_comms_report_text"))
             ),
             fluidRow(
               box(width = 8, plotlyOutput("question_info_report")),
-              box(width = 4, textOutput("question_info_report_text"))
+              box(width = 4, style = "font-size:18px",textOutput("question_info_report_text"))
             ),
             fluidRow(
               box(width = 8, plotlyOutput("question_staff_report")),
-              box(width = 4, textOutput("question_staff_report_text"))
+              box(width = 4, style = "font-size:18px",textOutput("question_staff_report_text"))
             ),
             fluidRow(
               box(width = 8, plotlyOutput("question_responsiveness_report")),
-              box(width = 4, textOutput("question_responsiveness_report_text"))
+              box(width = 4, style = "font-size:18px",textOutput("question_responsiveness_report_text"))
             ),
             fluidRow(
               box(width = 8, plotlyOutput("question_fair_report")),
-              box(width = 4, textOutput("question_fair_report_text"))
+              box(width = 4, style = "font-size:18px",textOutput("question_fair_report_text"))
             ),
             fluidRow(
               box(width = 8, plotlyOutput("question_overall_report")),
-              box(width = 4, textOutput("question_overall_report_text"))
+              box(width = 4,  style = "font-size:18px", textOutput("question_overall_report_text"))
             )
               ),
       tabItem(tabName = "DtDl",
