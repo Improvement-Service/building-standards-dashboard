@@ -5,6 +5,8 @@ library(shinyWidgets)
 library(plotly)
 library(fy)
 library(readxl)
+library(shinyBS)
+
 
 #create a list of local authorty names for use in the UI
 LA_Names <- c("Aberdeen City", "Aberdeenshire","Angus", "Argyll and Bute" ,     
@@ -54,3 +56,9 @@ isEmpty <- function(x) {
   return(length(x)==0)
 }
 
+##create popover text
+KPO_popover_text<-paste("KPO4 is calculated by applying the following weightings:",
+              " -Overall satisfaction - 50%",
+              " -Communications and time taken - 12.5% each",
+              " -Staff, information, responsiveness, fairness - 6.25% each.",
+              sep = "<br>")

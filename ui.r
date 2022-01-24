@@ -1,11 +1,11 @@
-ui <- dashboardPage(
+ui <- dashboardPage(skin = "blue",
   dashboardHeader(title = "National Customer Survey Dashboard"),
  
    dashboardSidebar(
-    selectizeInput("LA_selection", "",
-                   choices =LA_Names, options = list(placeholder = "Select Your Local Authority",
-                                             onInitialize = I('function() { this.setValue(""); }'))),
-    
+#    selectizeInput("LA_selection", "",
+#                   choices =LA_Names, options = list(placeholder = "Select Your Local Authority",
+#                                             onInitialize = I('function() { this.setValue(""); }'))),
+#    
     sidebarMenu(
       menuItem("Performance Overview", tabName="PrfOvr", icon = icon("dashboard")),
       menuItem("Question Results", tabName = "Qstns", icon = icon("question-circle")),
@@ -21,6 +21,9 @@ ui <- dashboardPage(
               h2(paste("KPO4 Performance", "Date last updated:", format(Sys.time(), "%d %b %Y")),style = "margin-top:3px"), ###add something to say date most recently updated?
               fluidRow(
                 valueBoxOutput("performanceBox"), #performance for council
+                bsPopover("performanceBox", title = "KPO4 Weightings" ,
+                         content = KPO_popover_text,
+                          "right", trigger = "click"),
                 valueBoxOutput("scotPerfBox"),   #Scotland average performance
                 valueBoxOutput("respBox")
                 ),
