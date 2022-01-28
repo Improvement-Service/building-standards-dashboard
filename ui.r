@@ -122,7 +122,8 @@ ui <- dashboardPage(skin = "blue",
             )
               ),
       tabItem(tabName = "DtDl",
-              downloadBttn("all_data_dl", label = "Download all data", style = "jelly")
+              downloadBttn("all_data_dl", label = "Download all data", style = "jelly"),
+              div(DT::dataTableOutput("tableDisp"),style = "font-size:80%; line-height:75%; width:160%; padding-left:0px")
               
               )
     )

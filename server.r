@@ -1367,4 +1367,14 @@ server <- function(input, output, session) {
        }
      )
      
+     output$tableDisp <- DT::renderDataTable({
+       tbl <- datatable(unpivot_data, rownames = FALSE, class = "row-border",escape = F,extensions = c("Scroller", "FixedColumns"), 
+                        options = list(pageLength = 32, scrollY = 720, dom = "t", 
+                                       scrollX = TRUE, fixedColumns = list(leftColumns = 1),
+                                       fnDrawCallback  = htmlwidgets::JS(
+                                         "function(){
+                                         HTMLWidgets.staticRender();
+     }"
+                  ), columnDefs = list(list(className = "dt-center", targets = "_all"))))
+     })
  }
