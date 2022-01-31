@@ -304,14 +304,12 @@ server <- function(input, output, session) {
          position = "dodge",
          width = 0.7, 
          colour = "black")+
-       scale_y_continuous(expand = c(0, 0))+
+       scale_y_continuous(limits = c(0,10), expand = c(0, 0))+
        scale_fill_manual( 
          values = c("local authority" = "cadetblue3", "Scotland" = "dimgrey"), name = "")+
-       ylim(0,10)+ 
        ggtitle("KPO 4 score - Year to Date")+
        xlab("")+
        ylab("KPO 4 Score")+
-       scale_y_continuous(expand = c(0, 0))+
        theme_classic()+
        theme(axis.text.x=element_blank(),
              axis.ticks.x=element_blank())
@@ -1366,7 +1364,7 @@ server <- function(input, output, session) {
          write.csv(dl_all_data, file)
        }
      )
-     
+##create table with all data to explore     
      output$tableDisp <- DT::renderDataTable({
        tbl <- datatable(unpivot_data, rownames = FALSE, class = "row-border",escape = F,extensions = c("Scroller", "FixedColumns"), 
                         options = list(pageLength = 32, scrollY = 720, dom = "t", 
@@ -1377,4 +1375,24 @@ server <- function(input, output, session) {
      }"
                   ), columnDefs = list(list(className = "dt-center", targets = "_all"))))
      })
+
+##create table to show comments for selected question 
+     output$cmnt_table <- DT::renderDataTable({
+       ##need to filter the data based on selections and recode answers
+       names(unpivot_data)[3:10] <- gsub("Q[1-9\\.]+\\s","",names(unpivot_data)[3:10], perl = T)
+       unpivot_data$`Tracking Link` <- as.factor(unpivot_data$`Tracking Link`)
+       ##select applicant type  
+       slctn_respondent <- input$cmnts_resp_input
+       ##select applicant reason using partial match
+       slctn_reason <- names(select(unpivot_data, contains(input$cmnts_reason_input)))
+       
+     #  slct_qstns <- ifelse(input$cmnts_slct == "Information, staff, and responsiveness", c("information", "staff", "responsiveness"), input$cmnts_slct)
+       
+       filter_data <- unpivot_data %>% filter(if_any(slctn_respondent, ~ . == 1)) %>%
+         filter(if_any(slctn_reason, ~.==1)) %>%
+         select(contains(input$cmnts_slct))
+       datatable(filter_data, filter = "top",rownames = FALSE, class = "row-border",escape = F,extensions = c("Scroller", "FixedColumns"))
+       
+     })
+     
  }

@@ -123,9 +123,39 @@ ui <- dashboardPage(skin = "blue",
               ),
       tabItem(tabName = "DtDl",
               downloadBttn("all_data_dl", label = "Download all data", style = "jelly"),
-              div(DT::dataTableOutput("tableDisp"),style = "font-size:80%; line-height:75%; width:160%; padding-left:0px")
+              box(div(DT::dataTableOutput("tableDisp"),style = "font-size:80%; line-height:75%; width:160%; padding-left:0px"),width = 12)
               
+              ),
+      tabItem(tabName = "OpTxt",
+              fluidRow(
+              column(4,selectInput("cmnts_slct", "Select comments",c("Time taken", "Communication",
+                                                            "Information", "Staff", "Responsiveness",
+                                                            "Treated fairly",
+                                                            "Overall",
+                                                            "Other comments"))),
+              column(4,prettyCheckboxGroup(
+                inputId = "cmnts_resp_input",
+                label = "Respondent", 
+                choices = c("Agent/Designer", "Applicant", "Contractor", "Other respondent"),
+                selected = c("Agent/Designer", "Applicant", "Contractor", "Other respondent"),
+                inline = TRUE,
+                icon = icon("check"),
+                status = "danger",
+                animation = "rotate"
+              )),
+              column(4,prettyCheckboxGroup(
+                inputId = "cmnts_reason_input",
+                label = "Reasons", 
+                choices = c("To discuss your proposal", "Make an application", "During construction", "Other reason"),
+                selected = c("To discuss your proposal", "Make an application", "During construction", "Other reason"),
+                inline = TRUE,
+                icon = icon("check"),
+                status = "info",
+                animation = "pulse"
+              )),
+              box(DT::dataTableOutput("cmnt_table"), width = 12)
               )
+      )
     )
     
   )

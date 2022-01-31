@@ -59,7 +59,54 @@ isEmpty <- function(x) {
 
 ##create popover text
 KPO_popover_text<-paste("KPO4 is calculated by applying the following weightings:",
-              " -Overall satisfaction - 50%",
-              " -Communications and time taken - 12.5% each",
-              " -Staff, information, responsiveness, fairness - 6.25% each.",
+              "Overall satisfaction - 50%",
+              "Communications and time taken - 12.5% each",
+              "Staff, information, responsiveness, fairness - 6.25% each.",
               sep = "<br>")
+
+##For text analysis page - rename columns with comments
+unpivot_data <- unpivot_data %>% rename("Time taken comments" = "Please explain your answer:...12",
+                                      "Communication comments" =  "Please explain your answer:...14",
+                                      "Information, staff, responsiveness comments" = "Q.4. Please explain your answers:",
+                                      "Treated fairly comments" = "Please explain your answer:...20",
+                                      "Overall satisfaction comments" = "Please explain your answer:...22") %>%
+                rename("Q2.4. Other respondent" = "Q2.4. Other (please specify):", 
+                      "Q3.4. Other reason" = "Q3.4. Other (please specify):") 
+#tidy up question names
+unpivot_data <- unpivot_data %>% rename("Q4. How satisfied were you with the time taken?" = "Q4. Thinking of your engagement with [question(15510346)] Building Standards from beginning to end, how satisfied were you with the time taken to complete the process?") %>%
+  rename("Q5. How would you rate the standard of communication?" = "Q5. How would you rate the standard of communication provided by the Building Standards service following your initial contact or once your application had been submitted?") %>%
+  rename("Q6. To what extent would you agree that you were treated fairly" = "Q6. To what extent would you agree that you were treated fairly by [question(15510346)] Building Standards?") %>%
+  rename("Q7. How satisfied were you, overall?" = "Q7. Overall, how satisfied were you with the service provided by [question(15510346)] Building Standards?")
+
+#recode responses for download and to show in table
+unpivot_data$`Q4. How satisfied were you with the time taken?` <-  dplyr::recode(unpivot_data$`Q4. How satisfied were you with the time taken?`,"1" = "very satisfied",
+                                                                                       "2" ="satisfied",
+                                                                                       "3" = "dissatisfied",
+                                                                                       "4" = "very dissatisfied")
+
+unpivot_data$`Q5. How would you rate the standard of communication?` <-  dplyr::recode(unpivot_data$`Q5. How would you rate the standard of communication?`,"1" = "very good",
+                                                                                          "2" ="good",
+                                                                                          "3" = "poor",
+                                                                                          "4" = "very poor")
+unpivot_data$`Q.1. Quality of the information provided` <-  dplyr::recode(unpivot_data$`Q.1. Quality of the information provided`,"1" = "very good",
+                                                                                       "2" ="good",
+                                                                                       "3" = "poor",
+                                                                                       "4" = "very poor")
+unpivot_data$`Q.2. Service offered by staff` <-  dplyr::recode(unpivot_data$`Q.2. Service offered by staff`,"1" = "very good",
+                                                                          "2" ="good",
+                                                                          "3" = "poor",
+                                                                          "4" = "very poor")
+unpivot_data$`Q.3. Responsiveness to any queries or issues raised` <-  dplyr::recode(unpivot_data$`Q.3. Responsiveness to any queries or issues raised`,"1" = "very good",
+                                                               "2" ="good",
+                                                               "3" = "poor",
+                                                               "4" = "very poor")
+unpivot_data$`Q6. To what extent would you agree that you were treated fairly`<-  dplyr::recode(unpivot_data$`Q6. To what extent would you agree that you were treated fairly`,"1" = "very satisfied",
+                                                                                 "2" ="satisfied",
+                                                                                 "3" = "dissatisfied",
+                                                                                 "4" = "very dissatisfied")
+unpivot_data$`Q7. How satisfied were you, overall?`<-  dplyr::recode(unpivot_data$`Q7. How satisfied were you, overall?`,"1" = "very satisfied",
+                                                                                                "2" ="satisfied",
+                                                                                                "3" = "dissatisfied",
+                                                                                                "4" = "very dissatisfied")
+
+
