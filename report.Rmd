@@ -1,8 +1,16 @@
 ---
-title: "Dynamic report"
+title: "Overview report"
 output: pdf_document
 params:
-  n: NA
+  time_data: NA
+  la: NA
+  kpo_data: NA
+  comms_data: NA
+  info_data: NA
+  staff_data: NA
+  resp_data: NA
+  fair_data: NA
+  overall_data: NA
 ---
 
 ```{r echo = F}
@@ -12,19 +20,33 @@ opts_chunk$set(tidy.opts=list(width.cutoff=60),tidy=TRUE)
 
 ```{r echo = F}
 # The `params` object is available in the document.
-dta <- params$n
+kpo_data <- params$kpo_data
+time_data <- params$time_data
+comms_data <- params$comms_data
+info_data <- params$info_data
+staff_data <- params$staff_data
+resp_data <- params$resp_data
+fair_data <- params$fair_data
+overall_data <- params$overall_data
+la <- params$la
 ```
 
+
+# Individual Questions
+
+## Time taken
 ```{r echo=FALSE, comment= ""}
+##Set up for time taken graph and text
 #load data and split into Scotland and LA datasets
-     qstnDta <- dta
+     text_prep <- function(dataset){
+     qstnDta <- dataset
      qstnDta_LA <- qstnDta %>% filter(Selection == "LA")
      qstnDta_scot<- qstnDta %>% filter(Selection == "Scotland")
      #get total percentage good or very good 
      total_good <- filter(qstnDta_LA, value %in% c(1,2) & Selection == "LA") %>% pull(perc_resp) %>%
        sum()
      #if this is above 55% then overall is positive, otherwise negative/balances
-     pos_or_neg <- ifelse(total_good > 0.55, "mainly positive.", ifelse(total_good < 0.45, "mainly negative.", "balanced."))
+     pos_or_neg <- ifelse(total_good > 0.55, "mainly positive", ifelse(total_good < 0.45, "mainly negative", "balanced"))
      
      #get the name for the maximum value in LA dataset. If more than one paste these together
      max_name <- as.character(qstnDta_LA %>% filter(n == max(n)) %>% pull(named_value))
@@ -68,14 +90,95 @@ dta <- params$n
      } else{
        scot_max_perc <- paste0(scot_max_perc, "percent.")
      }
+     #assign all objects as specifically for this question dataset
+     objcts <- list(
+     pos_or_neg,
+     total_good,
+     max_name,
+     max_perc,
+     sec_name,
+     sec_perc,
+     sec_name,
+     sec_perc,
+     scot_max_name,
+     scot_max_perc)
+     
+     names(objcts) <- c("pos_or_neg","total_good","max_name", "max_perc","sec_name","sec_perc",
+     "sec_name","sec_perc", "scot_max_name", "scot_max_perc")
+     return(objcts)
+     }
+
+tm <- text_prep(time_data)
 ```
+In this year for `r la` to date for the question "Thinking of your engagement, how satisfied were you with the time taken to complete the process?"" responses have been `r tm$pos_or_neg` with `r tm$total_good` percent saying that they were very satisfied or satisfied. The greatest proportion of respondents said they were `r tm$max_name` at `r tm$max_perc` This was followed by `r tm$sec_name` at `r tm$sec_perc` For Scotland overall, most respondents said that they were `r tm$scot_max_name` at `r tm$scot_max_perc`
 
-###Time takens
-In this year to date for the question "Thinking of your engagement, how satisfied were you with the time taken to complete the process?"" responses have been `r pos_or_neg` with `r total_good` percent saying that they were very satisfied or satisfied. The greatest proportion of respondents said they were `r max_name` at `r max_perc` This was followed by `r sec_name` at `r sec_perc` For Scotland overall, most respondents said that they were `r scot_max_name` at `r scot_max_perc`
-
-A plot of `params$n` random points.
 
 ```{r echo = F}
-     ggplot(data = dta ) +
+     ggplot(data = time_data ) +
        geom_bar(aes(x = reorder(named_value, as.numeric(value)), y = perc_resp, fill =Selection), stat= "identity", position = "dodge")
-     ```
+```
+## Communications
+```{r echo=FALSE, comment= ""}
+cm_txt <- text_prep(comms_data)
+```
+In this year for `r la` to date for the question "How would you rate the standard of communication provided?" responses have been `r cm_txt$pos_or_neg` with `r cm_txt$total_good` percent saying that they were very satisfied or satisfied. The greatest proportion of respondents said they were `r cm_txt$max_name` at `r cm_txt$max_perc` This was followed by `r cm_txt$sec_name` at `r cm_txt$sec_perc` For Scotland overall, most respondents said that they were `r cm_txt$scot_max_name` at `r cm_txt$scot_max_perc`
+
+```{r echo = F}
+     ggplot(data = comms_data ) +
+       geom_bar(aes(x = reorder(named_value, as.numeric(value)), y = perc_resp, fill =Selection), stat= "identity", position = "dodge")
+```
+
+## Information
+```{r echo=FALSE, comment= ""}
+inf_txt <- text_prep(info_data)
+```
+In this year for `r la` to date for the question "How would you rate the quality of information provided?" responses have been `r inf_txt$pos_or_neg` with `r inf_txt$total_good` percent saying that they were very satisfied or satisfied. The greatest proportion of respondents said they were `r inf_txt$max_name` at `r inf_txt$max_perc` This was followed by `r inf_txt$sec_name` at `r inf_txt$sec_perc` For Scotland overall, most respondents said that they were `r inf_txt$scot_max_name` at `r inf_txt$scot_max_perc`
+
+```{r echo = F}
+     ggplot(data = info_data ) +
+       geom_bar(aes(x = reorder(named_value, as.numeric(value)), y = perc_resp, fill =Selection), stat= "identity", position = "dodge")
+```
+
+## Staff
+```{r echo=FALSE, comment= ""}
+staff_txt <- text_prep(staff_data)
+```
+In this year for `r la` to date for the question "How would you rate the service offered by staff?" responses have been `r inf_txt$pos_or_neg` with `r inf_txt$total_good` percent saying that they were very satisfied or satisfied. The greatest proportion of respondents said they were `r inf_txt$max_name` at `r inf_txt$max_perc` This was followed by `r inf_txt$sec_name` at `r inf_txt$sec_perc` For Scotland overall, most respondents said that they were `r inf_txt$scot_max_name` at `r inf_txt$scot_max_perc`
+
+```{r echo = F}
+     ggplot(data = staff_data ) +
+       geom_bar(aes(x = reorder(named_value, as.numeric(value)), y = perc_resp, fill =Selection), stat= "identity", position = "dodge")
+```
+
+## Responsiveness
+```{r echo=FALSE, comment= ""}
+resp_txt <- text_prep(resp_data)
+```
+In this year for `r la` to date for the question "How would you rate responsiveness to any queries or issues raised?" responses have been `r resp_txt$pos_or_neg` with `r resp_txt$total_good` percent saying that they were very satisfied or satisfied. The greatest proportion of respondents said they were `r resp_txt$max_name` at `r resp_txt$max_perc` This was followed by `r resp_txt$sec_name` at `r resp_txt$sec_perc` For Scotland overall, most respondents said that they were `r resp_txt$scot_max_name` at `r resp_txt$scot_max_perc`
+
+```{r echo = F}
+     ggplot(data = resp_data ) +
+       geom_bar(aes(x = reorder(named_value, as.numeric(value)), y = perc_resp, fill =Selection), stat= "identity", position = "dodge")
+```
+
+## Treated Fairly
+```{r echo=FALSE, comment= ""}
+fair_txt <- text_prep(fair_data)
+```
+In this year for `r la` to date for the question "How would you rate responsiveness to any queries or issues raised?" responses have been `r fair_txt$pos_or_neg` with `r fair_txt$total_good` percent saying that they were very satisfied or satisfied. The greatest proportion of respondents said they were `r fair_txt$max_name` at `r fair_txt$max_perc` This was followed by `r fair_txt$sec_name` at `r fair_txt$sec_perc` For Scotland overall, most respondents said that they were `r fair_txt$scot_max_name` at `r fair_txt$scot_max_perc`
+
+```{r echo = F}
+     ggplot(data = fair_data ) +
+       geom_bar(aes(x = reorder(named_value, as.numeric(value)), y = perc_resp, fill =Selection), stat= "identity", position = "dodge")
+```
+
+## Overall Satisfaction
+```{r echo=FALSE, comment= ""}
+ovr_txt <- text_prep(overall_data)
+```
+In this year for `r la` to date for the question "Overall, how satisfied were you with the service provided?" responses have been `r ovr_txt$pos_or_neg` with `r ovr_txt$total_good` percent saying that they were very satisfied or satisfied. The greatest proportion of respondents said they were `r ovr_txt$max_name` at `r ovr_txt$max_perc` This was followed by `r ovr_txt$sec_name` at `r ovr_txt$sec_perc` For Scotland overall, most respondents said that they were `r ovr_txt$scot_max_name` at `r ovr_txt$scot_max_perc`
+
+```{r echo = F}
+     ggplot(data = overall_data ) +
+       geom_bar(aes(x = reorder(named_value, as.numeric(value)), y = perc_resp, fill =Selection), stat= "identity", position = "dodge")
+```

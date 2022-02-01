@@ -285,9 +285,6 @@ server <- function(input, output, session) {
      #Round figures
      all_kpo_dta$KPO_score <- round(all_kpo_dta$KPO_score,1)
      all_kpo_dta
-     
-     
-     
    })
   #create plot for KPO in report page 
    output$reportKPO4Plot <- renderPlotly({
@@ -1335,7 +1332,6 @@ server <- function(input, output, session) {
      
 ##Generate download from report page-------------
      output$report <- downloadHandler(
-       # For PDF output, change this to "report.pdf"
        filename = "report.pdf",
        content = function(file) {
          # Copy the report file to a temporary directory before processing it, in
@@ -1345,7 +1341,15 @@ server <- function(input, output, session) {
          file.copy("report.Rmd", tempReport, overwrite = TRUE)
          
          # Set up parameters to pass to Rmd document
-         params <- list(n = question_time_data_report())
+         params <- list(la = "Aberdeen City",
+          kpo_data = report_kpo_data(),              
+          time_data = question_time_data_report(),
+          comms_data = question_comms_data_report(),
+          info_data = question_info_data_report(),
+          staff_data = question_staff_data_report(),
+          resp_data = question_responsiveness_data_report(),
+          fair_data = question_fairly_data_report(),
+          overall_data = question_overall_data_report())
          
          # Knit the document, passing in the `params` list, and eval it in a
          # child of the global environment (this isolates the code in the document
