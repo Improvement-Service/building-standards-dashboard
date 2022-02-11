@@ -122,12 +122,25 @@ server <- function(input, output, session) {
       pc_resp_data[pc_resp_data$Question == "To discuss your proposal before applying for a building warrant", "Question"] <-"Discuss proposal" 
       pc_resp_data[pc_resp_data$Question == "To make an application for a building warrant", "Question"] <-"Make application" 
      
+      pc_resp_data$perc <- round(pc_resp_data$perc * 100, 1)
+      
        pfig <- ggplot(data = pc_resp_data) +
-        geom_col(aes(x = Question, y = perc),fill = "cadetblue3", colour = "black")+
+        geom_col(aes(
+          x = Question, 
+          y = perc,
+          text = paste(
+            paste("Reason:", pc_resp_data$Question),
+            paste("% of responses:", pc_resp_data$perc),
+            sep = "\n"
+          )
+          ),fill = "cadetblue3", colour = "black")+
         coord_flip() +
         theme_classic()+
-        scale_y_continuous( expand = c(0, 0))
-      ggplotly(pfig)
+        scale_y_continuous( expand = c(0, 0))+
+         ggtitle("Response Reason:YTD")+
+         xlab("Reason")+
+         ylab("Percentage of Responses")
+      ggplotly(pfig, tooltip = "text")
     })
     
 ##Create graphs to display results by questions================================
