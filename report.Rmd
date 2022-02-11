@@ -48,6 +48,13 @@ la <- params$la
      #if this is above 55% then overall is positive, otherwise negative/balances
      pos_or_neg <- ifelse(total_good > 0.55, "mainly positive", ifelse(total_good < 0.45, "mainly negative", "balanced"))
      
+     # add "only" to the % positive if this is below 45
+     if(total_good < 0.45) {
+       total_good <- paste("only", total_good)
+     } else{
+       total_good <- total_good
+     }
+     
      #get the name for the maximum value in LA dataset. If more than one paste these together
      max_name <- as.character(qstnDta_LA %>% filter(n == max(n)) %>% pull(named_value))
      if(length(max_name >1)){
@@ -58,10 +65,10 @@ la <- params$la
      if(length(max_perc) >1){
        max_perc <- paste(paste(max_perc, collapse = " & "), "percent respectively.")
      } else{
-       max_perc <- paste0(max_perc, "percent.")
+       max_perc <- paste0(max_perc, " percent.")
      }
      
-     #Gte second highest value
+     #Get second highest value
      sec_val <- sort(qstnDta_LA$n, partial= 3)[3]
      #Filter for second highest value's name
      sec_name <- qstnDta_LA %>% filter(n == sec_val) %>% pull(named_value)
@@ -88,7 +95,7 @@ la <- params$la
      if(length(scot_max_perc) >1){
        scot_max_perc <- paste(paste(scot_max_perc, collapse = " & "), "percent respectively.")
      } else{
-       scot_max_perc <- paste0(scot_max_perc, "percent.")
+       scot_max_perc <- paste0(scot_max_perc, " percent.")
      }
      #assign all objects as specifically for this question dataset
      objcts <- list(
@@ -110,13 +117,35 @@ la <- params$la
 
 tm <- text_prep(time_data)
 ```
-In this year for `r la` to date for the question "Thinking of your engagement, how satisfied were you with the time taken to complete the process?"" responses have been `r tm$pos_or_neg` with `r tm$total_good` percent saying that they were very satisfied or satisfied. The greatest proportion of respondents said they were `r tm$max_name` at `r tm$max_perc` This was followed by `r tm$sec_name` at `r tm$sec_perc` For Scotland overall, most respondents said that they were `r tm$scot_max_name` at `r tm$scot_max_perc`
+In this year for `r la` to date for the question "Thinking of your engagement, how satisfied were you with the time taken to complete the process?" responses have been `r tm$pos_or_neg` with `r tm$total_good` percent saying that they were very satisfied or satisfied. The greatest proportion of respondents said they were `r tm$max_name` at `r tm$max_perc` This was followed by `r tm$sec_name` at `r tm$sec_perc` For Scotland overall, most respondents said that they were `r tm$scot_max_name` at `r tm$scot_max_perc`
 
 
 ```{r echo = F}
-     ggplot(data = time_data ) +
-       geom_bar(aes(x = reorder(named_value, as.numeric(value)), y = perc_resp, fill =Selection), stat= "identity", position = "dodge")
+     ggplot(data = time_data,
+            aes(
+         x = reorder(named_value, as.numeric(value)), 
+         y = perc_resp, 
+         fill = Selection)
+         ) +
+       geom_bar( 
+         stat = "identity", 
+         position = "dodge",
+         width = 0.7,
+         colour = "black") +
+  geom_text(aes(label = perc_resp, y = perc_resp + 1.2), 
+                 vjust = 0,
+                 position = position_dodge(width = 0.9) 
+                 )+
+  scale_fill_manual(
+    values = c("LA" = "cadetblue3", "Scotland" = "dimgrey"),
+    name = ""
+    )+
+  ggtitle("Satisfaction with time taken - Year to Date")+
+  xlab("Responses") +
+  ylab("Percentage of Responses")+
+  theme_classic()
 ```
+
 ## Communications
 ```{r echo=FALSE, comment= ""}
 cm_txt <- text_prep(comms_data)
@@ -124,8 +153,29 @@ cm_txt <- text_prep(comms_data)
 In this year for `r la` to date for the question "How would you rate the standard of communication provided?" responses have been `r cm_txt$pos_or_neg` with `r cm_txt$total_good` percent saying that they were very satisfied or satisfied. The greatest proportion of respondents said they were `r cm_txt$max_name` at `r cm_txt$max_perc` This was followed by `r cm_txt$sec_name` at `r cm_txt$sec_perc` For Scotland overall, most respondents said that they were `r cm_txt$scot_max_name` at `r cm_txt$scot_max_perc`
 
 ```{r echo = F}
-     ggplot(data = comms_data ) +
-       geom_bar(aes(x = reorder(named_value, as.numeric(value)), y = perc_resp, fill =Selection), stat= "identity", position = "dodge")
+     ggplot(data = comms_data,
+            aes(
+         x = reorder(named_value, as.numeric(value)), 
+         y = perc_resp, 
+         fill = Selection
+         )) +
+       geom_bar( 
+         stat= "identity", 
+         position = "dodge",
+         width = 0.7,
+         colour = "black"
+         )+
+   geom_text(aes(label = perc_resp, y = perc_resp + 1.2), 
+                 vjust = 0,
+                 position = position_dodge(width = 0.9) 
+                 )+
+  scale_fill_manual(
+    values = c("LA" = "cadetblue3", "Scotland" = "dimgrey"), name = ""
+  )+
+  ggtitle("Standard of Communication - Year to Date")+
+  xlab("Responses")+
+  ylab("Percentage of Responses")+
+  theme_classic()
 ```
 
 ## Information
@@ -135,8 +185,27 @@ inf_txt <- text_prep(info_data)
 In this year for `r la` to date for the question "How would you rate the quality of information provided?" responses have been `r inf_txt$pos_or_neg` with `r inf_txt$total_good` percent saying that they were very satisfied or satisfied. The greatest proportion of respondents said they were `r inf_txt$max_name` at `r inf_txt$max_perc` This was followed by `r inf_txt$sec_name` at `r inf_txt$sec_perc` For Scotland overall, most respondents said that they were `r inf_txt$scot_max_name` at `r inf_txt$scot_max_perc`
 
 ```{r echo = F}
-     ggplot(data = info_data ) +
-       geom_bar(aes(x = reorder(named_value, as.numeric(value)), y = perc_resp, fill =Selection), stat= "identity", position = "dodge")
+     ggplot(
+       data = info_data,
+       aes(x = reorder(named_value, as.numeric(value)), y = perc_resp, fill = Selection)
+       )+
+       geom_bar(
+         stat= "identity", 
+         position = "dodge",
+         width = 0.7,
+         colour = "black") +
+  geom_text(aes(label = perc_resp, y = perc_resp + 1.2), 
+                 vjust = 0,
+                 position = position_dodge(width = 0.9) 
+                 )+
+  scale_fill_manual(
+    values = c("LA" = "cadetblue3", "Scotland" = "dimgrey"),
+    name = ""
+    )+
+  ggtitle("Quality of information - Year to Date")+
+  xlab("Responses") +
+  ylab("Percentage of Responses")+
+  theme_classic()
 ```
 
 ## Staff
@@ -146,8 +215,28 @@ staff_txt <- text_prep(staff_data)
 In this year for `r la` to date for the question "How would you rate the service offered by staff?" responses have been `r inf_txt$pos_or_neg` with `r inf_txt$total_good` percent saying that they were very satisfied or satisfied. The greatest proportion of respondents said they were `r inf_txt$max_name` at `r inf_txt$max_perc` This was followed by `r inf_txt$sec_name` at `r inf_txt$sec_perc` For Scotland overall, most respondents said that they were `r inf_txt$scot_max_name` at `r inf_txt$scot_max_perc`
 
 ```{r echo = F}
-     ggplot(data = staff_data ) +
-       geom_bar(aes(x = reorder(named_value, as.numeric(value)), y = perc_resp, fill =Selection), stat= "identity", position = "dodge")
+     ggplot(
+       data = staff_data,
+       aes(x = reorder(named_value, as.numeric(value)), y = perc_resp, fill = Selection)
+       ) +
+       geom_bar(
+         stat= "identity", 
+         position = "dodge",
+         width = 0.7,
+         colour = "black") +
+  geom_text(aes(label = perc_resp, y = perc_resp + 1.2), 
+                 vjust = 0,
+                 position = position_dodge(width = 0.9) 
+                 )+
+  scale_fill_manual(
+    values = c("LA" = "cadetblue3", "Scotland" = "dimgrey"),
+    name = ""
+    )+
+  ggtitle("Service offered by staff - Year to Date")+
+  xlab("Responses") +
+  ylab("Percentage of Responses")+
+  theme_classic()
+         
 ```
 
 ## Responsiveness
@@ -157,8 +246,26 @@ resp_txt <- text_prep(resp_data)
 In this year for `r la` to date for the question "How would you rate responsiveness to any queries or issues raised?" responses have been `r resp_txt$pos_or_neg` with `r resp_txt$total_good` percent saying that they were very satisfied or satisfied. The greatest proportion of respondents said they were `r resp_txt$max_name` at `r resp_txt$max_perc` This was followed by `r resp_txt$sec_name` at `r resp_txt$sec_perc` For Scotland overall, most respondents said that they were `r resp_txt$scot_max_name` at `r resp_txt$scot_max_perc`
 
 ```{r echo = F}
-     ggplot(data = resp_data ) +
-       geom_bar(aes(x = reorder(named_value, as.numeric(value)), y = perc_resp, fill =Selection), stat= "identity", position = "dodge")
+     ggplot(
+       data = resp_data,
+       aes(x = reorder(named_value, as.numeric(value)), y = perc_resp, fill = Selection)
+       ) +
+       geom_bar(
+         stat= "identity", 
+         position = "dodge",width = 0.7,
+         colour = "black") +
+  geom_text(aes(label = perc_resp, y = perc_resp + 1.2), 
+                 vjust = 0,
+                 position = position_dodge(width = 0.9) 
+                 )+
+  scale_fill_manual(
+    values = c("LA" = "cadetblue3", "Scotland" = "dimgrey"),
+    name = ""
+    )+
+  ggtitle("Responsiveness to queries or issues - Year to Date")+
+  xlab("Responses") +
+  ylab("Percentage of Responses")+
+  theme_classic()
 ```
 
 ## Treated Fairly
@@ -168,8 +275,27 @@ fair_txt <- text_prep(fair_data)
 In this year for `r la` to date for the question "How would you rate responsiveness to any queries or issues raised?" responses have been `r fair_txt$pos_or_neg` with `r fair_txt$total_good` percent saying that they were very satisfied or satisfied. The greatest proportion of respondents said they were `r fair_txt$max_name` at `r fair_txt$max_perc` This was followed by `r fair_txt$sec_name` at `r fair_txt$sec_perc` For Scotland overall, most respondents said that they were `r fair_txt$scot_max_name` at `r fair_txt$scot_max_perc`
 
 ```{r echo = F}
-     ggplot(data = fair_data ) +
-       geom_bar(aes(x = reorder(named_value, as.numeric(value)), y = perc_resp, fill =Selection), stat= "identity", position = "dodge")
+     ggplot(
+       data = fair_data,
+       aes(x = reorder(named_value, as.numeric(value)), y = perc_resp, fill =Selection)
+       ) +
+       geom_bar(
+         stat= "identity", 
+         position = "dodge",
+         width = 0.7,
+         colour = "black") +
+  geom_text(aes(label = perc_resp, y = perc_resp + 1.2), 
+                 vjust = 0,
+                 position = position_dodge(width = 0.9) 
+                 )+
+  scale_fill_manual(
+    values = c("LA" = "cadetblue3", "Scotland" = "dimgrey"),
+    name = ""
+    )+
+  ggtitle("Would you agree you were treated fairly - Year to Date")+
+  xlab("Responses") +
+  ylab("Percentage of Responses")+
+  theme_classic()
 ```
 
 ## Overall Satisfaction
@@ -179,6 +305,25 @@ ovr_txt <- text_prep(overall_data)
 In this year for `r la` to date for the question "Overall, how satisfied were you with the service provided?" responses have been `r ovr_txt$pos_or_neg` with `r ovr_txt$total_good` percent saying that they were very satisfied or satisfied. The greatest proportion of respondents said they were `r ovr_txt$max_name` at `r ovr_txt$max_perc` This was followed by `r ovr_txt$sec_name` at `r ovr_txt$sec_perc` For Scotland overall, most respondents said that they were `r ovr_txt$scot_max_name` at `r ovr_txt$scot_max_perc`
 
 ```{r echo = F}
-     ggplot(data = overall_data ) +
-       geom_bar(aes(x = reorder(named_value, as.numeric(value)), y = perc_resp, fill =Selection), stat= "identity", position = "dodge")
+     ggplot(
+       data = overall_data,
+       aes(x = reorder(named_value, as.numeric(value)), y = perc_resp, fill = Selection)
+       ) +
+       geom_bar(
+         stat= "identity", 
+         position = "dodge",
+         width = 0.7,
+         colour = "black") +
+  geom_text(aes(label = perc_resp, y = perc_resp + 1.2), 
+                 vjust = 0,
+                 position = position_dodge(width = 0.9) 
+                 )+
+  scale_fill_manual(
+    values = c("LA" = "cadetblue3", "Scotland" = "dimgrey"),
+    name = ""
+    )+
+  ggtitle("Overall satisfaction - Year to Date")+
+  xlab("Responses") +
+  ylab("Percentage of Responses")+
+  theme_classic()
 ```
