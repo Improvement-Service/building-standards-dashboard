@@ -91,13 +91,26 @@ server <- function(input, output, session) {
     output$resp_type_graph_report <- output$respDoughnut <- renderPlotly({
   ##select data    
       pc_resp_data <- resp_dta %>% filter(., question_type == "Type" & value == 1)
+      pc_resp_data$perc <- round(pc_resp_data$perc * 100, 1)
       pfig <- ggplot(data = pc_resp_data) +
-        geom_col(aes(x = Question, y = perc), fill = "cadetblue3", colour = "black")+
+        geom_col(aes(x = Question, y = perc,
+                 text = paste(
+                   paste("Respondent Type:", pc_resp_data$Question),
+                   paste("% of responses:", pc_resp_data$perc),
+                   sep = "\n"
+                 )
+                 ),
+                 fill = "cadetblue3", 
+                 colour = "black"
+                 )+
         coord_flip() +
         theme_classic()+
-        scale_y_continuous( expand = c(0, 0))
+        scale_y_continuous( expand = c(0, 0))+
+        ggtitle("Respondent Type: YTD")+
+        xlab("Respondent Type")+
+        ylab("Percentage of Responses")
         
-      ggplotly(pfig)
+      ggplotly(pfig, tooltip = "text")
       
     })
     
@@ -494,11 +507,11 @@ server <- function(input, output, session) {
            paste("Response:", named_value), 
            paste("% of Responses:", perc_resp),
            sep = "\n")
-         ), 
-         stat= "identity", 
-         position = "dodge",
-         width = 0.7, 
-         colour = "black")+
+       ), 
+       stat= "identity", 
+       position = "dodge",
+       width = 0.7, 
+       colour = "black")+
        scale_y_continuous(expand = c(0, 0))+
        scale_fill_manual( 
          values = c("LA" = "cadetblue3", "Scotland" = "dimgrey"), name = "")+
