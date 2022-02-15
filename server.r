@@ -1368,7 +1368,7 @@ server <- function(input, output, session) {
          
          # Set up parameters to pass to Rmd document
          params <- list(la = "Aberdeen City",
-          kpo_data = report_kpo_data(),              
+          kpo_data = report_kpo_data(),  
           time_data = question_time_data_report(),
           comms_data = question_comms_data_report(),
           info_data = question_info_data_report(),

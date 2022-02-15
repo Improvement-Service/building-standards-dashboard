@@ -193,7 +193,7 @@ In this year for `r la` to date for the question "Thinking of your engagement, h
 ```{r echo=FALSE, comment= ""}
 cm_txt <- text_prep(comms_data)
 ```
-In this year for `r la` to date for the question "How would you rate the standard of communication provided?" responses have been `r cm_txt$pos_or_neg` with `r cm_txt$total_good` percent saying that they were very satisfied or satisfied. The greatest proportion of respondents said they were `r cm_txt$max_name` at `r cm_txt$max_perc` This was followed by `r cm_txt$sec_name` at `r cm_txt$sec_perc` For Scotland overall, most respondents said that they were `r cm_txt$scot_max_name` at `r cm_txt$scot_max_perc`
+In this year for `r la` to date for the question "How would you rate the standard of communication provided?" responses have been `r cm_txt$pos_or_neg` with `r cm_txt$total_good` percent saying that it was good or very good. The greatest proportion of respondents said they felt it was `r cm_txt$max_name` at `r cm_txt$max_perc` This was followed by `r cm_txt$sec_name` at `r cm_txt$sec_perc` For Scotland overall, most respondents said that communication was `r cm_txt$scot_max_name` at `r cm_txt$scot_max_perc`
 
 ```{r echo = F}
      ggplot(data = comms_data,
@@ -225,7 +225,7 @@ In this year for `r la` to date for the question "How would you rate the standar
 ```{r echo=FALSE, comment= ""}
 inf_txt <- text_prep(info_data)
 ```
-In this year for `r la` to date for the question "How would you rate the quality of information provided?" responses have been `r inf_txt$pos_or_neg` with `r inf_txt$total_good` percent saying that they were very satisfied or satisfied. The greatest proportion of respondents said they were `r inf_txt$max_name` at `r inf_txt$max_perc` This was followed by `r inf_txt$sec_name` at `r inf_txt$sec_perc` For Scotland overall, most respondents said that they were `r inf_txt$scot_max_name` at `r inf_txt$scot_max_perc`
+In this year for `r la` to date for the question "How would you rate the quality of information provided?" responses have been `r inf_txt$pos_or_neg` with `r inf_txt$total_good` percent saying that it was good or very good. The greatest proportion of respondents said they felt it was `r inf_txt$max_name` at `r inf_txt$max_perc` This was followed by `r inf_txt$sec_name` at `r inf_txt$sec_perc` For Scotland overall, most respondents said that the information they received was `r inf_txt$scot_max_name` at `r inf_txt$scot_max_perc`
 
 ```{r echo = F}
      ggplot(
@@ -255,7 +255,7 @@ In this year for `r la` to date for the question "How would you rate the quality
 ```{r echo=FALSE, comment= ""}
 staff_txt <- text_prep(staff_data)
 ```
-In this year for `r la` to date for the question "How would you rate the service offered by staff?" responses have been `r inf_txt$pos_or_neg` with `r inf_txt$total_good` percent saying that they were very satisfied or satisfied. The greatest proportion of respondents said they were `r inf_txt$max_name` at `r inf_txt$max_perc` This was followed by `r inf_txt$sec_name` at `r inf_txt$sec_perc` For Scotland overall, most respondents said that they were `r inf_txt$scot_max_name` at `r inf_txt$scot_max_perc`
+In this year for `r la` to date for the question "How would you rate the service offered by staff?" responses have been `r inf_txt$pos_or_neg` with `r inf_txt$total_good` percent saying that it was good or very good. The greatest proportion of respondents said they felt it was `r inf_txt$max_name` at `r inf_txt$max_perc` This was followed by `r inf_txt$sec_name` at `r inf_txt$sec_perc` For Scotland overall, most respondents said that the service received was `r inf_txt$scot_max_name` at `r inf_txt$scot_max_perc`
 
 ```{r echo = F}
      ggplot(
@@ -286,7 +286,7 @@ In this year for `r la` to date for the question "How would you rate the service
 ```{r echo=FALSE, comment= ""}
 resp_txt <- text_prep(resp_data)
 ```
-In this year for `r la` to date for the question "How would you rate responsiveness to any queries or issues raised?" responses have been `r resp_txt$pos_or_neg` with `r resp_txt$total_good` percent saying that they were very satisfied or satisfied. The greatest proportion of respondents said they were `r resp_txt$max_name` at `r resp_txt$max_perc` This was followed by `r resp_txt$sec_name` at `r resp_txt$sec_perc` For Scotland overall, most respondents said that they were `r resp_txt$scot_max_name` at `r resp_txt$scot_max_perc`
+In this year for `r la` to date for the question "How would you rate responsiveness to any queries or issues raised?" responses have been `r resp_txt$pos_or_neg` with `r resp_txt$total_good` percent saying that it was good or very good. The greatest proportion of respondents said they were `r resp_txt$max_name` at `r resp_txt$max_perc` This was followed by `r resp_txt$sec_name` at `r resp_txt$sec_perc` For Scotland overall, most respondents said that responsiveness was `r resp_txt$scot_max_name` at `r resp_txt$scot_max_perc`
 
 ```{r echo = F}
      ggplot(
@@ -315,7 +315,7 @@ In this year for `r la` to date for the question "How would you rate responsiven
 ```{r echo=FALSE, comment= ""}
 fair_txt <- text_prep(fair_data)
 ```
-In this year for `r la` to date for the question "How would you rate responsiveness to any queries or issues raised?" responses have been `r fair_txt$pos_or_neg` with `r fair_txt$total_good` percent saying that they were very satisfied or satisfied. The greatest proportion of respondents said they were `r fair_txt$max_name` at `r fair_txt$max_perc` This was followed by `r fair_txt$sec_name` at `r fair_txt$sec_perc` For Scotland overall, most respondents said that they were `r fair_txt$scot_max_name` at `r fair_txt$scot_max_perc`
+In this year for `r la` to date for the question "To what extent would you agree that you were treated fairly?" responses have been `r fair_txt$pos_or_neg` with `r fair_txt$total_good` percent saying that they agree or strongly agree. The greatest proportion of respondents said they `r fair_txt$max_name` with the statement at `r fair_txt$max_perc` This was followed by `r fair_txt$sec_name` at `r fair_txt$sec_perc` For Scotland overall, most respondents said that they `r fair_txt$scot_max_name` at `r fair_txt$scot_max_perc`
 
 ```{r echo = F}
      ggplot(
