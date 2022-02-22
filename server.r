@@ -37,7 +37,7 @@ server <- function(input, output, session) {
     bind_rows(summarise(.,across(where(is.numeric), sum),
                         across(where(is.character), ~"Total")))  %>%
   ##generate the KPO score (out of 10)    
-    mutate(KPO_score = (1-KPO4_weighted/maxAvailable)*10)
+    mutate(KPO_score = round((1-KPO4_weighted/maxAvailable)*10,1))
   })
   
 #Create performance box for selected Council  
@@ -45,13 +45,13 @@ server <- function(input, output, session) {
     la_max_sum <- la_max_sum()
     kpo_colr <- ifelse(la_max_sum[la_max_sum$`Tracking Link` =="Total", "KPO_score"] > 7.5, "green", ifelse(la_max_sum[la_max_sum$`Tracking Link` =="Total", "KPO_score"] < 6.5, "red", "orange"))
     valueBox(
-      value = round(la_max_sum[la_max_sum$`Tracking Link` =="Total", "KPO_score"],2), "Council KPO4 YTD", icon = icon("chart-bar"), color = kpo_colr
+      value = round(la_max_sum[la_max_sum$`Tracking Link` =="Total", "KPO_score"],1), "Council KPO4 YTD", icon = icon("chart-bar"), color = kpo_colr
     )
   })
 #Create performance box for Scotland
   output$scotPerfBox<- renderValueBox({
    valueBox(
-      value = round(scot_max_sum[scot_max_sum$`Tracking Link` =="Total", "KPO_score"],2), "Scotland Average", icon = icon("times"), color = "navy"
+      value = round(scot_max_sum[scot_max_sum$`Tracking Link` =="Total", "KPO_score"],1), "Scotland Average", icon = icon("times"), color = "navy"
     )
   })
 #Create responses valuebox
@@ -72,9 +72,22 @@ server <- function(input, output, session) {
       kpo_clrs <- la_max_sum %>% filter(`Tracking Link` != "Year to Date") %>% pull(KPO_score)
       clrs <- ifelse(kpo_clrs >7.5, "green", ifelse(kpo_clrs <6.5, "red", "orange"))
       
-      ggplot(data = la_max_sum) +
-         geom_bar(aes(x = `Tracking Link`, y = KPO_score), stat = "identity",
-                  position = "dodge", fill = c(clrs, "grey13"), width = 0.7, colour = "black") +
+      p <- ggplot(data = la_max_sum) +
+         geom_bar(aes(
+           x = `Tracking Link`, 
+           y = KPO_score,
+           text = paste(
+             paste("Quarter:", `Tracking Link`),
+             paste("KPO 4 Score", KPO_score),
+             sep = "\n"
+           )
+           ), 
+           stat = "identity",
+           position = "dodge", 
+           fill = c(clrs, "grey13"), 
+           width = 0.7, 
+           colour = "black"
+           ) +
          theme_classic() +
          scale_y_continuous(limits = c(0,10), expand = c(0, 0))+
          ggtitle("KPO4 performance by quarter and YTD")+
@@ -82,6 +95,7 @@ server <- function(input, output, session) {
          xlab("Response period") +
          theme(axis.text.x = element_text(size = 12),
                axis.title = element_text(size = 13))
+      ggplotly(p, tooltip = "text")
     })
     
 ##Create barplots for respondent types and reasons---
