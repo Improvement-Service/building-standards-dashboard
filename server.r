@@ -394,7 +394,7 @@ server <- function(input, output, session) {
      other_perc <- ifelse(isEmpty(other_perc), "No respondents", paste0(other_perc, "%"))
       #paste all text together
      txt_respondents <- paste0("Respondents were asked to provide details on the type of respondent they were, 
-     as well as their reason for contacting the Building Standards Service in", local_auth,". ",
+     as well as their reason for contacting the Building Standards Service in ", local_auth,". ",
      "Of the ", resp_number, " respondents ", agent_perc, " were agents or designers, ", appli_perc, "
      were applicants and ", contr_perc, " were contractors. ", other_perc, " said they were an other respondent type.")
      txt_respondents
@@ -439,7 +439,18 @@ server <- function(input, output, session) {
      quarts_dta$KPO_score <- round(quarts_dta$KPO_score,1)
      
      plt <- ggplot(data = quarts_dta) +
-       geom_line(aes(x = `Tracking Link`, y = KPO_score, group = LA, colour = LA),
+       geom_line(aes(
+         x = `Tracking Link`, 
+         y = KPO_score, 
+         group = LA, 
+         colour = LA,
+         text = paste(
+           LA,
+           paste("Quarter:", `Tracking Link`),
+           paste("KPO 4 Score:", KPO_score),
+           sep = "\n"
+         )
+         ),
                 lwd = 1)+
        scale_color_manual( 
             values = c("cadetblue3", "dimgrey"))+
@@ -448,7 +459,7 @@ server <- function(input, output, session) {
        xlab("")+
        ylab("KPO 4 Score")+
        theme_classic()
-     ggplotly(plt)
+     ggplotly(plt, tooltip = "text")
    })
    
 ##render text for quarter by quarter performance   
