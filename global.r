@@ -52,6 +52,9 @@ resp_dta$question_type <- ifelse(grepl("Q2", resp_dta$Question), "Type", "Reason
 ##Remove question numbers
 resp_dta$Question <- gsub("Q[\\.1-9]+\\s", "", resp_dta$Question,perl = T)
 
+##Filter to selected council
+resp_dta <- resp_dta%>%filter(LA == 1)
+
 #custom function for checking if vector is empty
 isEmpty <- function(x) {
   return(length(x)==0)
