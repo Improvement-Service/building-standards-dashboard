@@ -1250,7 +1250,7 @@ server <- function(input, output, session) {
      question_overall_data_report <- reactive({
      ##filter dataset based on selected question   
      dta <- dta %>% filter(value != "-")
-     dta$`value` <- factor(dta$`value`, levels = c(1,2,3,4,"-"))
+     dta$`value` <- factor(dta$`value`, levels = c(1,2,3,4))
      #filter by local authority and question and count no. responses
      qstnDta_LA <- dta %>% filter(Indicator == "Overall, how satisfied were you with the service provided?") %>%
        filter(LA == "1") %>% count(value, .drop =F) %>%
