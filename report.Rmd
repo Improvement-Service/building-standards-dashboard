@@ -31,6 +31,21 @@ overall_data <- params$overall_data
 la <- params$la
 ```
 
+## KPO 4 Score
+```{r echo=FALSE, comment= ""}
+## Set up text for KPO4 
+kpo_data <- kpo_data %>% filter(`Tracking Link` == "Total")
+local_auth <- "Aberdeen City" ##will need to select LA based on log in details
+     curr_year <- yr2fy(2022)
+     KPO4_ytd <- kpo_data %>% filter(id == "local authority") %>% pull(KPO_score)
+     hilow_kpo4 <- ifelse(KPO4_ytd > 7.5, "higher", "lower")
+     scotAv_kpo4 <- kpo_data %>% filter(id == "Scotland") %>% pull(KPO_score)
+     abbel_kpo4 <- ifelse(KPO4_ytd > scotAv_kpo4, "higher", "lower")
+     
+```
+
+This indicator summarises performance across all questions, with differential weightings based on importance. For `r la` in `r curr_year`, overall performance is at `r KPO4_ytd` for the year to date. This is `r abbel_kpo4` than the Scotland average of `r scotAv_kpo4` and `r hilow_kpo4` than the target value of 7.5.
+
 ```{r echo = F}
      
 kpo_data <- kpo_data %>% filter(`Tracking Link` == "Total")
@@ -60,21 +75,6 @@ ggplot(data = kpo_data,
   theme_classic()
 ```
 
-##KPO 4 Score
-```{r echo=FALSE, comment= ""}
-## Set up text for KPO4 
-kpo_data <- kpo_data %>% filter(`Tracking Link` == "Total")
-local_auth <- "Aberdeen City" ##will need to select LA based on log in details
-     curr_year <- yr2fy(2022)
-     KPO4_ytd <- kpo_data %>% filter(id == "local authority") %>% pull(KPO_score)
-     hilow_kpo4 <- ifelse(KPO4_ytd > 7.5, "higher", "lower")
-     scotAv_kpo4 <- kpo_data %>% filter(id == "Scotland") %>% pull(KPO_score)
-     abbel_kpo4 <- ifelse(KPO4_ytd > scotAv_kpo4, "higher", "lower")
-     
-```
-
-This indicator summarises performance across all questions, with differential weightings based on importance. For `r la` in `r curr_year`, overall performance is at `r KPO4_ytd` for the year to date. This is `r abbel_kpo4` than the Scotland average of `r scotAv_kpo4` and `r hilow_kpo4` than the target value of 7.5.
-
 # Individual Questions
 
 ## Time taken
@@ -89,10 +89,10 @@ This indicator summarises performance across all questions, with differential we
      total_good <- filter(qstnDta_LA, value %in% c(1,2) & Selection == "LA") %>% pull(perc_resp) %>%
        sum()
      #if this is above 55% then overall is positive, otherwise negative/balances
-     pos_or_neg <- ifelse(total_good > 0.55, "mainly positive", ifelse(total_good < 0.45, "mainly negative", "balanced"))
+     pos_or_neg <- ifelse(total_good > 55, "mainly positive", ifelse(total_good < 45, "mainly negative", "balanced"))
      
      # add "only" to the % positive if this is below 45
-     if(total_good < 0.45) {
+     if(total_good < 45) {
        total_good <- paste("only", total_good)
      } else{
        total_good <- total_good
@@ -255,7 +255,7 @@ In this year for `r la` to date for the question "How would you rate the quality
 ```{r echo=FALSE, comment= ""}
 staff_txt <- text_prep(staff_data)
 ```
-In this year for `r la` to date for the question "How would you rate the service offered by staff?" responses have been `r inf_txt$pos_or_neg` with `r inf_txt$total_good` percent saying that it was good or very good. The greatest proportion of respondents said they felt it was `r inf_txt$max_name` at `r inf_txt$max_perc` This was followed by `r inf_txt$sec_name` at `r inf_txt$sec_perc` For Scotland overall, most respondents said that the service received was `r inf_txt$scot_max_name` at `r inf_txt$scot_max_perc`
+In this year for `r la` to date for the question "How would you rate the service offered by staff?" responses have been `r staff_txt$pos_or_neg` with `r staff_txt$total_good` percent saying that it was good or very good. The greatest proportion of respondents said they felt it was `r staff_txt$max_name` at `r staff_txt$max_perc` This was followed by `r staff_txt$sec_name` at `r staff_txt$sec_perc` For Scotland overall, most respondents said that the service received was `r staff_txt$scot_max_name` at `r staff_txt$scot_max_perc`
 
 ```{r echo = F}
      ggplot(
