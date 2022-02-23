@@ -429,16 +429,23 @@ server <- function(input, output, session) {
    })
    
    
-#Graph output for performance over time 
-   output$ovrPerfLine <- renderPlotly({
+#Create data for performance over time graph
+   Report_ovrPerfLine_data <- reactive({
      la_max_sum <- la_max_sum()
      scot_max_sum$LA <- "Scotland"
      la_max_sum$LA <- "Aberdeen City"
      
      quarts_dta <- rbind(scot_max_sum,la_max_sum) %>% filter(`Tracking Link` != "Total")
      quarts_dta$KPO_score <- round(quarts_dta$KPO_score,1)
-     
-     plt <- ggplot(data = quarts_dta) +
+     quarts_dta
+   })
+   
+   
+   #Graph output for performance over time 
+   output$ovrPerfLine <- renderPlotly({
+     Report_ovrPerfLine_data <- Report_ovrPerfLine_data()
+
+     plt <- ggplot(data = Report_ovrPerfLine_data) +
        geom_line(aes(
          x = `Tracking Link`, 
          y = KPO_score, 
@@ -453,7 +460,7 @@ server <- function(input, output, session) {
          ),
                 lwd = 1)+
        scale_color_manual( 
-            values = c("cadetblue3", "dimgrey"))+
+            values = c("cadetblue3", "dimgrey"), name = "")+
        ggtitle("KPO 4 score - over time")+
        ylim(0,10)+
        xlab("")+
@@ -1394,6 +1401,7 @@ server <- function(input, output, session) {
          # Set up parameters to pass to Rmd document
          params <- list(la = "Aberdeen City",
           kpo_data = report_kpo_data(),  
+         # ovrPerfLine_data = Report_ovrPerfLine_data(),
           time_data = question_time_data_report(),
           comms_data = question_comms_data_report(),
           info_data = question_info_data_report(),
