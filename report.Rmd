@@ -106,15 +106,18 @@ type_dta_filter <- resp_dta %>% filter(LA == 1 & question_type == "Type") ##filt
 Respondents were asked to provide details on the type of respondent they were, as well as their reason for contacting the Building Standards Service in `r la`. Of the `r type_number` respondents `r agent_perc` were agents or designers, `r appli_perc` were applicants and `r contr_perc` were contractors. `r type_other_perc` said they were an other respondent type.
 
 ```{r echo = F}
-ggplot(data = type_data) +
-        geom_col(aes(x = Question, y = perc
-                 ),
-                 fill = "cadetblue3", 
+ggplot(data = type_data,
+       aes(x = Question, y = perc)) +
+        geom_col(fill = "cadetblue3", 
                  colour = "black"
+                 )+
+    geom_text(aes(label = perc, y = perc + 2.5), 
+                 vjust = 0,
+                 position = position_dodge(width = 0.9) 
                  )+
         coord_flip() +
         theme_classic()+
-        scale_y_continuous( expand = c(0, 0))+
+     #   scale_y_continuous(expand = c(0, 0))+
         ggtitle("Respondent Type: YTD")+
         xlab("Respondent Type")+
         ylab("Percentage of Responses")
@@ -147,14 +150,18 @@ ggplot(data = type_data) +
 Respondents were asked to provide details on the type of respondent they were, as well as their reason for contacting the Building Standards Service in `r la`. Of the `r resp_number` respondents, `r discuss_perc` contacted the local authority to discuss their proposal before applying for a building warrant, `r appli_perc` were making an application for a warrant and `r constr_perc` contacted the service during construction. `r other_perc` contacted the service for some other reason.
 
 ```{r echo = F}
-ggplot(data = reason_data) +
-        geom_col(aes(
-          x = Question, 
-          y = perc
-          ),fill = "cadetblue3", colour = "black")+
+ggplot(data = reason_data,
+       aes(x = Question, 
+          y = perc)
+       ) +
+        geom_col(fill = "cadetblue3", colour = "black")+
+  geom_text(aes(label = perc, y = perc + 2.5), 
+                 vjust = 0,
+                 position = position_dodge(width = 0.9) 
+                 )+
         coord_flip() +
         theme_classic()+
-        scale_y_continuous( expand = c(0, 0))+
+      #  scale_y_continuous( expand = c(0, 0))+
          ggtitle("Response Reason:YTD")+
          xlab("Reason")+
          ylab("Percentage of Responses")
@@ -205,14 +212,18 @@ ggplot(data = reason_data) +
 `r ifelse(no_quarts == 1, Q1_text, ifelse(no_quarts == 2, Q2_text, ifelse(no_quarts == 3, Q3_text, Q4_text)))`
     
 ```{r echo = F}
-ggplot(data = line_data) +
-       geom_line(aes(
-         x = `Tracking Link`, 
+ggplot(data = line_data,
+       aes(x = `Tracking Link`, 
          y = KPO_score, 
          group = LA, 
-         colour = LA
-         ),
-                lwd = 1)+
+         colour = LA)
+       ) +
+       geom_line(lwd = 1)+
+  geom_text(aes(label = KPO_score, y = KPO_score + 0.1), 
+                 vjust = 0,
+                 position = position_dodge(width = 0),
+            show.legend = FALSE
+                 )+
        scale_color_manual( 
             values = c("Aberdeen City" = "cadetblue3", "Scotland" = "dimgrey"), name = "")+
        ggtitle("KPO 4 score - over time")+
