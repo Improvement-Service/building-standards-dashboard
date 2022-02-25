@@ -40,12 +40,12 @@ la <- params$la
 ## KPO 4 Score
 ```{r echo=FALSE, comment= ""}
 ## Set up text for KPO4 
-kpo_data <- kpo_data %>% filter(`Tracking Link` == "Total")
+kpo_data1 <- kpo_data %>% filter(`Tracking Link` == "Total")
 local_auth <- "Aberdeen City" ##will need to select LA based on log in details
      curr_year <- yr2fy(2022)
-     KPO4_ytd <- kpo_data %>% filter(id == "local authority") %>% pull(KPO_score)
+     KPO4_ytd <- kpo_data1 %>% filter(id == "local authority") %>% pull(KPO_score)
      hilow_kpo4 <- ifelse(KPO4_ytd > 7.5, "higher", "lower")
-     scotAv_kpo4 <- kpo_data %>% filter(id == "Scotland") %>% pull(KPO_score)
+     scotAv_kpo4 <- kpo_data1 %>% filter(id == "Scotland") %>% pull(KPO_score)
      abbel_kpo4 <- ifelse(KPO4_ytd > scotAv_kpo4, "higher", "lower")
      
 ```
@@ -54,8 +54,8 @@ This indicator summarises performance across all questions, with differential we
 
 ```{r echo = F}
      
-kpo_data <- kpo_data %>% filter(`Tracking Link` == "Total")
-ggplot(data = kpo_data,
+kpo_data1 <- kpo_data %>% filter(`Tracking Link` == "Total")
+ggplot(data = kpo_data1,
             aes(
          x = `Tracking Link`, 
          y = KPO_score, 
@@ -81,22 +81,30 @@ ggplot(data = kpo_data,
   theme_classic()
 ```
 
-# Response Reason
-```{r echo = F}
-ggplot(data = reason_data) +
-        geom_col(aes(
-          x = Question, 
-          y = perc
-          ),fill = "cadetblue3", colour = "black")+
-        coord_flip() +
-        theme_classic()+
-        scale_y_continuous( expand = c(0, 0))+
-         ggtitle("Response Reason:YTD")+
-         xlab("Reason")+
-         ylab("Percentage of Responses")
+# Respondent Type
+```{r echo=FALSE, comment= ""}
+# Set up text for respondent type
+type_dta_filter <- resp_dta %>% filter(LA == 1 & question_type == "Type") ##filter by LA
+     #get total responses for using as percentage denominator
+     type_number <- type_dta_filter %>% 
+       ungroup() %>% 
+       filter(Question == "Agent/Designer") %>% 
+       summarise_at(vars(`n`), sum) %>%
+       select(`n`)
+     #create variables for percentages for different groups
+     agent_perc <- round(type_dta_filter[type_dta_filter$Question == "Agent/Designer" & type_dta_filter$value == 1 ,"perc"] *100, 1) %>% pull(perc)
+     appli_perc <- round(type_dta_filter[type_dta_filter$Question == "Applicant" & type_dta_filter$value == 1 ,"perc"] *100, 1) %>% pull(perc)
+     contr_perc <- round(type_dta_filter[type_dta_filter$Question == "Contractor" & type_dta_filter$value == 1 ,"perc"] *100, 1) %>% pull(perc)
+     type_other_perc <- round(type_dta_filter[type_dta_filter$Question == "Other (please specify):" & type_dta_filter$value == 1 ,"perc"] *100, 1) %>% pull(perc)
+     #if any are 0 then replace with "none"
+     agent_perc <-ifelse(isEmpty(agent_perc), "none", paste0(agent_perc,"%"))
+     appli_perc <-ifelse(isEmpty(appli_perc), "none", paste0(appli_perc,"%"))
+     contr_perc <-ifelse(isEmpty(contr_perc), "none", paste0(contr_perc,"%"))
+     type_other_perc <- ifelse(isEmpty(type_other_perc), "No respondents", paste0(type_other_perc, "%"))
 ```
 
-# Respondent Type
+Respondents were asked to provide details on the type of respondent they were, as well as their reason for contacting the Building Standards Service in `r la`. Of the `r type_number` respondents `r agent_perc` were agents or designers, `r appli_perc` were applicants and `r contr_perc` were contractors. `r type_other_perc` said they were an other respondent type.
+
 ```{r echo = F}
 ggplot(data = type_data) +
         geom_col(aes(x = Question, y = perc
@@ -112,7 +120,90 @@ ggplot(data = type_data) +
         ylab("Percentage of Responses")
 ```
 
+# Response Reason
+```{r echo=FALSE, comment= ""}
+# Set up text for response reason
+     resp_dta_filter <- resp_dta %>% filter(LA == 1 & question_type == "Reason") ##filter by LA
+     ##Get a total no. of respondents for working out percentages
+     resp_number <- resp_dta_filter %>% 
+       ungroup() %>% 
+       filter(Question == "To make an application for a building warrant") %>% 
+       summarise_at(vars(`n`), sum) %>%
+       select(`n`)
+     #Calculate percentages for each response type
+     discuss_perc <- round(resp_dta_filter[resp_dta_filter$Question == "To discuss your proposal before applying for a building warrant" & resp_dta_filter$value == 1 ,"perc"] *100, 1) %>% pull(perc)
+     appli_perc <- round(resp_dta_filter[resp_dta_filter$Question == "To make an application for a building warrant" & resp_dta_filter$value == 1 ,"perc"] *100, 1) %>% pull(perc)
+     constr_perc <- round(resp_dta_filter[resp_dta_filter$Question == "During construction, including submission of a completion certificate" & resp_dta_filter$value == 1 ,"perc"] *100, 1) %>% pull(perc)
+     other_perc <- round(resp_dta_filter[resp_dta_filter$Question == "Other (please specify):" & resp_dta_filter$value == 1 ,"perc"] *100, 1) %>% pull(perc)
+     
+     #if any are 0 then replace with "none"
+     discuss_perc <-ifelse(isEmpty(discuss_perc), "none", paste0(discuss_perc,"%"))
+     appli_perc <-ifelse(isEmpty(appli_perc), "none", paste0(appli_perc,"%"))
+     constr_perc <-ifelse(isEmpty(constr_perc), "none", paste0(constr_perc,"%"))
+     other_perc <- ifelse(isEmpty(other_perc), "No respondents", paste0(other_perc, "%"))
+     
+```
+
+Respondents were asked to provide details on the type of respondent they were, as well as their reason for contacting the Building Standards Service in `r la`. Of the `r resp_number` respondents, `r discuss_perc` contacted the local authority to discuss their proposal before applying for a building warrant, `r appli_perc` were making an application for a warrant and `r constr_perc` contacted the service during construction. `r other_perc` contacted the service for some other reason.
+
+```{r echo = F}
+ggplot(data = reason_data) +
+        geom_col(aes(
+          x = Question, 
+          y = perc
+          ),fill = "cadetblue3", colour = "black")+
+        coord_flip() +
+        theme_classic()+
+        scale_y_continuous( expand = c(0, 0))+
+         ggtitle("Response Reason:YTD")+
+         xlab("Reason")+
+         ylab("Percentage of Responses")
+```
+
 # KPO 4 Over Time
+```{r echo=FALSE, comment= ""}
+#get the number of quarters for rendering the text
+     no_quarts <- length(unique(dta$`Tracking Link`))
+    
+    #filter to get KPO for quarter 1
+    Q1_kpo <- kpo_data %>% filter(`Tracking Link` == "Quarter 1", id == "local authority") %>%
+      pull(KPO_score)
+    #render text for quarter 1
+    Q1_text<- paste0("In Quarter 1 performance for KPO 4 calculated across all responses for all questions was ",
+                      Q1_kpo,". ")
+    #filter to get KPO for quarter 2
+    Q2_kpo <- kpo_data %>% filter(`Tracking Link` == "Quarter 2", id == "local authority") %>%
+      pull(KPO_score)
+    #compare quarter 2 and quarter 1
+    comp_Q12 <- ifelse(Q2_kpo > Q1_kpo+0.2, "rose", ifelse(Q2_kpo < Q1_kpo-0.2, "fell", "stayed the same "))
+    #render text for quarter 2                   
+    Q2_text<- paste0(Q1_text,"Performance then ", comp_Q12,
+            "in Quarter 2 to stand at ", Q2_kpo)
+    
+    #filter to get KPO for quarter 3
+    Q3_kpo <- kpo_data %>% filter(`Tracking Link` == "Quarter 3", id == "local authority") %>%
+      pull(KPO_score)
+    #compare quarter 3 and quarter 2 - ignore if error occurs
+    comp_Q23 <- tryCatch({ifelse(Q3_kpo > Q3_kpo+0.2, "higher than", ifelse(Q3_kpo < Q3_kpo-0.2, "lower than", "the same as"))},error =function(error_message){""})
+    #render text for quarter 3                   
+    Q3_text<- paste0(Q1_text, Q2_text,"In Quarter 3 performance was ", comp_Q23,
+                     " Quarter 2 at", Q3_kpo)
+    
+    #filter to get KPO for quarter 4
+    Q4_kpo <- kpo_data %>% filter(`Tracking Link` == "Quarter 4", id == "local authority") %>%
+      pull(KPO_score)
+    #compare quarter 4 and quarter 3 - ignore if error occurs
+    comp_Q34 <- tryCatch({ifelse(Q4_kpo > Q4_kpo+0.2, "higher than", ifelse(Q4_kpo < Q4_kpo-0.2, "lower than", "the same as"))},error =function(error_message){""})
+    #render text for quarter 4                   
+    Q3_text<- paste0(Q1_text, Q2_text, Q3_text, "In Quarter 4 performance is ", comp_Q34,
+                     " Quarter 3, and stands at", Q4_kpo)
+    
+    final_text <- ifelse(no_quarts == 1, Q1_text, ifelse(no_quarts == 2, Q2_text, ifelse(no_quarts == 3, Q3_text, Q4_text)))
+    
+```    
+    
+`r ifelse(no_quarts == 1, Q1_text, ifelse(no_quarts == 2, Q2_text, ifelse(no_quarts == 3, Q3_text, Q4_text)))`
+    
 ```{r echo = F}
 ggplot(data = line_data) +
        geom_line(aes(

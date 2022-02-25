@@ -136,7 +136,7 @@ server <- function(input, output, session) {
       
     })
     
-## Create data for reaponse reason
+## Create data for response reason
     report_reason_data <- reactive({
       pc_resp_data <- resp_dta %>% filter(., question_type == "Reason" & value == 1)
       pc_resp_data[pc_resp_data$Question == "During construction, including submission of a completion certificate", "Question"] <-"During construction" 
@@ -398,10 +398,10 @@ server <- function(input, output, session) {
      resp_number <- resp_dta_filter %>% ungroup() %>% filter(Question == "Agent/Designer") %>% summarise_at(vars(`n`), sum) %>%
        select(`n`)
      #create variables for percentages for different groups
-     agent_perc <- round(resp_dta_filter[resp_dta_filter$Question == "Agent/Designer" & resp_dta_filter$value == 1 ,"perc"] *100, 2) %>% pull(perc)
-     appli_perc <- round(resp_dta_filter[resp_dta_filter$Question == "Applicant" & resp_dta_filter$value == 1 ,"perc"] *100, 2) %>% pull(perc)
-     contr_perc <- round(resp_dta_filter[resp_dta_filter$Question == "Contractor" & resp_dta_filter$value == 1 ,"perc"] *100, 2) %>% pull(perc)
-     other_perc <- round(resp_dta_filter[resp_dta_filter$Question == "Other (please specify):" & resp_dta_filter$value == 1 ,"perc"] *100, 2) %>% pull(perc)
+     agent_perc <- round(resp_dta_filter[resp_dta_filter$Question == "Agent/Designer" & resp_dta_filter$value == 1 ,"perc"] *100, 1) %>% pull(perc)
+     appli_perc <- round(resp_dta_filter[resp_dta_filter$Question == "Applicant" & resp_dta_filter$value == 1 ,"perc"] *100, 1) %>% pull(perc)
+     contr_perc <- round(resp_dta_filter[resp_dta_filter$Question == "Contractor" & resp_dta_filter$value == 1 ,"perc"] *100, 1) %>% pull(perc)
+     other_perc <- round(resp_dta_filter[resp_dta_filter$Question == "Other (please specify):" & resp_dta_filter$value == 1 ,"perc"] *100, 1) %>% pull(perc)
      #if any are 0 then replace with "none"
      agent_perc <-ifelse(isEmpty(agent_perc), "none", paste0(agent_perc,"%"))
      appli_perc <-ifelse(isEmpty(appli_perc), "none", paste0(appli_perc,"%"))
@@ -423,10 +423,10 @@ server <- function(input, output, session) {
      resp_number <- resp_dta_filter %>% ungroup() %>% filter(Question == "To make an application for a building warrant") %>% summarise_at(vars(`n`), sum) %>%
        select(`n`)
      #Calculate percentages for each response type
-     discuss_perc <- round(resp_dta_filter[resp_dta_filter$Question == "To discuss your proposal before applying for a building warrant" & resp_dta_filter$value == 1 ,"perc"] *100, 2) %>% pull(perc)
-     appli_perc <- round(resp_dta_filter[resp_dta_filter$Question == "To make an application for a building warrant" & resp_dta_filter$value == 1 ,"perc"] *100, 2) %>% pull(perc)
-     constr_perc <- round(resp_dta_filter[resp_dta_filter$Question == "During construction, including submission of a completion certificate" & resp_dta_filter$value == 1 ,"perc"] *100, 2) %>% pull(perc)
-     other_perc <- round(resp_dta_filter[resp_dta_filter$Question == "Other (please specify):" & resp_dta_filter$value == 1 ,"perc"] *100, 2) %>% pull(perc)
+     discuss_perc <- round(resp_dta_filter[resp_dta_filter$Question == "To discuss your proposal before applying for a building warrant" & resp_dta_filter$value == 1 ,"perc"] *100, 1) %>% pull(perc)
+     appli_perc <- round(resp_dta_filter[resp_dta_filter$Question == "To make an application for a building warrant" & resp_dta_filter$value == 1 ,"perc"] *100, 1) %>% pull(perc)
+     constr_perc <- round(resp_dta_filter[resp_dta_filter$Question == "During construction, including submission of a completion certificate" & resp_dta_filter$value == 1 ,"perc"] *100, 1) %>% pull(perc)
+     other_perc <- round(resp_dta_filter[resp_dta_filter$Question == "Other (please specify):" & resp_dta_filter$value == 1 ,"perc"] *100, 1) %>% pull(perc)
      
      #if any are 0 then replace with "none"
      discuss_perc <-ifelse(isEmpty(discuss_perc), "none", paste0(discuss_perc,"%"))
