@@ -102,15 +102,23 @@ server <- function(input, output, session) {
     
   ##n.b. I am using the same output twice, in the UI, but this is not allowed, so this
     #is the suggested workaround i.e. assign the output twice
-    output$resp_type_graph_report <- output$respDoughnut <- renderPlotly({
-  ##select data    
+    
+    #Create data for response type
+    report_type_data <- reactive({
       pc_resp_data <- resp_dta %>% filter(., question_type == "Type" & value == 1)
       pc_resp_data$perc <- round(pc_resp_data$perc * 100, 1)
-      pfig <- ggplot(data = pc_resp_data) +
+      pc_resp_data
+    })
+    
+    output$resp_type_graph_report <- output$respDoughnut <- renderPlotly({
+  ##select data    
+      report_type_data <- report_type_data()
+      
+      pfig <- ggplot(data = report_type_data) +
         geom_col(aes(x = Question, y = perc,
                  text = paste(
-                   paste("Respondent Type:", pc_resp_data$Question),
-                   paste("% of responses:", pc_resp_data$perc),
+                   paste("Respondent Type:", report_type_data$Question),
+                   paste("% of responses:", report_type_data$perc),
                    sep = "\n"
                  )
                  ),
@@ -128,23 +136,30 @@ server <- function(input, output, session) {
       
     })
     
-##Create plot for respondent reason for contacting
-    output$resp_reason_graph_report <- output$plotly_pie <- renderPlotly({
-      ##select data   
+## Create data for reaponse reason
+    report_reason_data <- reactive({
       pc_resp_data <- resp_dta %>% filter(., question_type == "Reason" & value == 1)
       pc_resp_data[pc_resp_data$Question == "During construction, including submission of a completion certificate", "Question"] <-"During construction" 
       pc_resp_data[pc_resp_data$Question == "To discuss your proposal before applying for a building warrant", "Question"] <-"Discuss proposal" 
       pc_resp_data[pc_resp_data$Question == "To make an application for a building warrant", "Question"] <-"Make application" 
-     
-      pc_resp_data$perc <- round(pc_resp_data$perc * 100, 1)
       
-       pfig <- ggplot(data = pc_resp_data) +
+      pc_resp_data$perc <- round(pc_resp_data$perc * 100, 1)
+      pc_resp_data
+    })
+    
+    ##Create plot for respondent reason for contacting
+    output$resp_reason_graph_report <- output$plotly_pie <- renderPlotly({
+      ##select data   
+
+      report_reason_data <- report_reason_data()
+      
+       pfig <- ggplot(data = report_reason_data()) +
         geom_col(aes(
           x = Question, 
           y = perc,
           text = paste(
-            paste("Reason:", pc_resp_data$Question),
-            paste("% of responses:", pc_resp_data$perc),
+            paste("Reason:", report_reason_data$Question),
+            paste("% of responses:", report_reason_data$perc),
             sep = "\n"
           )
           ),fill = "cadetblue3", colour = "black")+
@@ -430,7 +445,7 @@ server <- function(input, output, session) {
    
    
 #Create data for performance over time graph
-   Report_ovrPerfLine_data <- reactive({
+   report_line_data <- reactive({
      la_max_sum <- la_max_sum()
      scot_max_sum$LA <- "Scotland"
      la_max_sum$LA <- "Aberdeen City"
@@ -443,9 +458,9 @@ server <- function(input, output, session) {
    
    #Graph output for performance over time 
    output$ovrPerfLine <- renderPlotly({
-     Report_ovrPerfLine_data <- Report_ovrPerfLine_data()
+     report_line_data <- report_line_data()
 
-     plt <- ggplot(data = Report_ovrPerfLine_data) +
+     plt <- ggplot(data = report_line_data) +
        geom_line(aes(
          x = `Tracking Link`, 
          y = KPO_score, 
@@ -460,7 +475,7 @@ server <- function(input, output, session) {
          ),
                 lwd = 1)+
        scale_color_manual( 
-            values = c("cadetblue3", "dimgrey"), name = "")+
+            values = c("Aberdeen City" = "cadetblue3", "Scotland" = "dimgrey"), name = "")+
        ggtitle("KPO 4 score - over time")+
        ylim(0,10)+
        xlab("")+
@@ -1400,16 +1415,20 @@ server <- function(input, output, session) {
          
          # Set up parameters to pass to Rmd document
          params <- list(la = "Aberdeen City",
-          kpo_data = report_kpo_data(),  
-         # ovrPerfLine_data = Report_ovrPerfLine_data(),
+          kpo_data = report_kpo_data(),
+          type_data = report_type_data(),
+          reason_data = report_reason_data(),
+          line_data = report_line_data(),
           time_data = question_time_data_report(),
           comms_data = question_comms_data_report(),
           info_data = question_info_data_report(),
           staff_data = question_staff_data_report(),
           resp_data = question_responsiveness_data_report(),
           fair_data = question_fairly_data_report(),
-          overall_data = question_overall_data_report())
+          overall_data = question_overall_data_report()
+          )
          
+     
          # Knit the document, passing in the `params` list, and eval it in a
          # child of the global environment (this isolates the code in the document
          # from the code in this app).
