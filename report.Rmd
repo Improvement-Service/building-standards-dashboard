@@ -4,7 +4,10 @@ output: pdf_document
 params:
   time_data: NA
   la: NA
+  type_data: NA
+  reason_data: NA
   kpo_data: NA
+  line_data: NA
   comms_data: NA
   info_data: NA
   staff_data: NA
@@ -21,6 +24,9 @@ opts_chunk$set(tidy.opts=list(width.cutoff=60),tidy=TRUE)
 ```{r echo = F}
 # The `params` object is available in the document.
 kpo_data <- params$kpo_data
+type_data <- params$type_data
+reason_data <- params$reason_data
+line_data <- params$line_data
 time_data <- params$time_data
 comms_data <- params$comms_data
 info_data <- params$info_data
@@ -73,6 +79,56 @@ ggplot(data = kpo_data,
   xlab("") +
   ylab("KPO 4 Score")+
   theme_classic()
+```
+
+# Response Reason
+```{r echo = F}
+ggplot(data = reason_data) +
+        geom_col(aes(
+          x = Question, 
+          y = perc
+          ),fill = "cadetblue3", colour = "black")+
+        coord_flip() +
+        theme_classic()+
+        scale_y_continuous( expand = c(0, 0))+
+         ggtitle("Response Reason:YTD")+
+         xlab("Reason")+
+         ylab("Percentage of Responses")
+```
+
+# Respondent Type
+```{r echo = F}
+ggplot(data = type_data) +
+        geom_col(aes(x = Question, y = perc
+                 ),
+                 fill = "cadetblue3", 
+                 colour = "black"
+                 )+
+        coord_flip() +
+        theme_classic()+
+        scale_y_continuous( expand = c(0, 0))+
+        ggtitle("Respondent Type: YTD")+
+        xlab("Respondent Type")+
+        ylab("Percentage of Responses")
+```
+
+# KPO 4 Over Time
+```{r echo = F}
+ggplot(data = line_data) +
+       geom_line(aes(
+         x = `Tracking Link`, 
+         y = KPO_score, 
+         group = LA, 
+         colour = LA
+         ),
+                lwd = 1)+
+       scale_color_manual( 
+            values = c("Aberdeen City" = "cadetblue3", "Scotland" = "dimgrey"), name = "")+
+       ggtitle("KPO 4 score - over time")+
+       ylim(0,10)+
+       xlab("")+
+       ylab("KPO 4 Score")+
+       theme_classic()
 ```
 
 # Individual Questions
