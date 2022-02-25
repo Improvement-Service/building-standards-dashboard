@@ -379,14 +379,14 @@ server <- function(input, output, session) {
      local_auth <- "Aberdeen City" ##will need to select LA based on log in details
      curr_year <- yr2fy(2022)
      KPO4_ytd <- all_kpo_data %>% filter(id == "local authority") %>% pull(KPO_score)
-     hilow_kpo4 <- ifelse(KPO4_ytd > 7.5, "higher", "lower")
+     hilow_kpo4 <- ifelse(KPO4_ytd > 7.5, "higher than", ifelse(KPO4_ytd < 7.5, "lower than", "equal to"))
      scotAv_kpo4 <- all_kpo_data %>% filter(id == "Scotland") %>% pull(KPO_score)
-     abbel_kpo4 <- ifelse(KPO4_ytd > scotAv_kpo4, "higher", "lower")
+     abbel_kpo4 <- ifelse(KPO4_ytd > scotAv_kpo4, "higher than",ifelse(KPO4_ytd < scotAv_kpo4, "lower than", "equal to"))
      
      text_kpo <- paste0("This indicator summarises performance across all questions, with differential
                        weightings based on importance. For ", local_auth," in ",curr_year, " overall
                        performance is at ", KPO4_ytd, " for the year to date. ", "This is ",abbel_kpo4,
-                       " than the Scotland average of ", scotAv_kpo4," and ", hilow_kpo4," than the target value
+                       " the Scotland average of ", scotAv_kpo4," and ", hilow_kpo4," the target value
                        of 7.5.")
      return(text_kpo)
    })
