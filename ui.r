@@ -165,4 +165,4 @@ ui <- dashboardPage(skin = "blue",
 )
 
 ##Add shiny manager authenitcation
-ui <- secure_app(ui)
+##ui <- secure_app(ui)
