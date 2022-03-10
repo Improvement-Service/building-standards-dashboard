@@ -7,6 +7,7 @@ library(fy)
 library(readxl)
 library(shinyBS)
 library(DT)
+library(shinymanager)
 
 
 #create a list of local authorty names for use in the UI

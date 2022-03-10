@@ -1,4 +1,17 @@
-server <- function(input, output, session) {
+function(input, output, session) {
+
+  credentials <- readRDS("admin/credentials.rds")
+  
+  
+  # Shinymanager Auth
+  
+  res_auth <- secure_server(
+    check_credentials = check_credentials(credentials)
+  )
+  
+  output$user1 <- renderText({
+    reactiveValuesToList(res_auth)$user
+  })
   
 ##Create outputs for KPO4 Summary Page===========================  
   

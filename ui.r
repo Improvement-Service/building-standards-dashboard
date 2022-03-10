@@ -11,7 +11,9 @@ ui <- dashboardPage(skin = "blue",
       menuItem("Question Results", tabName = "Qstns", icon = icon("question-circle")),
       menuItem("Report Download", tabName = "RptDl", icon = icon("chart-area")),
       menuItem("Data Download", tabName = "DtDl", icon = icon("download")),
-      menuItem("Open Text", tabName = "OpTxt", icon = icon("comments"))
+      menuItem("Open Text", tabName = "OpTxt", icon = icon("comments")),
+      tags$footer(a("Contact us", href = "mailto:research@improvementservice.org.uk"), style = "position:fixed; bottom:0; margin-left:2px")
+      
     )
   ),
   
@@ -19,6 +21,7 @@ ui <- dashboardPage(skin = "blue",
     tabItems(
       tabItem(tabName = "PrfOvr",
               h2(paste("KPO4 Performance", "Date last updated:", format(Sys.time(), "%d %b %Y")),style = "margin-top:3px"), ###add something to say date most recently updated?
+              "logged in as", textOutput("user1"),
               fluidRow(
                 valueBoxOutput("performanceBox"), #performance for council
                 bsPopover("performanceBox", title = "KPO4 Weightings" ,
@@ -160,3 +163,6 @@ ui <- dashboardPage(skin = "blue",
     
   )
 )
+
+##Add shiny manager authenitcation
+ui <- secure_app(ui)
