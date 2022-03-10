@@ -50,7 +50,7 @@ function(input, output, session) {
     bind_rows(summarise(.,across(where(is.numeric), sum),
                         across(where(is.character), ~"Total")))  %>%
   ##generate the KPO score (out of 10)    
-    mutate(KPO_score = (1-KPO4_weighted/maxAvailable)*10)
+    mutate(KPO_score = round((1-KPO4_weighted/maxAvailable)*10,1))
   })
   
 #Create performance box for selected Council  
@@ -58,13 +58,13 @@ function(input, output, session) {
     la_max_sum <- la_max_sum()
     kpo_colr <- ifelse(la_max_sum[la_max_sum$`Tracking Link` =="Total", "KPO_score"] > 7.5, "green", ifelse(la_max_sum[la_max_sum$`Tracking Link` =="Total", "KPO_score"] < 6.5, "red", "orange"))
     valueBox(
-      value = round(la_max_sum[la_max_sum$`Tracking Link` =="Total", "KPO_score"],2), "Council KPO4 YTD", icon = icon("chart-bar"), color = kpo_colr
+      value = round(la_max_sum[la_max_sum$`Tracking Link` =="Total", "KPO_score"],1), "Council KPO4 YTD", icon = icon("chart-bar"), color = kpo_colr
     )
   })
 #Create performance box for Scotland
   output$scotPerfBox<- renderValueBox({
    valueBox(
-      value = round(scot_max_sum[scot_max_sum$`Tracking Link` =="Total", "KPO_score"],2), "Scotland Average", icon = icon("times"), color = "navy"
+      value = round(scot_max_sum[scot_max_sum$`Tracking Link` =="Total", "KPO_score"],1), "Scotland Average", icon = icon("times"), color = "navy"
     )
   })
 #Create responses valuebox
@@ -85,9 +85,22 @@ function(input, output, session) {
       kpo_clrs <- la_max_sum %>% filter(`Tracking Link` != "Year to Date") %>% pull(KPO_score)
       clrs <- ifelse(kpo_clrs >7.5, "green", ifelse(kpo_clrs <6.5, "red", "orange"))
       
-      ggplot(data = la_max_sum) +
-         geom_bar(aes(x = `Tracking Link`, y = KPO_score), stat = "identity",
-                  position = "dodge", fill = c(clrs, "grey13"), width = 0.7, colour = "black") +
+      p <- ggplot(data = la_max_sum) +
+         geom_bar(aes(
+           x = `Tracking Link`, 
+           y = KPO_score,
+           text = paste(
+             paste("Quarter:", `Tracking Link`),
+             paste("KPO 4 Score", KPO_score),
+             sep = "\n"
+           )
+           ), 
+           stat = "identity",
+           position = "dodge", 
+           fill = c(clrs, "grey13"), 
+           width = 0.7, 
+           colour = "black"
+           ) +
          theme_classic() +
          scale_y_continuous(limits = c(0,10), expand = c(0, 0))+
          ggtitle("KPO4 performance by quarter and YTD")+
@@ -95,39 +108,81 @@ function(input, output, session) {
          xlab("Response period") +
          theme(axis.text.x = element_text(size = 12),
                axis.title = element_text(size = 13))
+      ggplotly(p, tooltip = "text")
     })
     
 ##Create barplots for respondent types and reasons---
     
   ##n.b. I am using the same output twice, in the UI, but this is not allowed, so this
     #is the suggested workaround i.e. assign the output twice
+    
+    #Create data for response type
+    report_type_data <- reactive({
+      pc_resp_data <- resp_dta %>% filter(., question_type == "Type" & value == 1)
+      pc_resp_data$perc <- round(pc_resp_data$perc * 100, 1)
+      pc_resp_data
+    })
+    
     output$resp_type_graph_report <- output$respDoughnut <- renderPlotly({
   ##select data    
-      pc_resp_data <- resp_dta %>% filter(., question_type == "Type" & value == 1)
-      pfig <- ggplot(data = pc_resp_data) +
-        geom_col(aes(x = Question, y = perc), fill = "cadetblue3", colour = "black")+
+      report_type_data <- report_type_data()
+      
+      pfig <- ggplot(data = report_type_data) +
+        geom_col(aes(x = Question, y = perc,
+                 text = paste(
+                   paste("Respondent Type:", report_type_data$Question),
+                   paste("% of responses:", report_type_data$perc),
+                   sep = "\n"
+                 )
+                 ),
+                 fill = "cadetblue3", 
+                 colour = "black"
+                 )+
         coord_flip() +
         theme_classic()+
-        scale_y_continuous( expand = c(0, 0))
+        scale_y_continuous( expand = c(0, 0))+
+        ggtitle("Respondent Type: YTD")+
+        xlab("Respondent Type")+
+        ylab("Percentage of Responses")
         
-      ggplotly(pfig)
+      ggplotly(pfig, tooltip = "text")
       
     })
     
-##Create plot for respondent reason for contacting
-    output$resp_reason_graph_report <- output$plotly_pie <- renderPlotly({
-      ##select data   
+## Create data for response reason
+    report_reason_data <- reactive({
       pc_resp_data <- resp_dta %>% filter(., question_type == "Reason" & value == 1)
       pc_resp_data[pc_resp_data$Question == "During construction, including submission of a completion certificate", "Question"] <-"During construction" 
       pc_resp_data[pc_resp_data$Question == "To discuss your proposal before applying for a building warrant", "Question"] <-"Discuss proposal" 
       pc_resp_data[pc_resp_data$Question == "To make an application for a building warrant", "Question"] <-"Make application" 
-     
-       pfig <- ggplot(data = pc_resp_data) +
-        geom_col(aes(x = Question, y = perc),fill = "cadetblue3", colour = "black")+
+      
+      pc_resp_data$perc <- round(pc_resp_data$perc * 100, 1)
+      pc_resp_data
+    })
+    
+    ##Create plot for respondent reason for contacting
+    output$resp_reason_graph_report <- output$plotly_pie <- renderPlotly({
+      ##select data   
+
+      report_reason_data <- report_reason_data()
+      
+       pfig <- ggplot(data = report_reason_data()) +
+        geom_col(aes(
+          x = Question, 
+          y = perc,
+          text = paste(
+            paste("Reason:", report_reason_data$Question),
+            paste("% of responses:", report_reason_data$perc),
+            sep = "\n"
+          )
+          ),fill = "cadetblue3", colour = "black")+
         coord_flip() +
         theme_classic()+
-        scale_y_continuous( expand = c(0, 0))
-      ggplotly(pfig)
+        scale_y_continuous( expand = c(0, 0))+
+         ggtitle("Response Reason:YTD")+
+         xlab("Reason")+
+         ylab("Percentage of Responses")
+      ggplotly(pfig, tooltip = "text")
     })
     
 ##Create graphs to display results by questions================================
@@ -337,14 +392,14 @@ function(input, output, session) {
      local_auth <- "Aberdeen City" ##will need to select LA based on log in details
      curr_year <- yr2fy(2022)
      KPO4_ytd <- all_kpo_data %>% filter(id == "local authority") %>% pull(KPO_score)
-     hilow_kpo4 <- ifelse(KPO4_ytd > 7.5, "higher", "lower")
+     hilow_kpo4 <- ifelse(KPO4_ytd > 7.5, "higher than", ifelse(KPO4_ytd < 7.5, "lower than", "equal to"))
      scotAv_kpo4 <- all_kpo_data %>% filter(id == "Scotland") %>% pull(KPO_score)
-     abbel_kpo4 <- ifelse(KPO4_ytd > scotAv_kpo4, "higher", "lower")
+     abbel_kpo4 <- ifelse(KPO4_ytd > scotAv_kpo4, "higher than",ifelse(KPO4_ytd < scotAv_kpo4, "lower than", "equal to"))
      
      text_kpo <- paste0("This indicator summarises performance across all questions, with differential
                        weightings based on importance. For ", local_auth," in ",curr_year, " overall
                        performance is at ", KPO4_ytd, " for the year to date. ", "This is ",abbel_kpo4,
-                       " than the Scotland average of ", scotAv_kpo4," and ", hilow_kpo4," than the target value
+                       " the Scotland average of ", scotAv_kpo4," and ", hilow_kpo4," the target value
                        of 7.5.")
      return(text_kpo)
    })
@@ -356,10 +411,10 @@ function(input, output, session) {
      resp_number <- resp_dta_filter %>% ungroup() %>% filter(Question == "Agent/Designer") %>% summarise_at(vars(`n`), sum) %>%
        select(`n`)
      #create variables for percentages for different groups
-     agent_perc <- round(resp_dta_filter[resp_dta_filter$Question == "Agent/Designer" & resp_dta_filter$value == 1 ,"perc"] *100, 2) %>% pull(perc)
-     appli_perc <- round(resp_dta_filter[resp_dta_filter$Question == "Applicant" & resp_dta_filter$value == 1 ,"perc"] *100, 2) %>% pull(perc)
-     contr_perc <- round(resp_dta_filter[resp_dta_filter$Question == "Contractor" & resp_dta_filter$value == 1 ,"perc"] *100, 2) %>% pull(perc)
-     other_perc <- round(resp_dta_filter[resp_dta_filter$Question == "Other (please specify):" & resp_dta_filter$value == 1 ,"perc"] *100, 2) %>% pull(perc)
+     agent_perc <- round(resp_dta_filter[resp_dta_filter$Question == "Agent/Designer" & resp_dta_filter$value == 1 ,"perc"] *100, 1) %>% pull(perc)
+     appli_perc <- round(resp_dta_filter[resp_dta_filter$Question == "Applicant" & resp_dta_filter$value == 1 ,"perc"] *100, 1) %>% pull(perc)
+     contr_perc <- round(resp_dta_filter[resp_dta_filter$Question == "Contractor" & resp_dta_filter$value == 1 ,"perc"] *100, 1) %>% pull(perc)
+     other_perc <- round(resp_dta_filter[resp_dta_filter$Question == "Other (please specify):" & resp_dta_filter$value == 1 ,"perc"] *100, 1) %>% pull(perc)
      #if any are 0 then replace with "none"
      agent_perc <-ifelse(isEmpty(agent_perc), "none", paste0(agent_perc,"%"))
      appli_perc <-ifelse(isEmpty(appli_perc), "none", paste0(appli_perc,"%"))
@@ -367,7 +422,7 @@ function(input, output, session) {
      other_perc <- ifelse(isEmpty(other_perc), "No respondents", paste0(other_perc, "%"))
       #paste all text together
      txt_respondents <- paste0("Respondents were asked to provide details on the type of respondent they were, 
-     as well as their reason for contacting the Building Standards Service in", local_auth,". ",
+     as well as their reason for contacting the Building Standards Service in ", local_auth,". ",
      "Of the ", resp_number, " respondents ", agent_perc, " were agents or designers, ", appli_perc, "
      were applicants and ", contr_perc, " were contractors. ", other_perc, " said they were an other respondent type.")
      txt_respondents
@@ -381,10 +436,10 @@ function(input, output, session) {
      resp_number <- resp_dta_filter %>% ungroup() %>% filter(Question == "To make an application for a building warrant") %>% summarise_at(vars(`n`), sum) %>%
        select(`n`)
      #Calculate percentages for each response type
-     discuss_perc <- round(resp_dta_filter[resp_dta_filter$Question == "To discuss your proposal before applying for a building warrant" & resp_dta_filter$value == 1 ,"perc"] *100, 2) %>% pull(perc)
-     appli_perc <- round(resp_dta_filter[resp_dta_filter$Question == "To make an application for a building warrant" & resp_dta_filter$value == 1 ,"perc"] *100, 2) %>% pull(perc)
-     constr_perc <- round(resp_dta_filter[resp_dta_filter$Question == "During construction, including submission of a completion certificate" & resp_dta_filter$value == 1 ,"perc"] *100, 2) %>% pull(perc)
-     other_perc <- round(resp_dta_filter[resp_dta_filter$Question == "Other (please specify):" & resp_dta_filter$value == 1 ,"perc"] *100, 2) %>% pull(perc)
+     discuss_perc <- round(resp_dta_filter[resp_dta_filter$Question == "To discuss your proposal before applying for a building warrant" & resp_dta_filter$value == 1 ,"perc"] *100, 1) %>% pull(perc)
+     appli_perc <- round(resp_dta_filter[resp_dta_filter$Question == "To make an application for a building warrant" & resp_dta_filter$value == 1 ,"perc"] *100, 1) %>% pull(perc)
+     constr_perc <- round(resp_dta_filter[resp_dta_filter$Question == "During construction, including submission of a completion certificate" & resp_dta_filter$value == 1 ,"perc"] *100, 1) %>% pull(perc)
+     other_perc <- round(resp_dta_filter[resp_dta_filter$Question == "Other (please specify):" & resp_dta_filter$value == 1 ,"perc"] *100, 1) %>% pull(perc)
      
      #if any are 0 then replace with "none"
      discuss_perc <-ifelse(isEmpty(discuss_perc), "none", paste0(discuss_perc,"%"))
@@ -402,26 +457,44 @@ function(input, output, session) {
    })
    
    
-#Graph output for performance over time 
-   output$ovrPerfLine <- renderPlotly({
+#Create data for performance over time graph
+   report_line_data <- reactive({
      la_max_sum <- la_max_sum()
      scot_max_sum$LA <- "Scotland"
      la_max_sum$LA <- "Aberdeen City"
      
      quarts_dta <- rbind(scot_max_sum,la_max_sum) %>% filter(`Tracking Link` != "Total")
      quarts_dta$KPO_score <- round(quarts_dta$KPO_score,1)
-     
-     plt <- ggplot(data = quarts_dta) +
-       geom_line(aes(x = `Tracking Link`, y = KPO_score, group = LA, colour = LA),
+     quarts_dta
+   })
+   
+   
+   #Graph output for performance over time 
+   output$ovrPerfLine <- renderPlotly({
+     report_line_data <- report_line_data()
+
+     plt <- ggplot(data = report_line_data) +
+       geom_line(aes(
+         x = `Tracking Link`, 
+         y = KPO_score, 
+         group = LA, 
+         colour = LA,
+         text = paste(
+           LA,
+           paste("Quarter:", `Tracking Link`),
+           paste("KPO 4 Score:", KPO_score),
+           sep = "\n"
+         )
+         ),
                 lwd = 1)+
        scale_color_manual( 
-            values = c("cadetblue3", "dimgrey"))+
+            values = c("Aberdeen City" = "cadetblue3", "Scotland" = "dimgrey"), name = "")+
        ggtitle("KPO 4 score - over time")+
        ylim(0,10)+
        xlab("")+
        ylab("KPO 4 Score")+
        theme_classic()
-     ggplotly(plt)
+     ggplotly(plt, tooltip = "text")
    })
    
 ##render text for quarter by quarter performance   
@@ -507,11 +580,11 @@ function(input, output, session) {
            paste("Response:", named_value), 
            paste("% of Responses:", perc_resp),
            sep = "\n")
-         ), 
-         stat= "identity", 
-         position = "dodge",
-         width = 0.7, 
-         colour = "black")+
+       ), 
+       stat= "identity", 
+       position = "dodge",
+       width = 0.7, 
+       colour = "black")+
        scale_y_continuous(expand = c(0, 0))+
        scale_fill_manual( 
          values = c("LA" = "cadetblue3", "Scotland" = "dimgrey"), name = "")+
@@ -1223,7 +1296,7 @@ function(input, output, session) {
      question_overall_data_report <- reactive({
      ##filter dataset based on selected question   
      dta <- dta %>% filter(value != "-")
-     dta$`value` <- factor(dta$`value`, levels = c(1,2,3,4,"-"))
+     dta$`value` <- factor(dta$`value`, levels = c(1,2,3,4))
      #filter by local authority and question and count no. responses
      qstnDta_LA <- dta %>% filter(Indicator == "Overall, how satisfied were you with the service provided?") %>%
        filter(LA == "1") %>% count(value, .drop =F) %>%
@@ -1355,15 +1428,20 @@ function(input, output, session) {
          
          # Set up parameters to pass to Rmd document
          params <- list(la = "Aberdeen City",
-          kpo_data = report_kpo_data(),              
+          kpo_data = report_kpo_data(),
+          type_data = report_type_data(),
+          reason_data = report_reason_data(),
+          line_data = report_line_data(),
           time_data = question_time_data_report(),
           comms_data = question_comms_data_report(),
           info_data = question_info_data_report(),
           staff_data = question_staff_data_report(),
           resp_data = question_responsiveness_data_report(),
           fair_data = question_fairly_data_report(),
-          overall_data = question_overall_data_report())
+          overall_data = question_overall_data_report()
+          )
          
+     
          # Knit the document, passing in the `params` list, and eval it in a
          # child of the global environment (this isolates the code in the document
          # from the code in this app).
