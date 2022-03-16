@@ -57,7 +57,7 @@ function(input, output, session) {
     ##filter KPO data by local authority name
     LA_num <- match(input$LA_selection, LA_Names)
     
-    la_max_sum <- scot_max %>% filter(LA == 1) %>%          ##Filter using input for LA
+    la_max_sum <- scot_max %>% filter(LA == council_fltr) %>%          ##Filter using input for LA
     group_by(`Tracking Link`) %>%
     summarise(across(c(maxAvailable,KPO4_weighted),sum, na.rm = T)) %>% 
     bind_rows(summarise(.,across(where(is.numeric), sum),
@@ -83,7 +83,7 @@ function(input, output, session) {
 #Create responses valuebox
     output$respBox <- renderValueBox({
       valueBox(
-        value = paste(nrow(filter(unpivot_data, `Tracking Link` == "Quarter 1")), "Responses"), paste(nrow(unpivot_data),"Year to Date"), icon = icon("user-friends"), color = "light-blue"
+        value = paste(nrow(filter(unpivot_data, `Tracking Link` == crnt_qtr)), "Responses"), paste(nrow(unpivot_data),"Year to Date"), icon = icon("user-friends"), color = "light-blue"
       )
     })
     
@@ -96,7 +96,7 @@ function(input, output, session) {
      
         ##Set colours for quarter by kpo4
       kpo_clrs <- la_max_sum %>% filter(`Tracking Link` != "Year to Date") %>% pull(KPO_score)
-      clrs <- ifelse(kpo_clrs >7.5, "green", ifelse(kpo_clrs <6.5, "red", "orange"))
+      clrs <- ifelse(kpo_clrs >7.5, "forestgreen", ifelse(kpo_clrs <6.5, "firebrick", "darkorange"))
       
       p <- ggplot(data = la_max_sum) +
          geom_bar(aes(
@@ -204,6 +204,7 @@ function(input, output, session) {
     qstn_dataset_filtered <- reactive({
       names(dta) <- gsub("Q[1-9\\.]+\\s","",names(dta), perl = T)
       dta$`Tracking Link` <- as.factor(dta$`Tracking Link`)
+      dta <- dta %>% filter(LA == council_fltr)
     ##select applicant type  
       slctn_respondent <- input$Qs_resp_input
     ##select applicant reason using partial match
@@ -403,7 +404,7 @@ function(input, output, session) {
     ##this will need to be updated when more than one yar is available   
      all_kpo_data <- report_kpo_data() %>% filter(`Tracking Link` == "Total")
      local_auth <- "Aberdeen City" ##will need to select LA based on log in details
-     curr_year <- yr2fy(2022)
+     curr_year <- fin_yr
      KPO4_ytd <- all_kpo_data %>% filter(id == "local authority") %>% pull(KPO_score)
      hilow_kpo4 <- ifelse(KPO4_ytd > 7.5, "higher than", ifelse(KPO4_ytd < 7.5, "lower than", "equal to"))
      scotAv_kpo4 <- all_kpo_data %>% filter(id == "Scotland") %>% pull(KPO_score)
@@ -1175,7 +1176,7 @@ function(input, output, session) {
        
        #Paste it all together!
        
-       paste("In this year to date for the question on how they would rate the \"Responsiveness to any queries or issues raised\" responses have been",
+       paste("In this year to date for the question on how they would rate the \"Time taken to respond to any queries or issues raised\" responses have been",
              pos_or_neg, "with",total_good,"percent saying that it was good or very good. The greatest proportion of respondents said they felt it was", max_name,
              "at", max_perc, "This was followed by", sec_name, "at", sec_perc,
              "For Scotland overall, most respondents said that responsiveness was",scot_max_name,
@@ -1487,7 +1488,7 @@ function(input, output, session) {
 ##create table to show comments for selected question 
      output$cmnt_table <- DT::renderDataTable({
        ##need to filter the data based on selections and recode answers
-       names(unpivot_data)[3:10] <- gsub("Q[1-9\\.]+\\s","",names(unpivot_data)[3:10], perl = T)
+       names(unpivot_data)[3:ncol(unpivot_data)] <- gsub("Q[1-9\\.]+\\s","",names(unpivot_data)[3:ncol(unpivot_data)], perl = T)
        unpivot_data$`Tracking Link` <- as.factor(unpivot_data$`Tracking Link`)
        ##select applicant type  
        slctn_respondent <- input$cmnts_resp_input
