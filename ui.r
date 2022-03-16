@@ -21,7 +21,7 @@ ui <- dashboardPage(skin = "blue",
     tabItems(
       tabItem(tabName = "PrfOvr",
               h2(paste("KPO4 Performance", "Date last updated:", format(Sys.time(), "%d %b %Y")),style = "margin-top:3px"), ###add something to say date most recently updated?
-              "logged in as", textOutput("user1"),
+              "logged in as", textOutput("user2"),
               fluidRow(
                 valueBoxOutput("performanceBox"), #performance for council
                 bsPopover("performanceBox", title = "KPO4 Weightings" ,
@@ -165,4 +165,4 @@ ui <- dashboardPage(skin = "blue",
 )
 
 ##Add shiny manager authenitcation
-##ui <- secure_app(ui)
+ui <- secure_app(ui)
