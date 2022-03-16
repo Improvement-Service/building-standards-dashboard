@@ -42,7 +42,7 @@ la <- params$la
 ## Set up text for KPO4 
 kpo_data1 <- kpo_data %>% filter(`Tracking Link` == "Total")
 local_auth <- "Aberdeen City" ##will need to select LA based on log in details
-     curr_year <- yr2fy(2022)
+     curr_year <- fin_yr
      KPO4_ytd <- kpo_data1 %>% filter(id == "local authority") %>% pull(KPO_score)
      hilow_kpo4 <- ifelse(KPO4_ytd > 7.5, "higher than", ifelse(KPO4_ytd < 7.5, "lower than", "equal to"))
      scotAv_kpo4 <- kpo_data1 %>% filter(id == "Scotland") %>% pull(KPO_score)
