@@ -4,27 +4,27 @@ function(input, output, session) {
   
   # Shinymanager Auth
   
-  res_auth <- secure_server(
-    check_credentials = check_credentials(
-      "admin/logins.sqlite",
-      passphrase = key_get("BSD_dashboard_key", "Kaiser-Myer-Olkin")
-    )
-  )
-  
-  output$user1 <- renderText({
-    reactiveValuesToList(res_auth)$user
-  })
-  
-  output$user2 <- reactive({
-    if(reactiveValuesToList(res_auth)$user == "username"){
-      selectedLA <- "Aberdeen City"
-    }else if(reactiveValuesToList(res_auth)$user == "nick") {
-      selectedLA <- "Aberdeenshire"
-    }else{
-      selectedLA <- "Angus"
-    }
-    return(selectedLA)
-  })
+#  res_auth <- secure_server(
+#    check_credentials = check_credentials(
+#      "admin/logins.sqlite",
+#      passphrase = key_get("BSD_dashboard_key", "Kaiser-Myer-Olkin")
+#    )
+#  )
+#  
+#  output$user1 <- renderText({
+#    reactiveValuesToList(res_auth)$user
+#  })
+#  
+#  output$user2 <- reactive({
+#    if(reactiveValuesToList(res_auth)$user == "username"){
+#      selectedLA <- "Aberdeen City"
+#    }else if(reactiveValuesToList(res_auth)$user == "nick") {
+#      selectedLA <- "Aberdeenshire"
+#    }else{
+#      selectedLA <- "Angus"
+#    }
+#    return(selectedLA)
+#  })
   
 ##Create outputs for KPO4 Summary Page===========================  
   
