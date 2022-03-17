@@ -25,6 +25,178 @@ function(input, output, session) {
 #    }
 #    return(selectedLA)
 #  })
+
+###### Reactive global data #######  
+    
+  local_authority <- reactive({
+    input$LA_selection
+  })
+  
+#### Download Data 
+  
+  # Select columns based on council (ensures duplicate columns and questions from other councils are filtered out)
+  dl_all_data <- reactive({
+  
+  council_fltr = local_authority()
+    
+  dl_all_data <- if(council_fltr == "City of Edinburgh")
+  {fresh_dta[,c(7:21,79:91)]} else
+    if(council_fltr == "North Lanarkshire")
+    {fresh_dta[,c(7:34,51:55)]}else
+      if(council_fltr == "Orkney Islands")
+      {fresh_dta[,c(7:21,56:78)]}else
+        if(council_fltr == "West Lothian")
+        {fresh_dta[,c(7:21,35:50)]}else
+        {fresh_dta[,c(7:34)]}
+  
+  # Add in columns with Quarter Info and Financial Year info
+  dl_all_data$`Tracking Link` <- as.yearqtr(dl_all_data$`Ended date`, format = "%Y-%m-%d") 
+  dl_all_data$`Financial Year` <- dl_all_data$`Tracking Link`
+  dl_all_data$`Financial Year` <- gsub("\\ ", "-", dl_all_data$`Financial Year`, perl=T)
+  dl_all_data$`Financial Year` <- qtr2fy(dl_all_data$`Financial Year`)
+  
+  dl_all_data$`Tracking Link` <- dl_all_data$`Tracking Link`+ 3/4
+  dl_all_data$`Tracking Link` <- gsub("[0-9]*\\ Q", "Quarter ", dl_all_data$`Tracking Link`, perl = T)
+  
+  # Remove redundant columns and reorder
+  dl_all_data <- dl_all_data[-c(1:4)]
+  dl_all_data <- dl_all_data[,c((ncol(dl_all_data)-1),ncol(dl_all_data),1,10,11,2:9,12:(ncol(dl_all_data)-2))]
+  
+  # pivot to combine both LA columns, rename, then remove duplicates
+  dl_all_data <- dl_all_data %>% pivot_longer(cols = 4:5, names_to = "extra", values_to ="LA") %>%
+    filter(LA != "-") %>% select(-extra)
+  dl_all_data <- dl_all_data[,c(1:3,ncol(dl_all_data),4:(ncol(dl_all_data)-1))]  
+  
+  # Code local authority name for councils completing survey without login
+  dl_all_data <- merge(dl_all_data, LA_names_dta)
+  dl_all_data[dl_all_data$`Local Authority Name` == "-" ,"Local Authority Name"] <- dl_all_data[dl_all_data$`Local Authority Name` == "-","LA_Names"]
+  dl_all_data <- dl_all_data %>% select(-LA_Names)
+  dl_all_data <- dl_all_data[,c(2:4,1,5:ncol(dl_all_data))]
+  dl_all_data
+  })
+  
+
+##### Respondents and reasons data 
+  
+  # Generate another dataframe with respondent types
+  
+  resp_dta <- reactive({
+    
+    dl_all_data <- dl_all_data()
+    council_fltr = local_authority()
+    
+ resp_dta <- dl_all_data %>% group_by(`Local Authority Name`) %>% select(1:12)%>%
+    pivot_longer(cols = 5:12, names_to = "Question", values_to = "value")%>% 
+    group_by(`Local Authority Name`,Question) %>%
+    count(value) %>%
+    mutate(perc = n/sum(n))
+  
+  ##Tidy the respondent types and reasons
+  resp_dta$question_type <- ifelse(grepl("Q1", resp_dta$Question), "Type", "Reason")
+  
+  ##Remove question numbers
+  resp_dta$Question <- gsub("Q[\\.1-9]+\\s", "", resp_dta$Question,perl = T)
+  
+  ##Filter to selected council
+  resp_dta <- resp_dta%>%filter(`Local Authority Name` == council_fltr)
+  
+  resp_dta
+  
+  })
+  
+### Final reactive steps to create unpivot_data
+  
+  unpivot_data <- reactive({
+  
+    council_fltr <- local_authority()
+    
+  # Select columns based on council (ensures duplicate columns and additional questions are filtered out)
+  unpivot_data <- if(council_fltr == "City of Edinburgh")
+  {unpivot_data_global[,c(1:12,70:82)]} else
+    if(council_fltr == "orkney Islands")
+    {unpivot_data_global[,c(1:12,47:50,56:58,63,65:69)]}else
+      if(council_fltr == "West Lothian")
+      {unpivot_data_global[,c(1:12,26:30,34:41)]}else
+      {unpivot_data_global[,c(1:25)]}
+  
+  #tidy up question names
+  unpivot_data <- unpivot_data %>% rename("Q3. How satisfied were you with the time taken?" = "Q3. Thinking of your engagement with [question(16082428)][variable(la)] Building Standards from beginning to end, how satisfied were you that the time taken to deal with your application or enquiry met the timescales that you were promised?") %>%
+    rename("Q4. How would you rate the standard of communication?" = "Q4. How would you rate the standard of communication provided by [question(16082428)][variable(la)] Building Standards service following your initial contact or once your application had been submitted?") %>%
+    rename("Q.3. Responsiveness to any queries or issues raised" = "Q.3. Time taken to respond to any queries or issues raised") %>%
+    rename("Q5. To what extent would you agree that you were treated fairly" = "Q5. To what extent would you agree that you were treated fairly by [question(16082428)][variable(la)] Building Standards?") %>%
+    rename("Q6. How satisfied were you, overall?" = "Q6. Overall, how satisfied were you with the service provided by [question(16082428)][variable(la)] Building Standards?")%>%
+    rename("Q1.4. Other respondent" = "Q1.4. Other (please specify):") %>%
+    rename("Q2.4. Other reason" = "Q2.4. Other (please specify):") 
+  
+  #recode responses for download and to show in table
+  unpivot_data$`Q3. How satisfied were you with the time taken?` <-  dplyr::recode(
+    unpivot_data$`Q3. How satisfied were you with the time taken?`,
+    "1" = "very satisfied",
+    "2" ="satisfied",
+    "3" = "dissatisfied",
+    "4" = "very dissatisfied",
+    "5" = "NA"
+  )
+  
+  unpivot_data$`Q4. How would you rate the standard of communication?` <-  dplyr::recode(
+    unpivot_data$`Q4. How would you rate the standard of communication?`,
+    "1" = "very good",
+    "2" ="good",
+    "3" = "poor",
+    "4" = "very poor",
+    "5" = "NA"
+  )
+  
+  unpivot_data$`Q.1. Quality of the information provided` <-  dplyr::recode(
+    unpivot_data$`Q.1. Quality of the information provided`,
+    "1" = "very good",
+    "2" ="good",
+    "3" = "poor",
+    "4" = "very poor",
+    "5" = "NA"
+  )
+  
+  unpivot_data$`Q.2. Service offered by staff` <-  dplyr::recode(
+    unpivot_data$`Q.2. Service offered by staff`,
+    "1" = "very good",
+    "2" ="good",
+    "3" = "poor",
+    "4" = "very poor",
+    "5" = "NA"
+  )
+  
+  unpivot_data$`Q.3. Responsiveness to any queries or issues raised` <-  dplyr::recode(
+    unpivot_data$`Q.3. Responsiveness to any queries or issues raised`,
+    "1" = "very good",
+    "2" ="good",
+    "3" = "poor",
+    "4" = "very poor",
+    "5" = "NA"
+  )
+  
+  unpivot_data$`Q5. To what extent would you agree that you were treated fairly`<-  dplyr::recode(
+    unpivot_data$`Q5. To what extent would you agree that you were treated fairly`,
+    "1" = "very satisfied",
+    "2" ="satisfied",
+    "3" = "dissatisfied",
+    "4" = "very dissatisfied",
+    "5" = "NA"
+  )
+  
+  unpivot_data$`Q6. How satisfied were you, overall?`<-  dplyr::recode(
+    unpivot_data$`Q6. How satisfied were you, overall?`,
+    "1" = "very satisfied",
+    "2" ="satisfied",
+    "3" = "dissatisfied",
+    "4" = "very dissatisfied",
+    "5" = "NA"
+  )
+  
+  # Filter this data for selected council
+  unpivot_data <- unpivot_data %>% filter(`Local Authority Name` == council_fltr)
+  
+  unpivot_data
+  })
   
 ##Create outputs for KPO4 Summary Page===========================  
   
@@ -54,10 +226,9 @@ function(input, output, session) {
   ##calculate KPO4 for quarter for selected local authority    
   la_max_sum <- reactive({
     
-    ##filter KPO data by local authority name
-    LA_num <- match(input$LA_selection, LA_Names)
+    council_fltr <- local_authority()
     
-    la_max_sum <- scot_max %>% filter(LA == council_fltr) %>%          ##Filter using input for LA
+    la_max_sum <- scot_max %>% filter(`Local Authority Name` == council_fltr) %>%          
     group_by(`Tracking Link`) %>%
     summarise(across(c(maxAvailable,KPO4_weighted),sum, na.rm = T)) %>% 
     bind_rows(summarise(.,across(where(is.numeric), sum),
@@ -82,6 +253,7 @@ function(input, output, session) {
   })
 #Create responses valuebox
     output$respBox <- renderValueBox({
+      unpivot_data <- unpivot_data()
       valueBox(
         value = paste(nrow(filter(unpivot_data, `Tracking Link` == crnt_qtr)), "Responses"), paste(nrow(unpivot_data),"Year to Date"), icon = icon("user-friends"), color = "light-blue"
       )
@@ -131,6 +303,10 @@ function(input, output, session) {
     
     #Create data for response type
     report_type_data <- reactive({
+      
+      resp_dta <- resp_dta()
+      
+      
       pc_resp_data <- resp_dta %>% filter(., question_type == "Type" & value == 1)
       pc_resp_data$perc <- round(pc_resp_data$perc * 100, 1)
       pc_resp_data
@@ -164,6 +340,9 @@ function(input, output, session) {
     
 ## Create data for response reason
     report_reason_data <- reactive({
+      
+      resp_dta <- resp_dta()
+      
       pc_resp_data <- resp_dta %>% filter(., question_type == "Reason" & value == 1)
       pc_resp_data[pc_resp_data$Question == "During construction, including submission of a completion certificate", "Question"] <-"During construction" 
       pc_resp_data[pc_resp_data$Question == "To discuss your proposal before applying for a building warrant", "Question"] <-"Discuss proposal" 
@@ -202,9 +381,11 @@ function(input, output, session) {
   
     ##Create filtered dataset from checkboxes
     qstn_dataset_filtered <- reactive({
+      council_fltr <- local_authority()
+      
       names(dta) <- gsub("Q[1-9\\.]+\\s","",names(dta), perl = T)
       dta$`Tracking Link` <- as.factor(dta$`Tracking Link`)
-      dta <- dta %>% filter(LA == council_fltr)
+      dta <- dta %>% filter(`Local Authority Name` == council_fltr)
     ##select applicant type  
       slctn_respondent <- input$Qs_resp_input
     ##select applicant reason using partial match
@@ -359,8 +540,9 @@ function(input, output, session) {
    #create data for kpo in report page   
    report_kpo_data <- reactive({
      la_max_sum <- la_max_sum()
+     council_fltr <- local_authority()
      
-     la_max_sum$id <- "local authority"
+     la_max_sum$id <- council_fltr
      scot_max_sum$id <- "Scotland" 
      
      all_kpo_dta <- rbind(scot_max_sum, la_max_sum)
@@ -371,7 +553,15 @@ function(input, output, session) {
   #create plot for KPO in report page 
    output$reportKPO4Plot <- renderPlotly({
      all_kpo_data <- report_kpo_data()
+     council_fltr <- local_authority()
+     
      all_kpo_data <- all_kpo_data %>% filter(`Tracking Link` == "Total")
+     
+    # Set the council values as a factor so the data can be arranged to have the council first regardless of alphabetical order
+     all_kpo_data$id <- factor(all_kpo_data$id, levels = c(council_fltr, "Scotland"))
+     
+     # arrange the data and store order of colours
+     all_kpo_data <- arrange(all_kpo_data, id)
      
      p <- ggplot(data = all_kpo_data) +
        geom_bar(aes(
@@ -384,8 +574,7 @@ function(input, output, session) {
          width = 0.7, 
          colour = "black")+
        scale_y_continuous(limits = c(0,10), expand = c(0, 0))+
-       scale_fill_manual( 
-         values = c("local authority" = "cadetblue3", "Scotland" = "dimgrey"), name = "")+
+       scale_fill_manual(values = c("cadetblue3","dimgrey"), name = "")+ 
        ggtitle("KPO 4 score - Year to Date")+
        xlab("")+
        ylab("KPO 4 Score")+
@@ -401,11 +590,12 @@ function(input, output, session) {
    ##Render text for KPO4 Overall perf to year
    output$KPO4_text_report <- renderText({
   ##Only select the full year data - 
-    ##this will need to be updated when more than one yar is available   
+    ##this will need to be updated when more than one yar is available  
+     council_fltr <- local_authority()
      all_kpo_data <- report_kpo_data() %>% filter(`Tracking Link` == "Total")
-     local_auth <- "Aberdeen City" ##will need to select LA based on log in details
+     local_auth <- council_fltr
      curr_year <- fin_yr
-     KPO4_ytd <- all_kpo_data %>% filter(id == "local authority") %>% pull(KPO_score)
+     KPO4_ytd <- all_kpo_data %>% filter(id == council_fltr) %>% pull(KPO_score)
      hilow_kpo4 <- ifelse(KPO4_ytd > 7.5, "higher than", ifelse(KPO4_ytd < 7.5, "lower than", "equal to"))
      scotAv_kpo4 <- all_kpo_data %>% filter(id == "Scotland") %>% pull(KPO_score)
      abbel_kpo4 <- ifelse(KPO4_ytd > scotAv_kpo4, "higher than",ifelse(KPO4_ytd < scotAv_kpo4, "lower than", "equal to"))
@@ -417,10 +607,14 @@ function(input, output, session) {
                        of 7.5.")
      return(text_kpo)
    })
+   
   ##Text for respondent types 
    output$respondent_type_text_report <- renderText({
-     local_auth <- "Aberdeen City" ##will need to select LA based on log in details
-     resp_dta_filter <- resp_dta %>% filter(LA == 1 & question_type == "Type") ##filter by LA
+     resp_dta <- resp_dta()
+     council_fltr <- local_authority()
+     
+    # resp_dta_filter <- resp_dta %>% filter(`Local Authority Name` == council_fltr & question_type == "Type") 
+     resp_dta_filter <- resp_dta %>% filter(question_type == "Type")
      #get total responses for using as percentage denominator
      resp_number <- resp_dta_filter %>% ungroup() %>% filter(Question == "Agent/Designer") %>% summarise_at(vars(`n`), sum) %>%
        select(`n`)
@@ -436,7 +630,7 @@ function(input, output, session) {
      other_perc <- ifelse(isEmpty(other_perc), "No respondents", paste0(other_perc, "%"))
       #paste all text together
      txt_respondents <- paste0("Respondents were asked to provide details on the type of respondent they were, 
-     as well as their reason for contacting the Building Standards Service in ", local_auth,". ",
+     as well as their reason for contacting the Building Standards Service in ", council_fltr,". ",
      "Of the ", resp_number, " respondents ", agent_perc, " were agents or designers, ", appli_perc, "
      were applicants and ", contr_perc, " were contractors. ", other_perc, " said they were an other respondent type.")
      txt_respondents
@@ -444,8 +638,11 @@ function(input, output, session) {
    
    ##Text for respondent reason
    output$respondent_reason_text_report <- renderText({
-     local_auth <- "Aberdeen City" ##will need to select LA based on log in details
-     resp_dta_filter <- resp_dta %>% filter(LA == 1 & question_type == "Reason") ##filter by LA
+     resp_dta <- resp_dta()
+     council_fltr <- local_authority()
+    
+     #resp_dta_filter <- resp_dta %>% filter(`Local Authority Name` == council_fltr & question_type == "Reason") 
+     resp_dta_filter <- resp_dta %>% filter(question_type == "Reason") ##filter by LA
      ##Get a total no. of respondents for working out percentages
      resp_number <- resp_dta_filter %>% ungroup() %>% filter(Question == "To make an application for a building warrant") %>% summarise_at(vars(`n`), sum) %>%
        select(`n`)
@@ -463,7 +660,7 @@ function(input, output, session) {
      
      #paste all text together
      txt_respondents <- paste0("Respondents were asked to provide details on the type of respondent they were, 
-     as well as their reason for contacting the Building Standards Service in ", local_auth,". ",
+     as well as their reason for contacting the Building Standards Service in ", council_fltr,". ",
      "Of the ", resp_number, " respondents ", discuss_perc, " contacted the local authority to discuss their proposal before applying for a building warrant, ",
       appli_perc, " were making an application for a warrant and ", constr_perc, " contacted the service during construction. ",
      other_perc, " contacted the service for some other reason.")
@@ -558,13 +755,15 @@ function(input, output, session) {
 
    ##generate data to be used in graph and text
    question_time_data_report <- reactive({
+     council_fltr <- local_authority()
      ##filter dataset based on selected question   
      dta <- dta %>% filter(value != "-")
      dta$`value` <- as.factor(dta$`value`)
      #filter by local authority and question and count no. responses
      qstnDta_LA <- dta %>% filter(Indicator == "Thinking of your engagement, how satisfied were you with the time taken to complete the process?") %>%
-       filter(LA == "1") %>% count(value, .drop =F) %>%
-       mutate(Selection = "LA")
+       filter(`Local Authority Name` == council_fltr) %>% count(value, .drop =F) %>%
+       mutate(Selection = council_fltr)
+
      
      #get all data for this question and count no. responses, bind LA count
      qstnDta <- dta %>% filter(Indicator == "Thinking of your engagement, how satisfied were you with the time taken to complete the process?") %>%
@@ -578,15 +777,24 @@ function(input, output, session) {
                                    "2" ="satisfied",
                                    "3" = "dissatisfied",
                                    "4" = "very dissatisfied")
+     
+     # Set the council values as a factor so the data can be arranged to have the council first regardless of alphabetical order
+      qstnDta$Selection <- factor(qstnDta$Selection, levels = c(council_fltr, "Scotland"))
+
+    # arrange the data so the colours will be in order
+      qstnDta <- arrange(qstnDta, value, Selection) 
      qstnDta
+     
    })
    
    output$question_time_report <- renderPlotly({
      qstnDta <- question_time_data_report() 
+     
     #create a graph
      p <- ggplot(data = qstnDta ) +
        geom_bar(aes(
-         x = reorder(named_value, as.numeric(value)), 
+       #  x = reorder(named_value, as.numeric(value)), 
+         x = named_value,
          y = perc_resp,
          fill = Selection,
          text = paste(
@@ -600,8 +808,7 @@ function(input, output, session) {
        width = 0.7, 
        colour = "black")+
        scale_y_continuous(expand = c(0, 0))+
-       scale_fill_manual( 
-         values = c("LA" = "cadetblue3", "Scotland" = "dimgrey"), name = "")+
+       scale_fill_manual(values = c("cadetblue3", "dimgrey"), name = "")+
        ggtitle("Satisfaction with time taken - Year to Date")+
        xlab("Responses")+
        ylab("Percentage of Responses")+
@@ -610,14 +817,16 @@ function(input, output, session) {
      
    })
    
+  
    # satisfaction with time taken text
    output$question_time_report_text <- renderText({
      #load data and split into Scotland and LA datasets
+     council_fltr <- local_authority()
      qstnDta <- question_time_data_report() 
-     qstnDta_LA <- qstnDta %>% filter(Selection == "LA")
+     qstnDta_LA <- qstnDta %>% filter(Selection == council_fltr)
      qstnDta_scot<- qstnDta %>% filter(Selection == "Scotland")
      #get total percentage good or very good 
-     total_good <- filter(qstnDta_LA, value %in% c(1,2) & Selection == "LA") %>% pull(perc_resp) %>%
+     total_good <- filter(qstnDta_LA, value %in% c(1,2) & Selection == council_fltr) %>% pull(perc_resp) %>%
        sum()
      #if this is above 55% then overall is positive, otherwise negative/balances
      pos_or_neg <- ifelse(total_good > 55, "mainly positive,", ifelse(total_good < 45, "mainly negative,", "balanced,"))
@@ -684,14 +893,15 @@ function(input, output, session) {
   ##create graph and text for Question 2 on report page========
    ##generate data to be used in graph and text
    question_comms_data_report <- reactive({
+     council_fltr <- local_authority()
      ##filter dataset based on selected question   
      dta <- dta %>% filter(value != "-")
      ##filter dataset based on selected question   
      dta$`value` <- as.factor(dta$`value`)
      #filter by local authority and question and count no. responses
      qstnDta_LA <- dta %>% filter(Indicator == "How would you rate the standard of communication provided?") %>%
-       filter(LA == "1") %>% count(value, .drop =F) %>%
-       mutate(Selection = "LA")
+       filter(`Local Authority Name` == council_fltr) %>% count(value, .drop =F) %>%
+       mutate(Selection = council_fltr)
      
      #get all data for this question and count no. responses, bind LA count
      qstnDta <- dta %>% filter(Indicator == "How would you rate the standard of communication provided?") %>%
@@ -705,7 +915,13 @@ function(input, output, session) {
                                    "2" ="good",
                                    "3" = "poor",
                                    "4" = "very poor"))
+     # Set the council values as a factor so the data can be arranged to have the council first regardless of alphabetical order
+     qstnDta$Selection <- factor(qstnDta$Selection, levels = c(council_fltr, "Scotland"))
+     
+     # arrange the data so the colours will be in order
+     qstnDta <- arrange(qstnDta, value, Selection) 
      qstnDta
+
    })
    
      #create a graph
@@ -727,7 +943,7 @@ function(input, output, session) {
          width = 0.7, 
          colour = "black") +
        scale_fill_manual( 
-         values = c("LA" = "cadetblue3", "Scotland" = "dimgrey"), name = "")+
+         values = c("cadetblue3", "dimgrey"), name = "")+
        ggtitle("Standard of communication - Year to Date")+
        xlab("Responses")+
        ylab("Percentage of Responses")+
@@ -738,12 +954,13 @@ function(input, output, session) {
      
      # satisfaction with comms taken text
      output$question_comms_report_text <- renderText({
+       council_fltr <- local_authority()
        #load data and split into Scotland and LA datasets
        qstnDta <- question_comms_data_report() 
-       qstnDta_LA <- qstnDta %>% filter(Selection == "LA")
+       qstnDta_LA <- qstnDta %>% filter(Selection == council_fltr)
        qstnDta_scot<- qstnDta %>% filter(Selection == "Scotland")
        #get total percentage good or very good 
-       total_good <- filter(qstnDta_LA, value %in% c(1,2) & Selection == "LA") %>% pull(perc_resp) %>%
+       total_good <- filter(qstnDta_LA, value %in% c(1,2) & Selection == council_fltr) %>% pull(perc_resp) %>%
          sum()
        #if this is above 55% then overall is positive, otherwise negative/balances
        pos_or_neg <- ifelse(total_good > 55, "mainly positive,", ifelse(total_good < 45, "mainly negative,", "balanced,"))
@@ -810,13 +1027,14 @@ function(input, output, session) {
    ##create graph and text for Question 3 on report page==========
      ##generate data to be used in graph and text
      question_info_data_report <- reactive({
+       council_fltr <- local_authority()
        dta <- dta %>% filter(value != "-")
      ##filter dataset based on selected question   
      dta$`value` <- as.factor(dta$`value`)
      #filter by local authority and question and count no. responses
      qstnDta_LA <- dta %>% filter(Indicator == "Quality of the information provided") %>%
-       filter(LA == "1") %>% count(value, .drop =F) %>%
-       mutate(Selection = "LA")
+       filter(`Local Authority Name` == council_fltr) %>% count(value, .drop =F) %>%
+       mutate(Selection = council_fltr)
      
      #get all data for this question and count no. responses, bind LA count
      qstnDta <- dta %>% filter(Indicator == "Quality of the information provided") %>%
@@ -830,6 +1048,12 @@ function(input, output, session) {
                                    "2" ="good",
                                    "3" = "poor",
                                    "4" = "very poor")
+     
+     # Set the council values as a factor so the data can be arranged to have the council first regardless of alphabetical order
+     qstnDta$Selection <- factor(qstnDta$Selection, levels = c(council_fltr, "Scotland"))
+     
+     # arrange the data so the colours will be in order
+     qstnDta <- arrange(qstnDta, value, Selection) 
      qstnDta
     })
      output$question_info_report <- renderPlotly({
@@ -853,7 +1077,7 @@ function(input, output, session) {
          ) +
        scale_y_continuous(expand = c(0, 0))+
        scale_fill_manual( 
-         values = c("LA" = "cadetblue3", "Scotland" = "dimgrey"), name = "")+
+         values = c("cadetblue3","dimgrey"), name = "")+
        ggtitle("Quality of information - Year to Date")+
        xlab("Responses")+
        ylab("Percentage of Responses")+
@@ -864,12 +1088,13 @@ function(input, output, session) {
      
      # satisfaction with info text
      output$question_info_report_text <- renderText({
+       council_fltr <- local_authority()
        #load data and split into Scotland and LA datasets
        qstnDta <- question_info_data_report() 
-       qstnDta_LA <- qstnDta %>% filter(Selection == "LA")
+       qstnDta_LA <- qstnDta %>% filter(Selection == council_fltr)
        qstnDta_scot<- qstnDta %>% filter(Selection == "Scotland")
        #get total percentage good or very good 
-       total_good <- filter(qstnDta_LA, value %in% c(1,2) & Selection == "LA") %>% pull(perc_resp) %>%
+       total_good <- filter(qstnDta_LA, value %in% c(1,2) & Selection == council_fltr) %>% pull(perc_resp) %>%
          sum()
        #if this is above 55% then overall is positive, otherwise negative/balances
        pos_or_neg <- ifelse(total_good > 55, "mainly positive,", ifelse(total_good < 45, "mainly negative,", "balanced,"))
@@ -935,13 +1160,14 @@ function(input, output, session) {
      
    ##create graph and text for Question 4 on report page=============
      question_staff_data_report <- reactive({
+       council_fltr <- local_authority()
        dta <- dta %>% filter(value != "-")
      ##filter dataset based on selected question   
      dta$`value` <- as.factor(dta$`value`)
      #filter by local authority and question and count no. responses
      qstnDta_LA <- dta %>% filter(Indicator == "Service offered by staff") %>%
-       filter(LA == "1") %>% count(value, .drop =F) %>%
-       mutate(Selection = "LA")
+       filter(`Local Authority Name` == council_fltr) %>% count(value, .drop =F) %>%
+       mutate(Selection = council_fltr)
      
      #get all data for this question and count no. responses, bind LA count
      qstnDta <- dta %>% filter(Indicator == "Service offered by staff") %>%
@@ -955,8 +1181,15 @@ function(input, output, session) {
                                    "2" ="good",
                                    "3" = "poor",
                                    "4" = "very poor")
+     
+     # Set the council values as a factor so the data can be arranged to have the council first regardless of alphabetical order
+     qstnDta$Selection <- factor(qstnDta$Selection, levels = c(council_fltr, "Scotland"))
+     
+     # arrange the data so the colours will be in order
+     qstnDta <- arrange(qstnDta, value, Selection) 
      qstnDta
       })
+     
      #create a graph
      output$question_staff_report <- renderPlotly({
        qstnDta <- question_staff_data_report() 
@@ -978,7 +1211,7 @@ function(input, output, session) {
          ) +
        scale_y_continuous(expand = c(0, 0))+
        scale_fill_manual( 
-         values = c("LA" = "cadetblue3", "Scotland" = "dimgrey"), name = "")+
+         values = c("cadetblue3", "dimgrey"), name = "")+
        ggtitle("Service offered by staff - Year to Date")+
        xlab("Responses")+
        ylab("Percentage of Responses")+
@@ -989,12 +1222,13 @@ function(input, output, session) {
      
      # satisfaction with staff text
      output$question_staff_report_text <- renderText({
+       council_fltr <- local_authority()
        #load data and split into Scotland and LA datasets
        qstnDta <- question_staff_data_report() 
-       qstnDta_LA <- qstnDta %>% filter(Selection == "LA")
+       qstnDta_LA <- qstnDta %>% filter(Selection == council_fltr)
        qstnDta_scot<- qstnDta %>% filter(Selection == "Scotland")
        #get total percentage good or very good 
-       total_good <- filter(qstnDta_LA, value %in% c(1,2) & Selection == "LA") %>% pull(perc_resp) %>%
+       total_good <- filter(qstnDta_LA, value %in% c(1,2) & Selection == council_fltr) %>% pull(perc_resp) %>%
          sum()
        #if this is above 55% then overall is positive, otherwise negative/balances
        pos_or_neg <- ifelse(total_good > 55, "mainly positive,", ifelse(total_good < 45, "mainly negative,", "balanced,"))
@@ -1061,13 +1295,14 @@ function(input, output, session) {
   ##create graph and text for Question 5 on report page-------------------
    
      question_responsiveness_data_report <- reactive({
+       council_fltr <- local_authority()
        dta <- dta %>% filter(value != "-")
       ##filter dataset based on selected question   
      dta$`value` <- as.factor(dta$`value`)
      #filter by local authority and question and count no. responses
      qstnDta_LA <- dta %>% filter(Indicator == "Responsiveness to any queries or issues raised") %>%
-       filter(LA == "1") %>% count(value, .drop =F) %>%
-       mutate(Selection = "LA")
+       filter(`Local Authority Name` == council_fltr) %>% count(value, .drop =F) %>%
+       mutate(Selection = council_fltr)
      
      #get all data for this question and count no. responses, bind LA count
      qstnDta <- dta %>% filter(Indicator == "Responsiveness to any queries or issues raised") %>%
@@ -1081,8 +1316,15 @@ function(input, output, session) {
                                    "2" ="good",
                                    "3" = "poor",
                                    "4" = "very poor")
+     
+     # Set the council values as a factor so the data can be arranged to have the council first regardless of alphabetical order
+     qstnDta$Selection <- factor(qstnDta$Selection, levels = c(council_fltr, "Scotland"))
+     
+     # arrange the data so the colours will be in order
+     qstnDta <- arrange(qstnDta, value, Selection) 
      qstnDta
       })
+     
      #create a graph
      output$question_responsiveness_report <- renderPlotly({
        qstnDta <-  question_responsiveness_data_report() 
@@ -1104,22 +1346,24 @@ function(input, output, session) {
          ) +
        scale_y_continuous(expand = c(0, 0))+
        scale_fill_manual( 
-         values = c("LA" = "cadetblue3", "Scotland" = "dimgrey"), name = "")+
+         values = c("cadetblue3", "dimgrey"), name = "")+
        ggtitle("Responsiveness to queries or issues - Year to Date")+
        xlab("Responses")+
        ylab("Percentage of Responses")+
        theme_classic()
      ggplotly(p, tooltip = "text")
-     
+
       })
+     
      # satisfaction with responsiveness text
      output$question_responsiveness_report_text <- renderText({
+       council_fltr <- local_authority()
        #load data and split into Scotland and LA datasets
        qstnDta <-  question_responsiveness_data_report() 
-       qstnDta_LA <- qstnDta %>% filter(Selection == "LA")
+       qstnDta_LA <- qstnDta %>% filter(Selection == council_fltr)
        qstnDta_scot<- qstnDta %>% filter(Selection == "Scotland")
        #get total percentage good or very good 
-       total_good <- filter(qstnDta_LA, value %in% c(1,2) & Selection == "LA") %>% pull(perc_resp) %>%
+       total_good <- filter(qstnDta_LA, value %in% c(1,2) & Selection == council_fltr) %>% pull(perc_resp) %>%
          sum()
        #if this is above 55% then overall is positive, otherwise negative/balances
        pos_or_neg <- ifelse(total_good > 55, "mainly positive,", ifelse(total_good < 45, "mainly negative,", "balanced,"))
@@ -1185,13 +1429,14 @@ function(input, output, session) {
      
    ##create graph and text for Question 6 on report page---------
      question_fairly_data_report <- reactive({
+       council_fltr <- local_authority()
        dta <- dta %>% filter(value != "-")
      ##filter dataset based on selected question   
      dta$`value` <- as.factor(dta$`value`)
      #filter by local authority and question and count no. responses
      qstnDta_LA <- dta %>% filter(Indicator == "To what extent would you agree that you were treated fairly?"   ) %>%
-       filter(LA == "1") %>% count(value, .drop =F) %>%
-       mutate(Selection = "LA")
+       filter(`Local Authority Name` == council_fltr) %>% count(value, .drop =F) %>%
+       mutate(Selection = council_fltr)
      
      #get all data for this question and count no. responses, bind LA count
      qstnDta <- dta %>% filter(Indicator == "To what extent would you agree that you were treated fairly?"   ) %>%
@@ -1205,7 +1450,14 @@ function(input, output, session) {
                                    "2" ="agree",
                                    "3" = "disagree",
                                    "4" = "strongly disagree")
+    
+     # Set the council values as a factor so the data can be arranged to have the council first regardless of alphabetical order
+     qstnDta$Selection <- factor(qstnDta$Selection, levels = c(council_fltr, "Scotland"))
+     
+     # arrange the data so the colours will be in order
+     qstnDta <- arrange(qstnDta, value, Selection) 
      qstnDta
+     
      })
      #create a graph
      output$question_fair_report <- renderPlotly({
@@ -1227,7 +1479,7 @@ function(input, output, session) {
          colour = "black"
          )+
        scale_fill_manual( 
-         values = c("LA" = "cadetblue3", "Scotland" = "dimgrey"), name = "")+
+         values = c("cadetblue3", "dimgrey"), name = "")+
        scale_y_continuous(expand = c(0, 0))+
         ggtitle("Would you agree you were treated fairly - Year to Date")+
        xlab("Responses")+
@@ -1235,14 +1487,16 @@ function(input, output, session) {
        theme_classic()
      ggplotly(p, tooltip = "text")
         })
+     
      # satisfaction with responsiveness text
      output$question_fair_report_text <- renderText({
+       council_fltr <- local_authority()
        #load data and split into Scotland and LA datasets
        qstnDta <-  question_fairly_data_report() 
-       qstnDta_LA <- qstnDta %>% filter(Selection == "LA")
+       qstnDta_LA <- qstnDta %>% filter(Selection == council_fltr)
        qstnDta_scot<- qstnDta %>% filter(Selection == "Scotland")
        #get total percentage good or very good 
-       total_good <- filter(qstnDta_LA, value %in% c(1,2) & Selection == "LA") %>% pull(perc_resp) %>%
+       total_good <- filter(qstnDta_LA, value %in% c(1,2) & Selection == council_fltr) %>% pull(perc_resp) %>%
          sum()
        #if this is above 55% then overall is positive, otherwise negative/balances
        pos_or_neg <- ifelse(total_good > 55, "mainly positive,", ifelse(total_good < 45, "mainly negative,", "balanced,"))
@@ -1308,13 +1562,14 @@ function(input, output, session) {
      
    ##create graph for Question 7 on report page===========
      question_overall_data_report <- reactive({
+       council_fltr <- local_authority()
      ##filter dataset based on selected question   
      dta <- dta %>% filter(value != "-")
      dta$`value` <- factor(dta$`value`, levels = c(1,2,3,4))
      #filter by local authority and question and count no. responses
      qstnDta_LA <- dta %>% filter(Indicator == "Overall, how satisfied were you with the service provided?") %>%
-       filter(LA == "1") %>% count(value, .drop =F) %>%
-       mutate(Selection = "LA")
+       filter(`Local Authority Name` == council_fltr) %>% count(value, .drop =F) %>%
+       mutate(Selection = council_fltr)
      
      #get all data for this question and count no. responses, bind LA count
      qstnDta <- dta %>% filter(Indicator == "Overall, how satisfied were you with the service provided?") %>%
@@ -1328,8 +1583,16 @@ function(input, output, session) {
                                    "2" ="satisfied",
                                    "3" = "dissatisfied",
                                    "4" = "very dissatisfied")
-     qstnDta 
+     
+     # Set the council values as a factor so the data can be arranged to have the council first regardless of alphabetical order
+     qstnDta$Selection <- factor(qstnDta$Selection, levels = c(council_fltr, "Scotland"))
+     
+     # arrange the data so the colours will be in order
+     qstnDta <- arrange(qstnDta, value, Selection) 
+     qstnDta
+     
      })
+     
      #create a graph
      output$question_overall_report <- renderPlotly({
        qstnDta <- question_overall_data_report() 
@@ -1351,7 +1614,7 @@ function(input, output, session) {
          ) +
        scale_y_continuous(expand = c(0, 0))+
        scale_fill_manual( 
-         values = c("LA" = "cadetblue3", "Scotland" = "dimgrey"), name = "")+
+         values = c("cadetblue3", "dimgrey"), name = "")+
        ggtitle("Overall satisfaction - Year to Date")+
        xlab("Responses")+
        ylab("Percentage of Responses")+
@@ -1361,12 +1624,13 @@ function(input, output, session) {
      
      # satisfaction with responsiveness text
      output$question_overall_report_text <- renderText({
+       council_fltr <- local_authority()
        #load data and split into Scotland and LA datasets
        qstnDta <-  question_overall_data_report() 
-       qstnDta_LA <- qstnDta %>% filter(Selection == "LA")
+       qstnDta_LA <- qstnDta %>% filter(Selection == council_fltr)
        qstnDta_scot<- qstnDta %>% filter(Selection == "Scotland")
        #get total percentage good or very good 
-       total_good <- filter(qstnDta_LA, value %in% c(1,2) & Selection == "LA") %>% pull(perc_resp) %>%
+       total_good <- filter(qstnDta_LA, value %in% c(1,2) & Selection == council_fltr) %>% pull(perc_resp) %>%
          sum()
        #if this is above 55% then overall is positive, otherwise negative/balances
        pos_or_neg <- ifelse(total_good > 55, "mainly positive,", ifelse(total_good < 45, "mainly negative,", "balanced,"))
@@ -1441,16 +1705,17 @@ function(input, output, session) {
          file.copy("report.Rmd", tempReport, overwrite = TRUE)
          
          # Set up parameters to pass to Rmd document
-         params <- list(la = "Aberdeen City",
+         params <- list(la = local_authority(),
           kpo_data = report_kpo_data(),
           type_data = report_type_data(),
           reason_data = report_reason_data(),
+          respondent_data = resp_dta(),
           line_data = report_line_data(),
           time_data = question_time_data_report(),
           comms_data = question_comms_data_report(),
           info_data = question_info_data_report(),
           staff_data = question_staff_data_report(),
-          resp_data = question_responsiveness_data_report(),
+          responsive_data = question_responsiveness_data_report(),
           fair_data = question_fairly_data_report(),
           overall_data = question_overall_data_report()
           )
@@ -1470,14 +1735,19 @@ function(input, output, session) {
      output$all_data_dl <- downloadHandler(
        filename = paste("All_Data", ".csv", sep = ""),
        content = function(file) {
+         dl_all_data <- dl_all_data()
+         council_fltr <- local_authority()
+         dl_all_data <- dl_all_data %>% filter(`Local Authority Name` == council_fltr)
          write.csv(dl_all_data, file)
        }
      )
 ##create table with all data to explore     
      output$tableDisp <- DT::renderDataTable({
+       unpivot_data <- unpivot_data()
        tbl <- datatable(unpivot_data, rownames = FALSE, class = "row-border",escape = F,extensions = c("Scroller", "FixedColumns"), 
-                        options = list(pageLength = 32, scrollY = 720, dom = "t", 
-                                       scrollX = TRUE, fixedColumns = list(leftColumns = 1),
+                        options = list(pageLength = 32, scrollY = 250, dom = "t", 
+                                       scrollX = TRUE, 
+                                       #fixedColumns = list(leftColumns = 1),
                                        fnDrawCallback  = htmlwidgets::JS(
                                          "function(){
                                          HTMLWidgets.staticRender();
@@ -1487,6 +1757,7 @@ function(input, output, session) {
 
 ##create table to show comments for selected question 
      output$cmnt_table <- DT::renderDataTable({
+       unpivot_data <- unpivot_data()
        ##need to filter the data based on selections and recode answers
        names(unpivot_data)[3:ncol(unpivot_data)] <- gsub("Q[1-9\\.]+\\s","",names(unpivot_data)[3:ncol(unpivot_data)], perl = T)
        unpivot_data$`Tracking Link` <- as.factor(unpivot_data$`Tracking Link`)

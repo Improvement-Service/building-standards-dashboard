@@ -6,12 +6,13 @@ params:
   la: NA
   type_data: NA
   reason_data: NA
+  respondent_data: NA
   kpo_data: NA
   line_data: NA
   comms_data: NA
   info_data: NA
   staff_data: NA
-  resp_data: NA
+  responsive_data: NA
   fair_data: NA
   overall_data: NA
 ---
@@ -26,12 +27,13 @@ opts_chunk$set(tidy.opts=list(width.cutoff=60),tidy=TRUE)
 kpo_data <- params$kpo_data
 type_data <- params$type_data
 reason_data <- params$reason_data
+respondent_data <- params$respondent_data
 line_data <- params$line_data
 time_data <- params$time_data
 comms_data <- params$comms_data
 info_data <- params$info_data
 staff_data <- params$staff_data
-resp_data <- params$resp_data
+responsive_data <- params$responsive_data
 fair_data <- params$fair_data
 overall_data <- params$overall_data
 la <- params$la
@@ -41,9 +43,9 @@ la <- params$la
 ```{r echo=FALSE, comment= ""}
 ## Set up text for KPO4 
 kpo_data1 <- kpo_data %>% filter(`Tracking Link` == "Total")
-local_auth <- "Aberdeen City" ##will need to select LA based on log in details
+local_auth <- la
      curr_year <- fin_yr
-     KPO4_ytd <- kpo_data1 %>% filter(id == "local authority") %>% pull(KPO_score)
+     KPO4_ytd <- kpo_data1 %>% filter(id == la) %>% pull(KPO_score)
      hilow_kpo4 <- ifelse(KPO4_ytd > 7.5, "higher than", ifelse(KPO4_ytd < 7.5, "lower than", "equal to"))
      scotAv_kpo4 <- kpo_data1 %>% filter(id == "Scotland") %>% pull(KPO_score)
      abbel_kpo4 <- ifelse(KPO4_ytd > scotAv_kpo4, "higher than", ifelse(KPO4_ytd < scotAv_kpo4, "lower than", "equal to"))
@@ -55,6 +57,13 @@ This indicator summarises performance across all questions, with differential we
 ```{r echo = F}
      
 kpo_data1 <- kpo_data %>% filter(`Tracking Link` == "Total")
+
+# Set the council values as a factor so the data can be arranged to have the council first regardless of alphabetical order
+     kpo_data1$id <- factor(kpo_data1$id, levels = c(la, "Scotland"))
+     
+     # arrange the data and store order of colours
+     kpo_data1 <- arrange(kpo_data1, id)
+
 ggplot(data = kpo_data1,
             aes(
          x = `Tracking Link`, 
@@ -72,7 +81,7 @@ ggplot(data = kpo_data1,
                  )+
   scale_y_continuous(limits = c(0,11), expand = c(0, 0))+
   scale_fill_manual(
-    values = c("local authority" = "cadetblue3", "Scotland" = "dimgrey"),
+    values = c("cadetblue3", "dimgrey"),
     name = ""
     )+
   ggtitle("KPO 4 score - Year to Date")+
@@ -84,7 +93,7 @@ ggplot(data = kpo_data1,
 # Respondent Type
 ```{r echo=FALSE, comment= ""}
 # Set up text for respondent type
-type_dta_filter <- resp_dta %>% filter(LA == 1 & question_type == "Type") ##filter by LA
+type_dta_filter <- respondent_data %>% filter(question_type == "Type") 
      #get total responses for using as percentage denominator
      type_number <- type_dta_filter %>% 
        ungroup() %>% 
@@ -126,7 +135,7 @@ ggplot(data = type_data,
 # Response Reason
 ```{r echo=FALSE, comment= ""}
 # Set up text for response reason
-     resp_dta_filter <- resp_dta %>% filter(LA == 1 & question_type == "Reason") ##filter by LA
+     resp_dta_filter <- respondent_data %>% filter(question_type == "Reason") 
      ##Get a total no. of respondents for working out percentages
      resp_number <- resp_dta_filter %>% 
        ungroup() %>% 
@@ -173,13 +182,13 @@ ggplot(data = reason_data,
      no_quarts <- length(unique(dta$`Tracking Link`))
     
     #filter to get KPO for quarter 1
-    Q1_kpo <- kpo_data %>% filter(`Tracking Link` == "Quarter 1", id == "local authority") %>%
+    Q1_kpo <- kpo_data %>% filter(`Tracking Link` == "Quarter 1", id == la) %>%
       pull(KPO_score)
     #render text for quarter 1
     Q1_text<- paste0("In Quarter 1 performance for KPO 4 calculated across all responses for all questions was ",
                       Q1_kpo,". ")
     #filter to get KPO for quarter 2
-    Q2_kpo <- kpo_data %>% filter(`Tracking Link` == "Quarter 2", id == "local authority") %>%
+    Q2_kpo <- kpo_data %>% filter(`Tracking Link` == "Quarter 2", id == la) %>%
       pull(KPO_score)
     #compare quarter 2 and quarter 1
     comp_Q12 <- ifelse(Q2_kpo > Q1_kpo+0.2, "rose", ifelse(Q2_kpo < Q1_kpo-0.2, "fell", "stayed the same "))
@@ -188,7 +197,7 @@ ggplot(data = reason_data,
             "in Quarter 2 to stand at ", Q2_kpo)
     
     #filter to get KPO for quarter 3
-    Q3_kpo <- kpo_data %>% filter(`Tracking Link` == "Quarter 3", id == "local authority") %>%
+    Q3_kpo <- kpo_data %>% filter(`Tracking Link` == "Quarter 3", id == la) %>%
       pull(KPO_score)
     #compare quarter 3 and quarter 2 - ignore if error occurs
     comp_Q23 <- tryCatch({ifelse(Q3_kpo > Q3_kpo+0.2, "higher than", ifelse(Q3_kpo < Q3_kpo-0.2, "lower than", "the same as"))},error =function(error_message){""})
@@ -197,7 +206,7 @@ ggplot(data = reason_data,
                      " Quarter 2 at", Q3_kpo)
     
     #filter to get KPO for quarter 4
-    Q4_kpo <- kpo_data %>% filter(`Tracking Link` == "Quarter 4", id == "local authority") %>%
+    Q4_kpo <- kpo_data %>% filter(`Tracking Link` == "Quarter 4", id == la) %>%
       pull(KPO_score)
     #compare quarter 4 and quarter 3 - ignore if error occurs
     comp_Q34 <- tryCatch({ifelse(Q4_kpo > Q4_kpo+0.2, "higher than", ifelse(Q4_kpo < Q4_kpo-0.2, "lower than", "the same as"))},error =function(error_message){""})
@@ -225,7 +234,7 @@ ggplot(data = line_data,
             show.legend = FALSE
                  )+
        scale_color_manual( 
-            values = c("Aberdeen City" = "cadetblue3", "Scotland" = "dimgrey"), name = "")+
+            values = c("cadetblue3", "dimgrey"), name = "")+
        ggtitle("KPO 4 score - over time")+
        ylim(0,10)+
        xlab("")+
@@ -241,10 +250,10 @@ ggplot(data = line_data,
 #load data and split into Scotland and LA datasets
      text_prep <- function(dataset){
      qstnDta <- dataset
-     qstnDta_LA <- qstnDta %>% filter(Selection == "LA")
+     qstnDta_LA <- qstnDta %>% filter(Selection == la)
      qstnDta_scot<- qstnDta %>% filter(Selection == "Scotland")
      #get total percentage good or very good 
-     total_good <- filter(qstnDta_LA, value %in% c(1,2) & Selection == "LA") %>% pull(perc_resp) %>%
+     total_good <- filter(qstnDta_LA, value %in% c(1,2) & Selection == la) %>% pull(perc_resp) %>%
        sum()
      #if this is above 55% then overall is positive, otherwise negative/balances
      pos_or_neg <- ifelse(total_good > 55, "mainly positive", ifelse(total_good < 45, "mainly negative", "balanced"))
@@ -324,7 +333,7 @@ In this year for `r la` to date for the question "Thinking of your engagement, h
 ```{r echo = F}
      ggplot(data = time_data,
             aes(
-         x = reorder(named_value, as.numeric(value)), 
+         x = named_value, 
          y = perc_resp, 
          fill = Selection)
          ) +
@@ -338,7 +347,7 @@ In this year for `r la` to date for the question "Thinking of your engagement, h
                  position = position_dodge(width = 0.9) 
                  )+
   scale_fill_manual(
-    values = c("LA" = "cadetblue3", "Scotland" = "dimgrey"),
+    values = c("cadetblue3", "dimgrey"),
     name = ""
     )+
   ggtitle("Satisfaction with time taken - Year to Date")+
@@ -356,7 +365,7 @@ In this year for `r la` to date for the question "How would you rate the standar
 ```{r echo = F}
      ggplot(data = comms_data,
             aes(
-         x = reorder(named_value, as.numeric(value)), 
+         x = named_value, 
          y = perc_resp, 
          fill = Selection
          )) +
@@ -371,7 +380,7 @@ In this year for `r la` to date for the question "How would you rate the standar
                  position = position_dodge(width = 0.9) 
                  )+
   scale_fill_manual(
-    values = c("LA" = "cadetblue3", "Scotland" = "dimgrey"), name = ""
+    values = c("cadetblue3", "dimgrey"), name = ""
   )+
   ggtitle("Standard of Communication - Year to Date")+
   xlab("Responses")+
@@ -388,7 +397,7 @@ In this year for `r la` to date for the question "How would you rate the quality
 ```{r echo = F}
      ggplot(
        data = info_data,
-       aes(x = reorder(named_value, as.numeric(value)), y = perc_resp, fill = Selection)
+       aes(x = named_value, y = perc_resp, fill = Selection)
        )+
        geom_bar(
          stat= "identity", 
@@ -400,7 +409,7 @@ In this year for `r la` to date for the question "How would you rate the quality
                  position = position_dodge(width = 0.9) 
                  )+
   scale_fill_manual(
-    values = c("LA" = "cadetblue3", "Scotland" = "dimgrey"),
+    values = c("cadetblue3","dimgrey"),
     name = ""
     )+
   ggtitle("Quality of information - Year to Date")+
@@ -418,7 +427,7 @@ In this year for `r la` to date for the question "How would you rate the service
 ```{r echo = F}
      ggplot(
        data = staff_data,
-       aes(x = reorder(named_value, as.numeric(value)), y = perc_resp, fill = Selection)
+       aes(x = named_value, y = perc_resp, fill = Selection)
        ) +
        geom_bar(
          stat= "identity", 
@@ -430,7 +439,7 @@ In this year for `r la` to date for the question "How would you rate the service
                  position = position_dodge(width = 0.9) 
                  )+
   scale_fill_manual(
-    values = c("LA" = "cadetblue3", "Scotland" = "dimgrey"),
+    values = c("cadetblue3", "dimgrey"),
     name = ""
     )+
   ggtitle("Service offered by staff - Year to Date")+
@@ -442,14 +451,14 @@ In this year for `r la` to date for the question "How would you rate the service
 
 ## Responsiveness
 ```{r echo=FALSE, comment= ""}
-resp_txt <- text_prep(resp_data)
+resp_txt <- text_prep(responsive_data)
 ```
-In this year for `r la` to date for the question "How would you rate responsiveness to any queries or issues raised?" responses have been `r resp_txt$pos_or_neg` with `r resp_txt$total_good` percent saying that it was good or very good. The greatest proportion of respondents said they were `r resp_txt$max_name` at `r resp_txt$max_perc` This was followed by `r resp_txt$sec_name` at `r resp_txt$sec_perc` For Scotland overall, most respondents said that responsiveness was `r resp_txt$scot_max_name` at `r resp_txt$scot_max_perc`
+In this year for `r la` to date for the question "How would you rate the time taken to respond to any queries or issues raised?" responses have been `r resp_txt$pos_or_neg` with `r resp_txt$total_good` percent saying that it was good or very good. The greatest proportion of respondents said they were `r resp_txt$max_name` at `r resp_txt$max_perc` This was followed by `r resp_txt$sec_name` at `r resp_txt$sec_perc` For Scotland overall, most respondents said that responsiveness was `r resp_txt$scot_max_name` at `r resp_txt$scot_max_perc`
 
 ```{r echo = F}
      ggplot(
-       data = resp_data,
-       aes(x = reorder(named_value, as.numeric(value)), y = perc_resp, fill = Selection)
+       data = responsive_data,
+       aes(x = named_value, y = perc_resp, fill = Selection)
        ) +
        geom_bar(
          stat= "identity", 
@@ -460,7 +469,7 @@ In this year for `r la` to date for the question "How would you rate responsiven
                  position = position_dodge(width = 0.9) 
                  )+
   scale_fill_manual(
-    values = c("LA" = "cadetblue3", "Scotland" = "dimgrey"),
+    values = c("cadetblue3", "dimgrey"),
     name = ""
     )+
   ggtitle("Responsiveness to queries or issues - Year to Date")+
@@ -478,7 +487,7 @@ In this year for `r la` to date for the question "To what extent would you agree
 ```{r echo = F}
      ggplot(
        data = fair_data,
-       aes(x = reorder(named_value, as.numeric(value)), y = perc_resp, fill =Selection)
+       aes(x = named_value, y = perc_resp, fill =Selection)
        ) +
        geom_bar(
          stat= "identity", 
@@ -490,7 +499,7 @@ In this year for `r la` to date for the question "To what extent would you agree
                  position = position_dodge(width = 0.9) 
                  )+
   scale_fill_manual(
-    values = c("LA" = "cadetblue3", "Scotland" = "dimgrey"),
+    values = c("cadetblue3", "dimgrey"),
     name = ""
     )+
   ggtitle("Would you agree you were treated fairly - Year to Date")+
@@ -508,7 +517,7 @@ In this year for `r la` to date for the question "Overall, how satisfied were yo
 ```{r echo = F}
      ggplot(
        data = overall_data,
-       aes(x = reorder(named_value, as.numeric(value)), y = perc_resp, fill = Selection)
+       aes(x = named_value, y = perc_resp, fill = Selection)
        ) +
        geom_bar(
          stat= "identity", 
@@ -520,7 +529,7 @@ In this year for `r la` to date for the question "Overall, how satisfied were yo
                  position = position_dodge(width = 0.9) 
                  )+
   scale_fill_manual(
-    values = c("LA" = "cadetblue3", "Scotland" = "dimgrey"),
+    values = c("cadetblue3", "dimgrey"),
     name = ""
     )+
   ggtitle("Overall satisfaction - Year to Date")+

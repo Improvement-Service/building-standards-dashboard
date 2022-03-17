@@ -126,7 +126,7 @@ ui <- dashboardPage(skin = "blue",
               ),
       tabItem(tabName = "DtDl",
               downloadBttn("all_data_dl", label = "Download all data", style = "jelly"),
-              box(div(DT::dataTableOutput("tableDisp"),style = "font-size:80%; line-height:75%; width:160%; padding-left:0px"),width = 12)
+              box(div(DT::dataTableOutput("tableDisp"),style = "font-size:80%; line-height:75%; width:100%; padding-left:0px"),width = 12)
               
               ),
       tabItem(tabName = "OpTxt",
