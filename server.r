@@ -39,15 +39,17 @@ function(input, output, session) {
   
   council_fltr = local_authority()
     
-  dl_all_data <- if(council_fltr == "City of Edinburgh")
-  {fresh_dta[,c(7:21,79:91)]} else
-    if(council_fltr == "North Lanarkshire")
-    {fresh_dta[,c(7:34,51:55)]}else
-      if(council_fltr == "Orkney Islands")
-      {fresh_dta[,c(7:21,56:78)]}else
-        if(council_fltr == "West Lothian")
-        {fresh_dta[,c(7:21,35:50)]}else
-        {fresh_dta[,c(7:34)]}
+  dl_all_data <- if(council_fltr == "Angus")
+  {fresh_dta[,c(7:34,92)]} else
+    if(council_fltr == "City of Edinburgh")
+      {fresh_dta[,c(7:21,79:91)]} else
+        if(council_fltr == "North Lanarkshire")
+          {fresh_dta[,c(7:34,51:55)]}else
+            if(council_fltr == "Orkney Islands")
+              {fresh_dta[,c(7:21,56:78)]}else
+                if(council_fltr == "West Lothian")
+                {fresh_dta[,c(7:21,35:50)]}else
+                    {fresh_dta[,c(7:34)]}
   
   # Add in columns with Quarter Info and Financial Year info
   dl_all_data$`Tracking Link` <- as.yearqtr(dl_all_data$`Ended date`, format = "%Y-%m-%d") 
