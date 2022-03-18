@@ -230,7 +230,7 @@ function(input, output, session) {
     
     council_fltr <- local_authority()
     
-    la_max_sum <- scot_max %>% filter(`Local Authority Name` == council_fltr) %>%          
+    la_max_sum <- scot_max %>% filter(`Local Authority Name` == council_fltr) %>%     
     group_by(`Tracking Link`) %>%
     summarise(across(c(maxAvailable,KPO4_weighted),sum, na.rm = T)) %>% 
     bind_rows(summarise(.,across(where(is.numeric), sum),
@@ -673,8 +673,10 @@ function(input, output, session) {
 #Create data for performance over time graph
    report_line_data <- reactive({
      la_max_sum <- la_max_sum()
+     council_fltr <- local_authority()
+     
      scot_max_sum$LA <- "Scotland"
-     la_max_sum$LA <- "Aberdeen City"
+     la_max_sum$LA <- council_fltr
      
      quarts_dta <- rbind(scot_max_sum,la_max_sum) %>% filter(`Tracking Link` != "Total")
      quarts_dta$KPO_score <- round(quarts_dta$KPO_score,1)
@@ -684,7 +686,17 @@ function(input, output, session) {
    
    #Graph output for performance over time 
    output$ovrPerfLine <- renderPlotly({
+     
      report_line_data <- report_line_data()
+     council_fltr <- local_authority()
+     
+     if(length(report_line_data$`Tracking Link`[report_line_data$LA == council_fltr]) > 1){
+       
+    # Set the council values as a factor so the data can be arranged to have the council first regardless of alphabetical order
+      report_line_data$LA <- factor(report_line_data$LA, levels = c(council_fltr, "Scotland"))
+       
+       # arrange the data and store order of colours
+       report_line_data <- arrange(report_line_data,LA)
 
      plt <- ggplot(data = report_line_data) +
        geom_line(aes(
@@ -701,29 +713,72 @@ function(input, output, session) {
          ),
                 lwd = 1)+
        scale_color_manual( 
-            values = c("Aberdeen City" = "cadetblue3", "Scotland" = "dimgrey"), name = "")+
+            values = c("cadetblue3", "dimgrey"), name = "")+
        ggtitle("KPO 4 score - over time")+
        ylim(0,10)+
        xlab("")+
        ylab("KPO 4 Score")+
        theme_classic()
      ggplotly(plt, tooltip = "text")
+     
+     } 
+     else
+    {
+       # Set the council values as a factor so the data can be arranged to have the council first regardless of alphabetical order
+       report_line_data$LA <- factor(report_line_data$LA, levels = c(council_fltr, "Scotland"))
+       
+       # arrange the data and store order of colours
+       report_line_data <- arrange(report_line_data,LA)
+       
+       plt <- ggplot(data = report_line_data) +
+         geom_bar(aes(
+           x = `Tracking Link`, 
+           y = KPO_score, 
+           fill = LA,
+           text = paste(
+             LA,
+             paste("Quarter:", `Tracking Link`),
+             paste("KPO 4 Score:", KPO_score),
+             sep = "\n"
+           )
+           ), 
+           stat = "identity",
+           position = "dodge",
+           width = 0.7, 
+           colour = "black")+
+         scale_y_continuous(limits = c(0,10), expand = c(0, 0))+
+         scale_fill_manual(values = c("cadetblue3","dimgrey"), name = "")+ 
+         ggtitle("KPO 4 score - over time")+
+         xlab("")+
+         ylab("KPO 4 Score")+
+         theme_classic()+
+         theme(axis.text.x=element_blank(),
+               axis.ticks.x=element_blank())
+       
+       ggplotly(plt, tooltip = "text")
+       
+     }
+
    })
    
 ##render text for quarter by quarter performance   
    output$quarter_text <- renderText({
+     
+     council_fltr <- local_authority()
+     #kpo data
+     all_kpo_data <- report_kpo_data()
     #get the number of quarters for rendering the text
      no_quarts <- length(unique(dta$`Tracking Link`))
-    #kpo data
-     all_kpo_data <- report_kpo_data()
+    
+
     #filter to get KPO for quarter 1
-    Q1_kpo <- all_kpo_data %>% filter(`Tracking Link` == "Quarter 1", id == "local authority") %>%
+    Q1_kpo <- all_kpo_data %>% filter(`Tracking Link` == "Quarter 1", id == council_fltr) %>%
       select(KPO_score)
     #render text for quarter 1
     Q1_text<- paste0("In Quarter 1 performance for KPO 4 calculated across all responses for all questions was ",
                       Q1_kpo,". ")
     #filter to get KPO for quarter 2
-    Q2_kpo <- all_kpo_data %>% filter(`Tracking Link` == "Quarter 2", id == "local authority") %>%
+    Q2_kpo <- all_kpo_data %>% filter(`Tracking Link` == "Quarter 2", id == council_fltr) %>%
       select(KPO_score)
     #compare quarter 2 and quarter 1
     comp_Q12 <- ifelse(Q2_kpo > Q1_kpo+0.2, "rose", ifelse(Q2_kpo < Q1_kpo-0.2, "fell", "stayed the same "))
@@ -732,7 +787,7 @@ function(input, output, session) {
             "in Quarter 2 to stand at ", Q2_kpo)
     
     #filter to get KPO for quarter 3
-    Q3_kpo <- all_kpo_data %>% filter(`Tracking Link` == "Quarter 3", id == "local authority") %>%
+    Q3_kpo <- all_kpo_data %>% filter(`Tracking Link` == "Quarter 3", id == council_fltr) %>%
       select(KPO_score)
     #compare quarter 3 and quarter 2 - ignore if error occurs
     comp_Q23 <- tryCatch({ifelse(Q3_kpo > Q3_kpo+0.2, "higher than", ifelse(Q3_kpo < Q3_kpo-0.2, "lower than", "the same as"))},error =function(error_message){""})
@@ -741,7 +796,7 @@ function(input, output, session) {
                      " Quarter 2 at", Q3_kpo)
     
     #filter to get KPO for quarter 4
-    Q4_kpo <- all_kpo_data %>% filter(`Tracking Link` == "Quarter 4", id == "local authority") %>%
+    Q4_kpo <- all_kpo_data %>% filter(`Tracking Link` == "Quarter 4", id == council_fltr) %>%
       select(KPO_score)
     #compare quarter 4 and quarter 3 - ignore if error occurs
     comp_Q34 <- tryCatch({ifelse(Q4_kpo > Q4_kpo+0.2, "higher than", ifelse(Q4_kpo < Q4_kpo-0.2, "lower than", "the same as"))},error =function(error_message){""})
