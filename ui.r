@@ -2,10 +2,10 @@ ui <- dashboardPage(skin = "blue",
   dashboardHeader(title = "National Customer Survey Dashboard"),
  
    dashboardSidebar(
-#    selectizeInput("LA_selection", "",
-#                   choices =LA_Names, options = list(placeholder = "Select Your Local Authority",
-#                                             onInitialize = I('function() { this.setValue(""); }'))),
-#    
+    selectizeInput("LA_selection", "",
+                   choices =LA_Names, options = list(placeholder = "Select Your Local Authority",
+                                             onInitialize = I('function() { this.setValue(""); }'))),
+    
     sidebarMenu(
       menuItem("Performance Overview", tabName="PrfOvr", icon = icon("dashboard")),
       menuItem("Question Results", tabName = "Qstns", icon = icon("question-circle")),
@@ -126,7 +126,7 @@ ui <- dashboardPage(skin = "blue",
               ),
       tabItem(tabName = "DtDl",
               downloadBttn("all_data_dl", label = "Download all data", style = "jelly"),
-              box(div(DT::dataTableOutput("tableDisp"),style = "font-size:80%; line-height:75%; width:160%; padding-left:0px"),width = 12)
+              box(div(DT::dataTableOutput("tableDisp"),style = "font-size:80%; line-height:75%; width:100%; padding-left:0px"),width = 12)
               
               ),
       tabItem(tabName = "OpTxt",
