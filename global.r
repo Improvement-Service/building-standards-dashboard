@@ -15,7 +15,7 @@ library(fy)
 LA_Names <- c("Aberdeen City", "Aberdeenshire","Angus", "Argyll and Bute" ,     
               "Clackmannanshire","Dumfries and Galloway", "Dundee City",  "East Ayrshire",      
               "East Dunbartonshire", "East Lothian", "East Renfrewshire","City of Edinburgh",     
-              "Na h-Eileanan an Iar", "Falkirk" , "Fife", "Glasgow City",       
+              "Eilean Siar", "Falkirk" , "Fife", "Glasgow",       
               "Highland", "Inverclyde","Midlothian","Moray",             
               "North Ayrshire" ,"North Lanarkshire" ,"Orkney Islands","Perth and Kinross" ,   
               "Renfrewshire", "Scottish Borders" ,"Shetland Islands" ,"South Ayrshire" ,    
@@ -68,11 +68,11 @@ dta <- dta %>% filter(value != "-")
 
 # Add in columns with Quarter Info and Financial Year info
 dta$`Tracking Link` <- as.yearqtr(dta$`Ended date`, format = "%Y-%m-%d") 
-dta$`Financial Year` <- dta$`Tracking Link`
+dta$`Financial Year` <- dta$`Tracking Link`- 1/4
 dta$`Financial Year` <- gsub("\\ ", "-", dta$`Financial Year`, perl=T)
 dta$`Financial Year` <- qtr2fy(dta$`Financial Year`)
 
-dta$`Tracking Link` <- dta$`Tracking Link`+ 3/4
+dta$`Tracking Link` <- dta$`Tracking Link`- 1/4
 dta$`Tracking Link` <- gsub("[0-9]*\\ Q", "Quarter ", dta$`Tracking Link`, perl = T)
 
 # Remove redundant columns and reorder
@@ -115,7 +115,7 @@ unpivot_data_global <- read_excel("BSD Dummy Data - with add Q.xlsx", col_types 
 unpivot_data_global$`Tracking Link` <- as.yearqtr(unpivot_data_global$`Ended date`, format = "%Y-%m-%d") 
 unpivot_data_global$`Financial Year` <- unpivot_data_global$`Tracking Link`
 unpivot_data_global$`Financial Year` <- gsub("\\ ", "-", unpivot_data_global$`Financial Year`, perl=T)
-unpivot_data_global$`Financial Year` <- qtr2fy(unpivot_data_global$`Financial Year`)
+unpivot_data_global$`Financial Year` <- qtr2fy(unpivot_data_global$`Financial Year`) +1
 
 unpivot_data_global$`Tracking Link` <- unpivot_data_global$`Tracking Link`+ 3/4
 unpivot_data_global$`Tracking Link` <- gsub("[0-9]*\\ Q", "Quarter ", unpivot_data_global$`Tracking Link`, perl = T)
@@ -185,7 +185,7 @@ isEmpty <- function(x) {
   return(length(x)==0)
 }
 
-##create popover text
+##create popover text=======
 KPO_popover_text<-paste("KPO4 is calculated by applying the following weightings:",
                         "Overall satisfaction - 50%",
                         "Communications and time taken - 12.5% each",
