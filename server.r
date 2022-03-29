@@ -746,8 +746,8 @@ function(input, output, session) {
      #kpo data
      all_kpo_data <- report_kpo_data()
     #get the number of quarters for rendering the text
-     no_quarts <- length(unique(dta$`Tracking Link`))
-    
+     no_quarts <- length(unique(dta$`Tracking Link`[dta$`Local Authority Name` == council_fltr]))
+     
 
     #filter to get KPO for quarter 1
     Q1_kpo <- all_kpo_data %>% filter(`Tracking Link` == "Quarter 1", id == council_fltr) %>%
@@ -759,28 +759,27 @@ function(input, output, session) {
     Q2_kpo <- all_kpo_data %>% filter(`Tracking Link` == "Quarter 2", id == council_fltr) %>%
       select(KPO_score)
     #compare quarter 2 and quarter 1
-    comp_Q12 <- ifelse(Q2_kpo > Q1_kpo+0.2, "rose", ifelse(Q2_kpo < Q1_kpo-0.2, "fell", "stayed the same "))
+    comp_Q12 <- tryCatch({ifelse(Q2_kpo > Q1_kpo+0.2, "rose", ifelse(Q2_kpo < Q1_kpo-0.2, "fell", "stayed the same"))},error =function(error_message){""})
     #render text for quarter 2                   
-    Q2_text<- paste0(Q1_text,"Performance then ", comp_Q12,
-            "in Quarter 2 to stand at ", Q2_kpo)
+    Q2_text<- paste0(Q1_text,"Performance then ", comp_Q12," in Quarter 2 to stand at ", Q2_kpo)
     
     #filter to get KPO for quarter 3
     Q3_kpo <- all_kpo_data %>% filter(`Tracking Link` == "Quarter 3", id == council_fltr) %>%
       select(KPO_score)
     #compare quarter 3 and quarter 2 - ignore if error occurs
-    comp_Q23 <- tryCatch({ifelse(Q3_kpo > Q3_kpo+0.2, "higher than", ifelse(Q3_kpo < Q3_kpo-0.2, "lower than", "the same as"))},error =function(error_message){""})
+    comp_Q23 <- tryCatch({ifelse(Q3_kpo > Q2_kpo+0.2, "higher than", ifelse(Q3_kpo < Q2_kpo-0.2, "lower than", "the same as"))},error =function(error_message){""})
     #render text for quarter 3                   
-    Q3_text<- paste0(Q1_text, Q2_text,"In Quarter 3 performance was ", comp_Q23,
-                     " Quarter 2 at", Q3_kpo)
+    Q3_text<- paste0(Q2_text,". In Quarter 3 performance was ", comp_Q23," Quarter 2 at ", Q3_kpo)
     
     #filter to get KPO for quarter 4
     Q4_kpo <- all_kpo_data %>% filter(`Tracking Link` == "Quarter 4", id == council_fltr) %>%
       select(KPO_score)
     #compare quarter 4 and quarter 3 - ignore if error occurs
-    comp_Q34 <- tryCatch({ifelse(Q4_kpo > Q4_kpo+0.2, "higher than", ifelse(Q4_kpo < Q4_kpo-0.2, "lower than", "the same as"))},error =function(error_message){""})
+    comp_Q34 <- tryCatch({ifelse(Q4_kpo > Q3_kpo+0.2, "higher than", ifelse(Q4_kpo < Q3_kpo-0.2, "lower than", "the same as"))},error =function(error_message){""})
     #render text for quarter 4                   
-    Q3_text<- paste0(Q1_text, Q2_text, Q3_text, "In Quarter 4 performance is ", comp_Q34,
-                     " Quarter 3, and stands at", Q4_kpo)
+    Q4_text<- paste0(
+      Q3_text, ". In Quarter 4 performance was ", comp_Q34," Quarter 3, and stands at ", Q4_kpo)
+    
     
     final_text <- ifelse(no_quarts == 1, Q1_text, ifelse(no_quarts == 2, Q2_text, ifelse(no_quarts == 3, Q3_text, Q4_text)))
     final_text
