@@ -9,7 +9,6 @@ library(DT)
 library(shinymanager)
 library(openxlsx)
 library(zoo)
-library(fy)
 
 #create a list of local authorty names for use in the UI
 LA_Names <- c("Aberdeen City", "Aberdeenshire","Angus", "Argyll and Bute" ,     
@@ -27,7 +26,11 @@ LA_names_dta <- data.frame(LA_Names, LA)
 # Create a variable for storing the current quarter
 crnt_date <- as.yearqtr(Sys.Date(), format = "%Y-%m-%d")
 fin_yr <- gsub("\\ ", "-", crnt_date, perl=T)
-fin_yr <- qtr2fy(fin_yr)
+fin_yr <- gsub("-Q[0-9]","", fin_yr)%>% as.numeric(.) 
+fin_yr2 <-  fin_yr + 1
+fin_yr2 <- substr(fin_yr2,3,4) 
+fin_yr <- paste(fin_yr, fin_yr2, sep = "-")
+rm(fin_yr2)
 crnt_qtr <- crnt_date - 1/4
 crnt_qtr <- gsub("[0-9]*\\ Q", "Quarter ", crnt_qtr, perl = T)
 

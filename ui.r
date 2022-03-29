@@ -1,5 +1,5 @@
 ui <- dashboardPage(skin = "blue",
-  dashboardHeader(title = "National Customer Survey Dashboard"),
+  dashboardHeader(title = "NCS Dashboard"),
  
    dashboardSidebar(
     selectizeInput("LA_selection", "",
