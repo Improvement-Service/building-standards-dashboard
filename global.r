@@ -3,14 +3,13 @@ library(shiny)
 library(shinydashboard)
 library(shinyWidgets)
 library(plotly)
-library(fy)
 library(readxl)
 library(shinyBS)
 library(DT)
 library(shinymanager)
 library(openxlsx)
 library(zoo)
-library(keyring)
+library(fy)
 
 #create a list of local authorty names for use in the UI
 LA_Names <- c("Aberdeen City", "Aberdeenshire","Angus", "Argyll and Bute" ,     
@@ -29,7 +28,7 @@ LA_names_dta <- data.frame(LA_Names, LA)
 crnt_date <- as.yearqtr(Sys.Date(), format = "%Y-%m-%d")
 fin_yr <- gsub("\\ ", "-", crnt_date, perl=T)
 fin_yr <- qtr2fy(fin_yr)
-crnt_qtr <- crnt_date + 3/4
+crnt_qtr <- crnt_date - 1/4
 crnt_qtr <- gsub("[0-9]*\\ Q", "Quarter ", crnt_qtr, perl = T)
 
 ####### Unchanged data #######
@@ -69,11 +68,13 @@ dta <- dta %>% filter(value != "-")
 
 # Add in columns with Quarter Info and Financial Year info
 dta$`Tracking Link` <- as.yearqtr(dta$`Ended date`, format = "%Y-%m-%d") 
-dta$`Financial Year` <- dta$`Tracking Link`
+dta$`Financial Year` <- dta$`Tracking Link` -1/4
 dta$`Financial Year` <- gsub("\\ ", "-", dta$`Financial Year`, perl=T)
-dta$`Financial Year` <- qtr2fy(dta$`Financial Year`)
+dta$`Financial Year` <- dta %>% select(contains("Financial Year")) %>% apply(2, function(x) gsub("-Q[0-9]","",x))%>% as.numeric(.) %>%
+  data.frame() %>% mutate(nxt = .+1) %>% mutate(nxt = substr(nxt,3,4)) %>% mutate(fy = paste(.,nxt, sep = "/")) %>%
+  select(fy)
 
-dta$`Tracking Link` <- dta$`Tracking Link`+ 3/4
+dta$`Tracking Link` <- dta$`Tracking Link`- 1/4
 dta$`Tracking Link` <- gsub("[0-9]*\\ Q", "Quarter ", dta$`Tracking Link`, perl = T)
 
 # Remove redundant columns and reorder
@@ -116,9 +117,11 @@ unpivot_data_global <- read_excel("DummyData_3.xlsx", col_types = "text")
 unpivot_data_global$`Tracking Link` <- as.yearqtr(unpivot_data_global$`Ended date`, format = "%Y-%m-%d") 
 unpivot_data_global$`Financial Year` <- unpivot_data_global$`Tracking Link`
 unpivot_data_global$`Financial Year` <- gsub("\\ ", "-", unpivot_data_global$`Financial Year`, perl=T)
-unpivot_data_global$`Financial Year` <- qtr2fy(unpivot_data_global$`Financial Year`)
+unpivot_data_global$`Financial Year` <- unpivot_data_global %>% select(contains("Financial Year")) %>% apply(2, function(x) gsub("-Q[0-9]","",x))%>% as.numeric(.) %>%
+  data.frame() %>% mutate(nxt = .+1) %>% mutate(nxt = substr(nxt,3,4)) %>% mutate(fy = paste(.,nxt, sep = "/")) %>%
+  select(fy)
 
-unpivot_data_global$`Tracking Link` <- unpivot_data_global$`Tracking Link`+ 3/4
+unpivot_data_global$`Tracking Link` <- unpivot_data_global$`Tracking Link`- 1/4
 unpivot_data_global$`Tracking Link` <- gsub("[0-9]*\\ Q", "Quarter ", unpivot_data_global$`Tracking Link`, perl = T)
 
 # Remove redundant columns and reorder
@@ -186,7 +189,7 @@ isEmpty <- function(x) {
   return(length(x)==0)
 }
 
-##create popover text
+##create popover text=======
 KPO_popover_text<-paste("KPO4 is calculated by applying the following weightings:",
                         "Overall satisfaction - 50%",
                         "Communications and time taken - 12.5% each",

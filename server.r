@@ -1,31 +1,6 @@
 function(input, output, session) {
 
 
-  
-  # Shinymanager Auth
-  
-#  res_auth <- secure_server(
-#    check_credentials = check_credentials(
-#      "admin/logins.sqlite",
-#      passphrase = key_get("BSD_dashboard_key", "Kaiser-Myer-Olkin")
-#    )
-#  )
-#  
-#  output$user1 <- renderText({
-#    reactiveValuesToList(res_auth)$user
-#  })
-#  
-#  output$user2 <- reactive({
-#    if(reactiveValuesToList(res_auth)$user == "username"){
-#      selectedLA <- "Aberdeen City"
-#    }else if(reactiveValuesToList(res_auth)$user == "nick") {
-#      selectedLA <- "Aberdeenshire"
-#    }else{
-#      selectedLA <- "Angus"
-#    }
-#    return(selectedLA)
-#  })
-
 ###### Reactive global data #######  
     
   local_authority <- reactive({
@@ -53,11 +28,14 @@ function(input, output, session) {
   
   # Add in columns with Quarter Info and Financial Year info
   dl_all_data$`Tracking Link` <- as.yearqtr(dl_all_data$`Ended date`, format = "%Y-%m-%d") 
-  dl_all_data$`Financial Year` <- dl_all_data$`Tracking Link`
+  dl_all_data$`Financial Year` <- dl_all_data$`Tracking Link`- 1/4
   dl_all_data$`Financial Year` <- gsub("\\ ", "-", dl_all_data$`Financial Year`, perl=T)
-  dl_all_data$`Financial Year` <- qtr2fy(dl_all_data$`Financial Year`)
+  dl_all_data$`Financial Year` <- dl_all_data %>% select(contains("Financial Year")) %>% apply(2, function(x) gsub("-Q[0-9]","",x))%>% as.numeric(.) %>%
+    data.frame() %>% mutate(nxt = .+1) %>% mutate(nxt = substr(nxt,3,4)) %>% mutate(fy = paste(.,nxt, sep = "/")) %>%
+    select(fy)
   
-  dl_all_data$`Tracking Link` <- dl_all_data$`Tracking Link`+ 3/4
+  
+  dl_all_data$`Tracking Link` <- dl_all_data$`Tracking Link`- 1/4
   dl_all_data$`Tracking Link` <- gsub("[0-9]*\\ Q", "Quarter ", dl_all_data$`Tracking Link`, perl = T)
   
   # Remove redundant columns and reorder
@@ -115,7 +93,7 @@ function(input, output, session) {
   # Select columns based on council (ensures duplicate columns and additional questions are filtered out)
   unpivot_data <- if(council_fltr == "City of Edinburgh")
   {unpivot_data_global[,c(1:12,70:82)]} else
-    if(council_fltr == "orkney Islands")
+    if(council_fltr == "Orkney Islands")
     {unpivot_data_global[,c(1:12,47:50,56:58,63,65:69)]}else
       if(council_fltr == "West Lothian")
       {unpivot_data_global[,c(1:12,26:30,34:41)]}else
@@ -289,7 +267,7 @@ function(input, output, session) {
            colour = "black"
            ) +
          theme_classic() +
-         scale_y_continuous(limits = c(0,10), expand = c(0, 0))+
+         scale_y_continuous(limits = c(0,10), expand = expansion(mult = c(0, 0.1)))+
          ggtitle("KPO4 performance by quarter and YTD")+
          ylab("KPO 4 Score") +
          xlab("Response period") +
@@ -331,7 +309,7 @@ function(input, output, session) {
                  )+
         coord_flip() +
         theme_classic()+
-        scale_y_continuous( expand = c(0, 0))+
+        scale_y_continuous( expand = expansion(mult = c(0, 0.1)))+
         ggtitle("Respondent Type: YTD")+
         xlab("Respondent Type")+
         ylab("Percentage of Responses")
@@ -372,7 +350,7 @@ function(input, output, session) {
           ),fill = "cadetblue3", colour = "black")+
         coord_flip() +
         theme_classic()+
-        scale_y_continuous( expand = c(0, 0))+
+        scale_y_continuous( expand = expansion(mult = c(0, 0.1)))+
          ggtitle("Response Reason:YTD")+
          xlab("Reason")+
          ylab("Percentage of Responses")
@@ -449,7 +427,7 @@ function(input, output, session) {
        ggtitle(input$Qstn_tab2)+
        xlab("Response")+
        ylab("Number of responses")+
-       scale_y_continuous(expand = c(0, 0))+
+       scale_y_continuous(expand = expansion(mult = c(0, 0.1)))+
        theme_classic()
     ggplotly(p, tooltip = "text")
    })
@@ -524,7 +502,7 @@ function(input, output, session) {
                   width = 0.7, 
                   colour = "black"
                   ) +
-       scale_y_continuous(expand = c(0, 0))+
+       scale_y_continuous(expand = expansion(mult = c(0, 0.1)))+
        ggtitle(input$Qstn_tab2)+
        xlab("")+
      #  ylab("Percentage of responses")+
@@ -575,7 +553,7 @@ function(input, output, session) {
          position = "dodge",
          width = 0.7, 
          colour = "black")+
-       scale_y_continuous(limits = c(0,10), expand = c(0, 0))+
+       scale_y_continuous(limits = c(0,10), expand = expansion(mult = c(0, 0.1)))+
        scale_fill_manual(values = c("cadetblue3","dimgrey"), name = "")+ 
        ggtitle("KPO 4 score - Year to Date")+
        xlab("")+
@@ -592,7 +570,7 @@ function(input, output, session) {
    ##Render text for KPO4 Overall perf to year
    output$KPO4_text_report <- renderText({
   ##Only select the full year data - 
-    ##this will need to be updated when more than one yar is available  
+    ##this will need to be updated when more than one year is available  
      council_fltr <- local_authority()
      all_kpo_data <- report_kpo_data() %>% filter(`Tracking Link` == "Total")
      local_auth <- council_fltr
@@ -864,7 +842,7 @@ function(input, output, session) {
        position = "dodge",
        width = 0.7, 
        colour = "black")+
-       scale_y_continuous(expand = c(0, 0))+
+       scale_y_continuous(expand = expansion(mult = c(0, 0.1)))+
        scale_fill_manual(values = c("cadetblue3", "dimgrey"), name = "")+
        ggtitle("Satisfaction with time taken - Year to Date")+
        xlab("Responses")+
@@ -1004,7 +982,7 @@ function(input, output, session) {
        ggtitle("Standard of communication - Year to Date")+
        xlab("Responses")+
        ylab("Percentage of Responses")+
-       scale_y_continuous(expand = c(0, 0))+
+       scale_y_continuous(expand = expansion(mult = c(0, 0.1)))+
        theme_classic()
      ggplotly(p, tooltip = "text")
    })
@@ -1132,7 +1110,7 @@ function(input, output, session) {
          width = 0.7, 
          colour = "black"
          ) +
-       scale_y_continuous(expand = c(0, 0))+
+       scale_y_continuous(expand = expansion(mult = c(0, 0.1)))+
        scale_fill_manual( 
          values = c("cadetblue3","dimgrey"), name = "")+
        ggtitle("Quality of information - Year to Date")+
@@ -1266,7 +1244,7 @@ function(input, output, session) {
          width = 0.7, 
          colour = "black"
          ) +
-       scale_y_continuous(expand = c(0, 0))+
+       scale_y_continuous(expand = expansion(mult = c(0, 0.1)))+
        scale_fill_manual( 
          values = c("cadetblue3", "dimgrey"), name = "")+
        ggtitle("Service offered by staff - Year to Date")+
@@ -1401,7 +1379,7 @@ function(input, output, session) {
          width = 0.7, 
          colour = "black"
          ) +
-       scale_y_continuous(expand = c(0, 0))+
+       scale_y_continuous(expand = expansion(mult = c(0, 0.1)))+
        scale_fill_manual( 
          values = c("cadetblue3", "dimgrey"), name = "")+
        ggtitle("Responsiveness to queries or issues - Year to Date")+
@@ -1537,7 +1515,7 @@ function(input, output, session) {
          )+
        scale_fill_manual( 
          values = c("cadetblue3", "dimgrey"), name = "")+
-       scale_y_continuous(expand = c(0, 0))+
+       scale_y_continuous(expand = expansion(mult = c(0, 0.1)))+
         ggtitle("Would you agree you were treated fairly - Year to Date")+
        xlab("Responses")+
        ylab("Percentage of Responses")+
@@ -1669,7 +1647,7 @@ function(input, output, session) {
          width = 0.7, 
          colour = "black"
          ) +
-       scale_y_continuous(expand = c(0, 0))+
+       scale_y_continuous(expand = expansion(mult = c(0, 0.1)))+
        scale_fill_manual( 
          values = c("cadetblue3", "dimgrey"), name = "")+
        ggtitle("Overall satisfaction - Year to Date")+
@@ -1794,7 +1772,43 @@ function(input, output, session) {
        content = function(file) {
          dl_all_data <- dl_all_data()
          council_fltr <- local_authority()
-         dl_all_data <- dl_all_data %>% filter(`Local Authority Name` == council_fltr)
+         
+         ##recode all responses for the download from a number to text, remove LA column
+         dl_all_data <- dl_all_data %>% filter(`Local Authority Name` == council_fltr) %>%
+           mutate(across(contains("how satisfied"), 
+                         ~recode(.,"1" = "Very satisfied", "2"="Satisfied", "3" = "Dissatisfied",
+                                 "4" = "Very dissatisfied",  "5" = "NA"))) %>%
+           mutate(across(contains("would you rate"),
+                         ~recode(.,"1" = "Very good", "2"="Good", "3" = "Poor",
+                                 "4" = "Very poor",  "5" = "NA"))) %>%
+           mutate(across(contains(c("quality of the information","accuracy of the information", "respond to", "by staff", "our staff")),
+                         ~recode(.,"1" = "Very good", "2"="Good", "3" = "Poor",
+                                 "4" = "Very poor",  "5" = "NA"))) %>%
+           mutate(across(contains(c("Staff were","Easy to find", "Understandable")),
+                         ~recode(.,"1" = "Strongly agree", "2"="Agree", "3" = "Neither agree nor disagree",
+                                 "4" = "Disagree",  "5" = "Strongly disagree", "6" = "NA"))) %>%
+           mutate(across(contains("would you agree"),
+                         ~recode(.,"1" = "Strongly agree", "2"="Agree",
+                                 "3" = "Disagree",  "4" = "Strongly disagree", "5"="NA"))) %>%
+           mutate(across(contains("Did you find it easy to contact"),
+                         ~recode(., "1" = "Yes, contact made straight away", 
+                                 "2" = "Yes, but took slightly longer than expected",
+                                 "3" = "No it wasn’t easy, but managed to contact the officer/inspector/administrator eventually"))) %>%
+           mutate(across(contains("Finally"),
+                         ~recode(., "1" = "Yes", 
+                                 "2" = "No",
+                                 "3" = "NA"))) %>%
+           dplyr::rename("Quarter" = "Tracking Link") %>%
+           mutate(across(contains(c("Q1.1. Agent/Designer", "Q1.2. Applicant", "Q1.3. Contractor", 
+                                   "Q2.1. To discuss your proposal",
+                                    "Q2.2. To make an application", "Q2.3. During construction")),
+                         ~recode(., "1" = "Yes", 
+                                 "0" = "No"))) %>%
+           select(-LA)
+         
+         #final tidy up of column names by removing SmartSurvey variable
+         colnames(dl_all_data) <- gsub(" \\[question\\(16082428\\)\\]\\[variable\\(la\\)\\]", "", colnames(dl_all_data))
+
          write.csv(dl_all_data, file)
        }
      )
