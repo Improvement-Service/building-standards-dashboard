@@ -33,7 +33,7 @@ function(input, output, session) {
   dl_all_data$`Financial Year` <- dl_all_data %>% select(contains("Financial Year")) %>% apply(2, function(x) gsub("-Q[0-9]","",x))%>% as.numeric(.) %>%
     data.frame() %>% mutate(nxt = .+1) %>% mutate(nxt = substr(nxt,3,4)) %>% mutate(fy = paste(.,nxt, sep = "/")) %>%
     select(fy)
-  
+
   
   dl_all_data$`Tracking Link` <- dl_all_data$`Tracking Link`- 1/4
   dl_all_data$`Tracking Link` <- gsub("[0-9]*\\ Q", "Quarter ", dl_all_data$`Tracking Link`, perl = T)
