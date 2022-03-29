@@ -100,13 +100,21 @@ function(input, output, session) {
       {unpivot_data_global[,c(1:25)]}
   
   #tidy up question names
-  unpivot_data <- unpivot_data %>% rename("Q3. How satisfied were you with the time taken?" = "Q3. Thinking of your engagement with [question(16082428)][variable(la)] Building Standards from beginning to end, how satisfied were you that the time taken to deal with your application or enquiry met the timescales that you were promised?") %>%
+  unpivot_data <- unpivot_data %>% 
+    rename("Quarter" = "Tracking Link") %>%
+    rename("Q3. How satisfied were you with the time taken?" = "Q3. Thinking of your engagement with [question(16082428)][variable(la)] Building Standards from beginning to end, how satisfied were you that the time taken to deal with your application or enquiry met the timescales that you were promised?") %>%
     rename("Q4. How would you rate the standard of communication?" = "Q4. How would you rate the standard of communication provided by [question(16082428)][variable(la)] Building Standards service following your initial contact or once your application had been submitted?") %>%
     rename("Q.3. Responsiveness to any queries or issues raised" = "Q.3. Time taken to respond to any queries or issues raised") %>%
     rename("Q5. To what extent would you agree that you were treated fairly" = "Q5. To what extent would you agree that you were treated fairly by [question(16082428)][variable(la)] Building Standards?") %>%
     rename("Q6. How satisfied were you, overall?" = "Q6. Overall, how satisfied were you with the service provided by [question(16082428)][variable(la)] Building Standards?")%>%
     rename("Q1.4. Other respondent" = "Q1.4. Other (please specify):") %>%
-    rename("Q2.4. Other reason" = "Q2.4. Other (please specify):") 
+    rename("Q2.4. Other reason" = "Q2.4. Other (please specify):") %>%
+    mutate(across(contains(c("Q1.1. Agent/Designer", "Q1.2. Applicant", "Q1.3. Contractor", 
+                             "Q2.1. To discuss your proposal",
+                             "Q2.2. To make an application", "Q2.3. During construction")),
+                  ~recode(., "1" = "Yes", 
+                          "0" = "No"))) %>%
+    select(-LA)
   
   #recode responses for download and to show in table
   unpivot_data$`Q3. How satisfied were you with the time taken?` <-  dplyr::recode(
