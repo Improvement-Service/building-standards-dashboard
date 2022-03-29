@@ -221,6 +221,17 @@ ggplot(data = reason_data,
 `r ifelse(no_quarts == 1, Q1_text, ifelse(no_quarts == 2, Q2_text, ifelse(no_quarts == 3, Q3_text, Q4_text)))`
     
 ```{r echo = F}
+
+# Set the council values as a factor so the data can be arranged to have the council first regardless of alphabetical order
+line_data$LA <- factor(line_data$LA, levels = c(la, "Scotland"))
+
+# arrange the data and store order of colours
+line_data <- arrange(line_data,LA)
+
+```
+
+```{r, eval = length(line_data$`Tracking Link`[line_data$LA == la]) > 1, echo = F}
+
 ggplot(data = line_data,
        aes(x = `Tracking Link`, 
          y = KPO_score, 
@@ -240,6 +251,32 @@ ggplot(data = line_data,
        xlab("")+
        ylab("KPO 4 Score")+
        theme_classic()
+  
+```
+
+```{r, eval = length(line_data$`Tracking Link`[line_data$LA == la]) < 2, echo = F}
+
+ggplot(data = line_data,
+       aes(x = `Tracking Link`, 
+         y = KPO_score, 
+         fill = LA)
+       ) +
+       geom_bar(stat = "identity",
+           position = "dodge",
+           width = 0.7, 
+           colour = "black")+
+  geom_text(aes(label = KPO_score, y = KPO_score + 0.8), 
+                 vjust = 0,
+                 position = position_dodge(width = 0.9)
+                 )+
+  scale_y_continuous(limits = c(0,10), expand = c(0, 0))+
+       scale_color_manual( 
+            values = c("cadetblue3", "dimgrey"), name = "")+
+       ggtitle("KPO 4 score - over time")+
+       xlab("")+
+       ylab("KPO 4 Score")+
+       theme_classic()
+
 ```
 
 # Individual Questions
