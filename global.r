@@ -32,11 +32,11 @@ crnt_qtr <- crnt_date - 1/4
 crnt_qtr <- gsub("[0-9]*\\ Q", "Quarter ", crnt_qtr, perl = T)
 
 ####### Unchanged data #######
-fresh_dta <- read_excel("DummyData_3.xlsx", col_types = "text") 
+fresh_dta <- read_excel("BSD Dummy Data - with add Q.xlsx", col_types = "text") 
 
 ####### Pivoted Data #######
 
-dta <- read_excel("DummyData_3.xlsx", col_types = "text") %>% 
+dta <- read_excel("BSD Dummy Data - with add Q.xlsx", col_types = "text") %>% 
   select(!contains(c("Please explain your answer", "other comments", "Please use the comments box")))
 
 # The question set is duplicated across columns to account for skip logic
@@ -111,7 +111,7 @@ dta <- dta %>% rename("Q1.4. Other respondent" = "Q1.4. Other (please specify):"
 
 # This data set needs to be unpivoted but without the additional questions and the questions named the same
 
-unpivot_data_global <- read_excel("DummyData_3.xlsx", col_types = "text") 
+unpivot_data_global <- read_excel("BSD Dummy Data - with add Q.xlsx", col_types = "text") 
 
 # Add in columns with Quarter Info and Financial Year info
 unpivot_data_global$`Tracking Link` <- as.yearqtr(unpivot_data_global$`Ended date`, format = "%Y-%m-%d") 
