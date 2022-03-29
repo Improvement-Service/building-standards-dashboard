@@ -28,7 +28,10 @@ function(input, output, session) {
   dl_all_data$`Tracking Link` <- as.yearqtr(dl_all_data$`Ended date`, format = "%Y-%m-%d") 
   dl_all_data$`Financial Year` <- dl_all_data$`Tracking Link`- 1/4
   dl_all_data$`Financial Year` <- gsub("\\ ", "-", dl_all_data$`Financial Year`, perl=T)
-  dl_all_data$`Financial Year` <- qtr2fy(dl_all_data$`Financial Year`) +1
+  dl_all_data$`Financial Year` <- dl_all_data %>% select(contains("Financial Year")) %>% apply(2, function(x) gsub("-Q[0-9]","",x))%>% as.numeric(.) %>%
+    data.frame() %>% mutate(nxt = .+1) %>% mutate(nxt = substr(nxt,3,4)) %>% mutate(fy = paste(.,nxt, sep = "/")) %>%
+    select(fy)
+  
   
   dl_all_data$`Tracking Link` <- dl_all_data$`Tracking Link`- 1/4
   dl_all_data$`Tracking Link` <- gsub("[0-9]*\\ Q", "Quarter ", dl_all_data$`Tracking Link`, perl = T)
@@ -565,7 +568,7 @@ function(input, output, session) {
    ##Render text for KPO4 Overall perf to year
    output$KPO4_text_report <- renderText({
   ##Only select the full year data - 
-    ##this will need to be updated when more than one yar is available  
+    ##this will need to be updated when more than one year is available  
      council_fltr <- local_authority()
      all_kpo_data <- report_kpo_data() %>% filter(`Tracking Link` == "Total")
      local_auth <- council_fltr
