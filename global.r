@@ -75,7 +75,7 @@ dta$`Financial Year` <- dta$`Tracking Link` -1/4
 dta$`Financial Year` <- gsub("\\ ", "-", dta$`Financial Year`, perl=T)
 dta$`Financial Year` <- dta %>% select(contains("Financial Year")) %>% apply(2, function(x) gsub("-Q[0-9]","",x))%>% as.numeric(.) %>%
   data.frame() %>% mutate(nxt = .+1) %>% mutate(nxt = substr(nxt,3,4)) %>% mutate(fy = paste(.,nxt, sep = "/")) %>%
-  select(fy)
+  pull(fy)
 
 dta$`Tracking Link` <- dta$`Tracking Link`- 1/4
 dta$`Tracking Link` <- gsub("[0-9]*\\ Q", "Quarter ", dta$`Tracking Link`, perl = T)
@@ -118,11 +118,11 @@ unpivot_data_global <- read_excel("BSD Dummy Data - with add Q.xlsx", col_types 
 
 # Add in columns with Quarter Info and Financial Year info
 unpivot_data_global$`Tracking Link` <- as.yearqtr(unpivot_data_global$`Ended date`, format = "%Y-%m-%d") 
-unpivot_data_global$`Financial Year` <- unpivot_data_global$`Tracking Link`
+unpivot_data_global$`Financial Year` <- unpivot_data_global$`Tracking Link` -1/4
 unpivot_data_global$`Financial Year` <- gsub("\\ ", "-", unpivot_data_global$`Financial Year`, perl=T)
 unpivot_data_global$`Financial Year` <- unpivot_data_global %>% select(contains("Financial Year")) %>% apply(2, function(x) gsub("-Q[0-9]","",x))%>% as.numeric(.) %>%
   data.frame() %>% mutate(nxt = .+1) %>% mutate(nxt = substr(nxt,3,4)) %>% mutate(fy = paste(.,nxt, sep = "/")) %>%
-  select(fy)
+  pull(fy)
 
 unpivot_data_global$`Tracking Link` <- unpivot_data_global$`Tracking Link`- 1/4
 unpivot_data_global$`Tracking Link` <- gsub("[0-9]*\\ Q", "Quarter ", unpivot_data_global$`Tracking Link`, perl = T)

@@ -32,7 +32,7 @@ function(input, output, session) {
   dl_all_data$`Financial Year` <- gsub("\\ ", "-", dl_all_data$`Financial Year`, perl=T)
   dl_all_data$`Financial Year` <- dl_all_data %>% select(contains("Financial Year")) %>% apply(2, function(x) gsub("-Q[0-9]","",x))%>% as.numeric(.) %>%
     data.frame() %>% mutate(nxt = .+1) %>% mutate(nxt = substr(nxt,3,4)) %>% mutate(fy = paste(.,nxt, sep = "/")) %>%
-    select(fy)
+    pull(fy)
 
   
   dl_all_data$`Tracking Link` <- dl_all_data$`Tracking Link`- 1/4
@@ -1807,7 +1807,6 @@ function(input, output, session) {
          
          #final tidy up of column names by removing SmartSurvey variable
          colnames(dl_all_data) <- gsub(" \\[question\\(16082428\\)\\]\\[variable\\(la\\)\\]", "", colnames(dl_all_data))
-
          write.csv(dl_all_data, file)
        }
      )
