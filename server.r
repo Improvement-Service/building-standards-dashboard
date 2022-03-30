@@ -1817,6 +1817,7 @@ function(input, output, session) {
          
          #final tidy up of column names by removing SmartSurvey variable
          colnames(dl_all_data) <- gsub(" \\[question\\(16082428\\)\\]\\[variable\\(la\\)\\]", "", colnames(dl_all_data))
+         colnames(dl_all_data) <- gsub("\\...[1-9]*$", "",colnames(dl_all_data))
          write.csv(dl_all_data, file)
        }
      )
