@@ -107,13 +107,21 @@ function(input, output, session) {
       {unpivot_data_global[,c(1:25)]}
   
   #tidy up question names
-  unpivot_data <- unpivot_data %>% rename("Q3. How satisfied were you with the time taken?" = "Q3. Thinking of your engagement with [question(16082428)][variable(la)] Building Standards from beginning to end, how satisfied were you that the time taken to deal with your application or enquiry met the timescales that you were promised?") %>%
+  unpivot_data <- unpivot_data %>% 
+    rename("Quarter" = "Tracking Link") %>%
+    rename("Q3. How satisfied were you with the time taken?" = "Q3. Thinking of your engagement with [question(16082428)][variable(la)] Building Standards from beginning to end, how satisfied were you that the time taken to deal with your application or enquiry met the timescales that you were promised?") %>%
     rename("Q4. How would you rate the standard of communication?" = "Q4. How would you rate the standard of communication provided by [question(16082428)][variable(la)] Building Standards service following your initial contact or once your application had been submitted?") %>%
     rename("Q.3. Responsiveness to any queries or issues raised" = "Q.3. Time taken to respond to any queries or issues raised") %>%
     rename("Q5. To what extent would you agree that you were treated fairly" = "Q5. To what extent would you agree that you were treated fairly by [question(16082428)][variable(la)] Building Standards?") %>%
     rename("Q6. How satisfied were you, overall?" = "Q6. Overall, how satisfied were you with the service provided by [question(16082428)][variable(la)] Building Standards?")%>%
     rename("Q1.4. Other respondent" = "Q1.4. Other (please specify):") %>%
-    rename("Q2.4. Other reason" = "Q2.4. Other (please specify):") 
+    rename("Q2.4. Other reason" = "Q2.4. Other (please specify):") %>%
+    mutate(across(contains(c("Q1.1. Agent/Designer", "Q1.2. Applicant", "Q1.3. Contractor", 
+                             "Q2.1. To discuss your proposal",
+                             "Q2.2. To make an application", "Q2.3. During construction")),
+                  ~recode(., "1" = "Yes", 
+                          "0" = "No"))) %>%
+    select(-LA)
   
   #recode responses for download and to show in table
   unpivot_data$`Q3. How satisfied were you with the time taken?` <-  dplyr::recode(
@@ -242,7 +250,7 @@ function(input, output, session) {
     output$respBox <- renderValueBox({
       unpivot_data <- unpivot_data()
       valueBox(
-        value = paste(nrow(filter(unpivot_data, `Tracking Link` == crnt_qtr)), "Responses"), paste(nrow(unpivot_data),"Year to Date"), icon = icon("user-friends"), color = "light-blue"
+        value = paste(nrow(filter(unpivot_data, Quarter == crnt_qtr)), "Responses"), paste(nrow(unpivot_data),"Year to Date"), icon = icon("user-friends"), color = "light-blue"
       )
     })
     
@@ -319,7 +327,8 @@ function(input, output, session) {
         scale_y_continuous( expand = expansion(mult = c(0, 0.1)))+
         ggtitle("Respondent Type: YTD")+
         xlab("Respondent Type")+
-        ylab("Percentage of Responses")
+        ylab("Percentage of Responses")+
+        theme(plot.title = element_text(size = 12))
         
       ggplotly(pfig, tooltip = "text")
       
@@ -360,7 +369,8 @@ function(input, output, session) {
         scale_y_continuous( expand = expansion(mult = c(0, 0.1)))+
          ggtitle("Response Reason:YTD")+
          xlab("Reason")+
-         ylab("Percentage of Responses")
+         ylab("Percentage of Responses")+
+         theme(plot.title = element_text(size = 12))
       ggplotly(pfig, tooltip = "text")
     })
     
@@ -1814,12 +1824,14 @@ function(input, output, session) {
          
          #final tidy up of column names by removing SmartSurvey variable
          colnames(dl_all_data) <- gsub(" \\[question\\(16082428\\)\\]\\[variable\\(la\\)\\]", "", colnames(dl_all_data))
+         colnames(dl_all_data) <- gsub("\\...[1-9]*$", "",colnames(dl_all_data))
          write.csv(dl_all_data, file)
        }
      )
 ##create table with all data to explore     
      output$tableDisp <- DT::renderDataTable({
        unpivot_data <- unpivot_data()
+       names(unpivot_data)[3:ncol(unpivot_data)] <- gsub("Q[1-9\\.]+\\s","",names(unpivot_data)[3:ncol(unpivot_data)], perl = T)
        tbl <- datatable(unpivot_data, rownames = FALSE, class = "row-border",escape = F,extensions = c("Scroller", "FixedColumns"), 
                         options = list(pageLength = 32, scrollY = 250, dom = "t", 
                                        scrollX = TRUE, 
@@ -1836,7 +1848,7 @@ function(input, output, session) {
        unpivot_data <- unpivot_data()
        ##need to filter the data based on selections and recode answers
        names(unpivot_data)[3:ncol(unpivot_data)] <- gsub("Q[1-9\\.]+\\s","",names(unpivot_data)[3:ncol(unpivot_data)], perl = T)
-       unpivot_data$`Tracking Link` <- as.factor(unpivot_data$`Tracking Link`)
+       unpivot_data$Quarter <- as.factor(unpivot_data$Quarter)
        ##select applicant type  
        slctn_respondent <- input$cmnts_resp_input
        ##select applicant reason using partial match
@@ -1844,8 +1856,8 @@ function(input, output, session) {
        
      #  slct_qstns <- ifelse(input$cmnts_slct == "Information, staff, and responsiveness", c("information", "staff", "responsiveness"), input$cmnts_slct)
        
-       filter_data <- unpivot_data %>% filter(if_any(slctn_respondent, ~ . == 1)) %>%
-         filter(if_any(slctn_reason, ~.==1)) %>%
+       filter_data <- unpivot_data %>% filter(if_any(slctn_respondent, ~ . == "Yes")) %>%
+         filter(if_any(slctn_reason, ~.== "Yes")) %>%
          select(contains(input$cmnts_slct))
        datatable(filter_data, filter = "top",rownames = FALSE, class = "row-border",escape = F,extensions = c("Scroller", "FixedColumns"))
        
