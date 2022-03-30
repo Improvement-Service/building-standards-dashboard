@@ -31,14 +31,15 @@ fin_yr2 <-  fin_yr + 1
 fin_yr2 <- substr(fin_yr2,3,4) 
 fin_yr <- paste(fin_yr, fin_yr2, sep = "-")
 rm(fin_yr2)
-crnt_qtr <- gsub("[0-9]*\\ Q", "Quarter ", crnt_qtr, perl = T)
+crnt_qtr <- gsub("[0-9]*\\ Q", "Quarter ", crnt_date, perl = T)
 
 ####### Unchanged data #######
-fresh_dta <- read_excel("BSD Dummy Data - with add Q.xlsx", col_types = "text") 
+fresh_dta <- read_csv("survey_data.csv", col_types = "c") %>% select(-"Tracking Link")
+fresh_dta[is.na(fresh_dta$`Local Authority Name`), "Local Authority Name"] <- "-"
 
 ####### Pivoted Data #######
 
-dta <- read_excel("BSD Dummy Data - with add Q.xlsx", col_types = "text") %>% 
+dta <- read_csv("survey_data.csv", col_types = "c")  %>% select(-"Tracking Link") %>%
   select(!contains(c("Please explain your answer", "other comments", "Please use the comments box")))
 
 # The question set is duplicated across columns to account for skip logic
@@ -90,7 +91,7 @@ dta <- dta[,c(1:3, 14, 4:13)]
 
 # Code local authority name for councils completing survey without login
 dta <- merge(dta, LA_names_dta)
-dta[dta$`Local Authority Name` == "-" ,"Local Authority Name"] <- dta[dta$`Local Authority Name` == "-","LA_Names"]
+dta[is.na(dta$`Local Authority Name`),"Local Authority Name"] <- dta[is.na(dta$`Local Authority Name`),"LA_Names"]
 dta <- dta %>% select(-LA_Names)
 
 #remove question numbers from Indicator column and tidy up questions
@@ -113,7 +114,8 @@ dta <- dta %>% rename("Q1.4. Other respondent" = "Q1.4. Other (please specify):"
 
 # This data set needs to be unpivoted but without the additional questions and the questions named the same
 
-unpivot_data_global <- read_excel("BSD Dummy Data - with add Q.xlsx", col_types = "text") 
+unpivot_data_global <- read_csv("survey_data.csv", col_types = "c") %>% select(-"Tracking Link")
+unpivot_data_global[is.na(unpivot_data_global$`Local Authority Name`), "Local Authority Name"] <- "-"
 
 # Add in columns with Quarter Info and Financial Year info
 unpivot_data_global$`Tracking Link` <- as.yearqtr(unpivot_data_global$`Ended date`, format = "%Y-%m-%d") 
@@ -197,3 +199,4 @@ KPO_popover_text<-paste("KPO4 is calculated by applying the following weightings
                         "Communications and time taken - 12.5% each",
                         "Staff, information, responsiveness, fairness - 6.25% each.",
                         sep = "<br>")
+
