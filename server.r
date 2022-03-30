@@ -243,7 +243,7 @@ function(input, output, session) {
     output$respBox <- renderValueBox({
       unpivot_data <- unpivot_data()
       valueBox(
-        value = paste(nrow(filter(unpivot_data, `Tracking Link` == crnt_qtr)), "Responses"), paste(nrow(unpivot_data),"Year to Date"), icon = icon("user-friends"), color = "light-blue"
+        value = paste(nrow(filter(unpivot_data, Quarter == crnt_qtr)), "Responses"), paste(nrow(unpivot_data),"Year to Date"), icon = icon("user-friends"), color = "light-blue"
       )
     })
     
@@ -320,7 +320,8 @@ function(input, output, session) {
         scale_y_continuous( expand = expansion(mult = c(0, 0.1)))+
         ggtitle("Respondent Type: YTD")+
         xlab("Respondent Type")+
-        ylab("Percentage of Responses")
+        ylab("Percentage of Responses")+
+        theme(plot.title = element_text(size = 12))
         
       ggplotly(pfig, tooltip = "text")
       
@@ -361,7 +362,8 @@ function(input, output, session) {
         scale_y_continuous( expand = expansion(mult = c(0, 0.1)))+
          ggtitle("Response Reason:YTD")+
          xlab("Reason")+
-         ylab("Percentage of Responses")
+         ylab("Percentage of Responses")+
+         theme(plot.title = element_text(size = 12))
       ggplotly(pfig, tooltip = "text")
     })
     
