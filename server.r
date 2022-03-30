@@ -1824,6 +1824,7 @@ function(input, output, session) {
 ##create table with all data to explore     
      output$tableDisp <- DT::renderDataTable({
        unpivot_data <- unpivot_data()
+       names(unpivot_data)[3:ncol(unpivot_data)] <- gsub("Q[1-9\\.]+\\s","",names(unpivot_data)[3:ncol(unpivot_data)], perl = T)
        tbl <- datatable(unpivot_data, rownames = FALSE, class = "row-border",escape = F,extensions = c("Scroller", "FixedColumns"), 
                         options = list(pageLength = 32, scrollY = 250, dom = "t", 
                                        scrollX = TRUE, 
@@ -1840,7 +1841,7 @@ function(input, output, session) {
        unpivot_data <- unpivot_data()
        ##need to filter the data based on selections and recode answers
        names(unpivot_data)[3:ncol(unpivot_data)] <- gsub("Q[1-9\\.]+\\s","",names(unpivot_data)[3:ncol(unpivot_data)], perl = T)
-       unpivot_data$`Tracking Link` <- as.factor(unpivot_data$`Tracking Link`)
+       unpivot_data$Quarter <- as.factor(unpivot_data$Quarter)
        ##select applicant type  
        slctn_respondent <- input$cmnts_resp_input
        ##select applicant reason using partial match
@@ -1848,8 +1849,8 @@ function(input, output, session) {
        
      #  slct_qstns <- ifelse(input$cmnts_slct == "Information, staff, and responsiveness", c("information", "staff", "responsiveness"), input$cmnts_slct)
        
-       filter_data <- unpivot_data %>% filter(if_any(slctn_respondent, ~ . == 1)) %>%
-         filter(if_any(slctn_reason, ~.==1)) %>%
+       filter_data <- unpivot_data %>% filter(if_any(slctn_respondent, ~ . == "Yes")) %>%
+         filter(if_any(slctn_reason, ~.== "Yes")) %>%
          select(contains(input$cmnts_slct))
        datatable(filter_data, filter = "top",rownames = FALSE, class = "row-border",escape = F,extensions = c("Scroller", "FixedColumns"))
        
