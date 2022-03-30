@@ -2,9 +2,7 @@ ui <- dashboardPage(skin = "blue",
   dashboardHeader(title = "NCS Dashboard"),
  
    dashboardSidebar(
-    selectizeInput("LA_selection", "",
-                   choices =LA_Names, options = list(placeholder = "Select Your Local Authority",
-                                             onInitialize = I('function() { this.setValue(""); }'))),
+    uiOutput("la_select"),
     
     sidebarMenu(
       menuItem("Performance Overview", tabName="PrfOvr", icon = icon("dashboard")),
@@ -20,7 +18,7 @@ ui <- dashboardPage(skin = "blue",
   dashboardBody(
     tabItems(
       tabItem(tabName = "PrfOvr",
-              h2("KPO4 Performance",style = "margin-top:3px"),
+              uiOutput("LA_KPO4_Heading"),
               fluidRow(
                 valueBoxOutput("performanceBox"), #performance for council
                 bsPopover("performanceBox", title = "KPO4 Weightings" ,

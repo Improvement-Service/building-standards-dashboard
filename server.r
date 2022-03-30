@@ -5,14 +5,167 @@ function(input, output, session) {
 
 #first, get the user  
   user <- reactive({
-    session$user
+    #session$user
+    "nicholas.cassidy@improvementservice.org.uk"
   })
+  
+#generate ui drop down
+output$la_select <- renderUI({
+  user <- user()
+  if(grepl("improvementservice.org.uk|gov.scot", user, ignore.case = T)){
+    selectizeInput("LA_selection", "",
+                   choices =LA_Names, options = list(placeholder = "Select Your Local Authority",
+                                                     onInitialize = I('function() { this.setValue(""); }')))
+  } else{
+    return()
+  }
+  
+  
+})
+  
   
 ##now filter data based on log in details  
     
   local_authority <- reactive({
-    input$LA_selection
+    user <- user()
+    #Aberdeen City
+    if(grepl("aberdeencity.gov.uk", user,ignore.case = TRUE)){
+      return("Aberdeen City")
+    } else 
+      #Aberdeenshire  
+      if(grepl("aberdeenshire.gov.uk", user,ignore.case = TRUE)){
+        return("Aberdeenshire")
+      } else 
+        #Angus
+        if(grepl("angus.gov.uk", user,ignore.case = TRUE)){
+          return("Angus")
+        } else 
+        #Argyll and Bute
+          if(grepl("argyll-bute.gov.uk", user,ignore.case = TRUE)){
+            return("Argyll and Bute")
+          } else 
+        #City of Edinburgh    
+            if(grepl("edinburgh.gov.uk", user,ignore.case = TRUE)){
+              return("City of Edinburgh")
+            } else 
+        #Clackmannanshire
+              if(grepl("clacks.gov.uk", user,ignore.case = TRUE)){
+                return("Clackmannanshire")
+              } else 
+          #Eilean Siar
+                if(grepl("cne-siar.gov.uk", user,ignore.case = TRUE)){
+                  return("Eilean Siar")
+                } else 
+          #Dumfries and Galloway
+                  if(grepl("dumgal.gov.uk", user,ignore.case = TRUE)){
+                    return("Dumfries and Galloway")
+                  } else 
+          ##Dundee City          
+                    if(grepl("dundeecity.gov.uk", user,ignore.case = TRUE)){
+                      return("Dundee City")
+                    } else
+          #East Ayrshire
+                      if(grepl("east-ayrshire.gov.uk", user,ignore.case = TRUE)){
+                        return("East Ayrshire")
+                      } else
+          #East Dunbartonshire              
+                        if(grepl("eastdunbarton.gov.uk", user,ignore.case = TRUE)){
+                          return("East Dunbartonshire")
+                        } else 
+         #East Lothian
+                          if(grepl("eastlothian.gov.uk", user,ignore.case = TRUE)){
+                            return("East Lothian")
+                          } else 
+        #Falkirk
+                            if(grepl("falkirk.gov.uk", user,ignore.case = TRUE)){
+                              return("Falkirk")
+                            } else 
+        #Fife
+                              if(grepl("fife.gov.uk;", user,ignore.case = TRUE)){
+                                return("Fife")
+                              } else 
+        #Glasgow                         
+                                if(grepl("glasgow.gov.uk", user,ignore.case = TRUE)){
+                                  return("Glasgow")
+                                } else 
+        #Highland
+                                  if(grepl("highland.gov.uk", user,ignore.case = TRUE)){
+                                    return("Highland")
+                                  } else 
+        #Inverclyde
+                                    if(grepl("inverclyde.gov.uk", user,ignore.case = TRUE)){
+                                      return("Inverclyde")
+                                    } else 
+        #Midlothian                              
+                                      if(grepl("midlothian.gov.uk", user,ignore.case = TRUE)){
+                                        return("Midlothian")
+                                      } else 
+        #Moray
+                                        if(grepl("moray.gov.uk", user,ignore.case = TRUE)){
+                                          return("Moray")
+                                        } else 
+        #North Ayrshire
+                                          if(grepl("north-ayrshire.gov.uk", user,ignore.case = TRUE)){
+                                            return("North Ayrshire")
+                                          } else 
+        #North Lanarkshire
+                                            if(grepl("northlan.gov.uk", user,ignore.case = TRUE)){
+                                              return("North Lanarkshire")
+                                            } else 
+        #Orkney Islands
+                                              if(grepl("orkney.gov.uk", user,ignore.case = TRUE)){
+                                                return("Orkney Islands")
+                                              } else 
+        #Perth and Kinross
+                                                if(grepl("pkc.gov.uk", user,ignore.case = TRUE)){
+                                                  return("Perth and Kinross")
+                                                } else 
+        #Renfrewshire
+                                                  if(grepl("renfrewshire.gov.uk", user,ignore.case = TRUE)){
+                                                    return("Renfrewshire")
+                                                  } else 
+        #Scottish Borders
+                                                    if(grepl("scotborders.gov.uk", user,ignore.case = TRUE)){
+                                                      return("Scottish Borders")
+                                                    } else 
+        #Shetland Islands
+                                                      if(grepl("shetland.gov.uk", user,ignore.case = TRUE)){
+                                                        return("Shetland Islands")
+                                                      } else 
+       #South Ayrshire
+                                                        if(grepl("south-ayrshire.gov.uk", user,ignore.case = TRUE)){
+                                                          return("South Ayrshire")
+                                                        } else 
+        #South Lanarkshire
+                                                          if(grepl("southlanarkshire.gov.uk", user,ignore.case = TRUE)){
+                                                            return("South Lanarkshire")
+                                                          } else 
+        #Stirling
+                                                            if(grepl("stirling.gov.uk", user,ignore.case = TRUE)){
+                                                              return("Stirling")
+                                                            } else 
+        #West Dunbartonshire
+                                                              if(grepl("west-dunbarton.gov.uk", user,ignore.case = TRUE)){
+                                                                return("West Dunbartonshire")
+                                                              } else 
+        #West Lothian
+                                                                if(grepl("westlothian.gov.uk", user,ignore.case = TRUE)){
+                                                                  return("West Lothian")
+                                                                } else 
+        #East Renfrewshire
+                                                                  if(grepl("eastrenfrewshire.gov.uk", user,ignore.case = TRUE)){
+                                                                    return("East Renfrewshire")
+                                                                  } else{
+                                                                    input$LA_selection
+                                                                  } 
+                                                                 
   })
+  
+##Return Council data is displayed for 
+output$LA_KPO4_Heading <- renderUI({
+  la_name <- local_authority()
+  h2(paste("KPO4 Performance", la_name, sep = " - "),style = "margin-top:3px")
+})
   
 #### Download Data 
   
