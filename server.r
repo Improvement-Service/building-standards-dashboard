@@ -2,6 +2,13 @@ function(input, output, session) {
 
 
 ###### Reactive global data #######  
+
+#first, get the user  
+  user <- reactive({
+    session$user
+  })
+  
+##now filter data based on log in details  
     
   local_authority <- reactive({
     input$LA_selection
