@@ -69,8 +69,8 @@ if __name__ == "__main__":
         ### TRANSFORM DATA ###
         try:
             logging.info("transforming data")
-            dataframe = pd.read_csv("survey_data.csv")
-            dataframe.to_csv("survey_data.csv")
+#             dataframe = pd.read_csv("survey_data.csv")
+#             dataframe.to_csv("survey_data.csv")
         except Exception as e:
             logging.warning(e)
         ### END ###
