@@ -2,30 +2,20 @@ name: Building Standards Dashboard Deployment Workflow
 
 # # Controls when the workflow will run
 on:
-#   # Triggers the workflow on push or pull request events but only for the main branch
-#   push:
-#     branches: [ main ]
-#   pull_request:
-#     branches: [ main ]
-
-#   schedule:
-#     - cron: "30 23 * * *"
+  schedule:
+    - cron: "0 0 * * *"
 
   # Allows you to run this workflow manually from the Actions tab
   workflow_dispatch:
 
-# A workflow run is made up of one or more jobs that can run sequentially or in parallel
 jobs:
-
   download_transform_write:
-    # The type of runner that the job will run on
     runs-on: ubuntu-latest
     strategy:
       matrix:
         python-version:
         - 'pypy-3.7'
 
-    # Steps represent a sequence of tasks that will be executed as part of the job
     steps:
       - uses: actions/checkout@v2
       - uses: actions/setup-python@v2
@@ -87,3 +77,22 @@ jobs:
             rsconnect::setAccountInfo('${{ secrets.RSCONNECT_USER }}', '${{ secrets.RSCONNECT_TOKEN }}', '${{ secrets.RSCONNECT_SECRET }}')
             rsconnect::deployApp(appName='is-building-standards-ncs')
         shell: Rscript {0}
+        
+      # messages for teams channel
+      - name: Notify dedicated teams channel success
+        if: success()
+        uses: jdcargile/ms-teams-notification@v1.3
+        with:
+          github-token: ${{ github.token }} # this will use the runner's token.
+          ms-teams-webhook-uri: ${{ secrets.MS_TEAMS_WEBHOOK_URI }}
+          notification-summary: ${{ github.repository }} has been ran successfully. 
+          notification-color: 06ab00
+          
+      - name: Notify dedicated teams channel failure
+        if: failure()
+        uses: jdcargile/ms-teams-notification@v1.3
+        with:
+          github-token: ${{ github.token }} # this will use the runner's token.
+          ms-teams-webhook-uri: ${{ secrets.MS_TEAMS_WEBHOOK_URI }}
+          notification-summary: ${{ github.repository }} has workflow has failed.
+          notification-color: FF0000
