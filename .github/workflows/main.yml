@@ -75,15 +75,15 @@ jobs:
           
       # Note that you have to activate the virtualenv in every step
       # because GitHub actions doesn't preserve the environment
-      - name: Activate python venv and run script to get survey data 
-        run: |
-          . ./.venv/bin/activate 
-          python data_getter.py
+#       - name: Activate python venv and run script to get survey data 
+#         run: |
+#           . ./.venv/bin/activate 
+#           python data_getter.py
           
       - run: ls
           
       - name: Authorize and deploy app
         run: |
             rsconnect::setAccountInfo('${{ secrets.RSCONNECT_USER }}', '${{ secrets.RSCONNECT_TOKEN }}', '${{ secrets.RSCONNECT_SECRET }}')
-            rsconnect::deployApp()
+            rsconnect::deployApp(name='is-building-standards-ncs')
         shell: Rscript {0}
