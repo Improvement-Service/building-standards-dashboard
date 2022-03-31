@@ -1,0 +1,89 @@
+name: Building Standards Dashboard Deployment Workflow
+
+# # Controls when the workflow will run
+on:
+#   # Triggers the workflow on push or pull request events but only for the main branch
+#   push:
+#     branches: [ main ]
+#   pull_request:
+#     branches: [ main ]
+
+#   schedule:
+#     - cron: "30 23 * * *"
+
+  # Allows you to run this workflow manually from the Actions tab
+  workflow_dispatch:
+
+# A workflow run is made up of one or more jobs that can run sequentially or in parallel
+jobs:
+
+  download_transform_write:
+    # The type of runner that the job will run on
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        python-version:
+        - 'pypy-3.7'
+
+    # Steps represent a sequence of tasks that will be executed as part of the job
+    steps:
+      - uses: actions/checkout@v2
+      - uses: actions/setup-python@v2
+        with:
+          python-version: ${{ matrix.python-version }}
+      - uses: actions/cache@v2
+        id: cache-venv  # name for referring later
+        with:
+          path: ./.venv/  # what we cache: the virtualenv
+          # The cache key depends on requirements.txt
+          key: ${{ runner.os }}-venv-${{ hashFiles('**/requirements*.txt') }}
+          restore-keys: |
+            ${{ runner.os }}-venv-
+      - run: python -m venv ./.venv && . ./.venv/bin/activate && 
+             pip install -r requirements.txt
+        if: steps.cache-venv.outputs.cache-hit != 'true'
+        
+      # this is needed for installing r packages.
+      - run: sudo apt-get install libcurl4-openssl-dev
+      - run: ls -l 
+        
+      - name: Setup R
+        uses: r-lib/actions/setup-r@v2
+        with:
+          r-version: '4.0.2'
+          # Enable RStudio Package Manager to speed up package installation
+          use-public-rspm: true
+
+      - name: setup renv
+        uses: r-lib/actions/setup-renv@v2
+        with:
+          cache-version: 1
+        
+      - name: install rsconnect
+        run: install.packages("rsconnect")
+        shell: Rscript {0}
+      
+      # creates config file for python script
+      - name: create config file for python script from github secrets
+        run: |
+          cat << EOF > config.ini
+          [DEFAULT]
+          api_key = ${{ secrets.SMART_SURVEY_API_KEY }}
+          api_secret_key = ${{ secrets.SMART_SURVEY_API_KEY_SECRET }}
+          survey_id = ${{ secrets.SURVEY_ID }}
+          EOF
+          
+      # Note that you have to activate the virtualenv in every step
+      # because GitHub actions doesn't preserve the environment
+      - name: Activate python venv and run script to get survey data 
+        run: |
+          . ./.venv/bin/activate 
+          python data_getter.py
+          
+      - run: ls
+          
+      - name: Authorize and deploy app
+        run: |
+            rsconnect::setAccountInfo('${{ secrets.RSCONNECT_USER }}', '${{ secrets.RSCONNECT_TOKEN }}', '${{ secrets.RSCONNECT_SECRET }}')
+            rsconnect::deployApp()
+        shell: Rscript {0}
