@@ -37,10 +37,14 @@ crnt_qtr <- gsub("[0-9]*\\ Q", "Quarter ", crnt_date, perl = T)
 fresh_dta <- read_csv("survey_data.csv", col_types = "c") %>% select(-"Tracking Link")
 fresh_dta[is.na(fresh_dta$`Local Authority Name`), "Local Authority Name"] <- "-"
 
+fresh_dta$`Ended date` <- as.Date(fresh_dta$`Ended date`,format="%d/%m/%Y")
+
 ####### Pivoted Data #######
 
 dta <- read_csv("survey_data.csv", col_types = "c")  %>% select(-"Tracking Link") %>%
   select(!contains(c("Please explain your answer", "other comments", "Please use the comments box")))
+
+dta$`Ended date` <- as.Date(dta$`Ended date`,format="%d/%m/%Y")
 
 # The question set is duplicated across columns to account for skip logic
 # Rename the columns containing the same questions so they match
@@ -116,6 +120,8 @@ dta <- dta %>% rename("Q1.4. Other respondent" = "Q1.4. Other (please specify):"
 
 unpivot_data_global <- read_csv("survey_data.csv", col_types = "c") %>% select(-"Tracking Link")
 unpivot_data_global[is.na(unpivot_data_global$`Local Authority Name`), "Local Authority Name"] <- "-"
+
+unpivot_data_global$`Ended date` <- as.Date(unpivot_data_global$`Ended date`,format="%d/%m/%Y")
 
 # Add in columns with Quarter Info and Financial Year info
 unpivot_data_global$`Tracking Link` <- as.yearqtr(unpivot_data_global$`Ended date`, format = "%Y-%m-%d") 
