@@ -71,6 +71,8 @@ jobs:
           python data_getter.py
           
       - run: ls
+      
+      - run: cat survey_data.csv
           
       - name: Authorize and deploy app
         run: |
