@@ -39,12 +39,79 @@ fresh_dta[is.na(fresh_dta$`Local Authority Name`), "Local Authority Name"] <- "-
 
 fresh_dta$`Ended date` <- as.Date(fresh_dta$`Ended date`,format="%d/%m/%Y")
 
+# Need to code these as characters because when all responses are in the first column, 
+#this is numeric and the other column is character, meaning when the code combines them later it won't work
+fresh_dta$`Q. Please select a local authority` <- as.character(fresh_dta$`Q. Please select a local authority`)
+fresh_dta$`Q. Please select the local authority that your response relates to` <- as.character(fresh_dta$`Q. Please select the local authority that your response relates to`)
+
 ####### Pivoted Data #######
 
 dta <- read_csv("survey_data.csv", col_types = "c")  %>% select(-"Tracking Link") %>%
   select(!contains(c("Please explain your answer", "other comments", "Please use the comments box")))
 
 dta$`Ended date` <- as.Date(dta$`Ended date`,format="%d/%m/%Y")
+
+# Need to code these as characters because when all responses are in the first column, 
+#this is numeric and the other column is character, meaning when the code combines them later it won't work
+dta$`Q. Please select a local authority` <- as.character(dta$`Q. Please select a local authority`)
+dta$`Q. Please select the local authority that your response relates to` <- as.character(dta$`Q. Please select the local authority that your response relates to`)
+
+
+# Where the question has not been answered this needs to be changed to NA 
+# These are currently "-" but need to be recoded to distinguish where the question is skipped when it is not applicable to the council
+
+# For West Lothian questions replace blank values with NA
+dta[c(29:38)] <- replace(dta[c(29:38)], 
+                       (dta$`Q. Please select a local authority` == 32 | 
+                          dta$`Q. Please select the local authority that your response relates to` == 32) &
+                         dta[c(29:38)] == "-",
+                       NA
+)
+
+# For North Lanarkshire questions replace blank values with NA
+dta[c(39:41)] <- replace(dta[c(39:41)], 
+                       (dta$`Q. Please select a local authority` == 22 | 
+                          dta$`Q. Please select the local authority that your response relates to` == 22) &
+                         dta[c(39:41)] == "-",
+                       NA
+)
+
+# For Orkney Islands questions replace blank values with NA
+dta[c(42:56)] <- replace(dta[c(42:56)], 
+                       (dta$`Q. Please select a local authority` == 23 | 
+                          dta$`Q. Please select the local authority that your response relates to` == 23) &
+                         dta[c(42:56)] == "-",
+                       NA
+)
+
+# For City of Edinburgh questions replace blank values with NA
+dta[c(57:63)] <- replace(dta[c(57:63)], 
+                       (dta$`Q. Please select a local authority` == 12 | 
+                          dta$`Q. Please select the local authority that your response relates to` == 12) &
+                         dta[c(57:63)] == "-",
+                       NA
+)
+
+# For Angus questions replace blank values with NA
+dta[64] <- replace(dta[64], 
+                 (dta$`Q. Please select a local authority` == 3 | 
+                    dta$`Q. Please select the local authority that your response relates to` == 3) &
+                   dta[64] == "-",
+                 NA
+)
+
+
+# For standard council questions replace blank values with NA
+dta[c(22:28)] <- replace(dta[c(22:28)], 
+                       (dta$`Q. Please select a local authority` %in% 
+                          c(1,2,3,4,5,6,7,8,9,10,11,13,14,15,16,17,18,19,20,21,22,24,25,26,27,28,29,30,31) | 
+                          dta$`Q. Please select the local authority that your response relates to` %in% 
+                          c(1,2,3,4,5,6,7,8,9,10,11,13,14,15,16,17,18,19,20,21,22,24,25,26,27,28,29,30,31)
+                       ) &
+                         dta[c(22:28)] == "-",
+                       NA
+)
+
 
 # The question set is duplicated across columns to account for skip logic
 # Rename the columns containing the same questions so they match
@@ -71,7 +138,7 @@ dta <- dta %>% pivot_longer(cols = 22:28, names_to = "Indicator", values_to ="va
 
 # As the columns were duplicated there are "-" blank values where the question would be skipped
 # Need to remove these to get the complete data set
-dta <- dta %>% filter(value != "-")
+dta <- dta %>% filter(is.na(dta$value) | value %in% c("1","2","3","4","5"))
 
 # Add in columns with Quarter Info and Financial Year info
 dta$`Tracking Link` <- as.yearqtr(dta$`Ended date`, format = "%Y-%m-%d") 
@@ -122,6 +189,11 @@ unpivot_data_global <- read_csv("survey_data.csv", col_types = "c") %>% select(-
 unpivot_data_global[is.na(unpivot_data_global$`Local Authority Name`), "Local Authority Name"] <- "-"
 
 unpivot_data_global$`Ended date` <- as.Date(unpivot_data_global$`Ended date`,format="%d/%m/%Y")
+
+# Need to code these as characters because when all responses are in the first column, 
+#this is numeric and the other column is character, meaning when the code combines them later it won't work
+unpivot_data_global$`Q. Please select a local authority` <- as.character(unpivot_data_global$`Q. Please select a local authority`)
+unpivot_data_global$`Q. Please select the local authority that your response relates to` <- as.character(unpivot_data_global$`Q. Please select the local authority that your response relates to`)
 
 # Add in columns with Quarter Info and Financial Year info
 unpivot_data_global$`Tracking Link` <- as.yearqtr(unpivot_data_global$`Ended date`, format = "%Y-%m-%d") 
