@@ -22,7 +22,7 @@ jobs:
         with:
           python-version: ${{ matrix.python-version }}
       - uses: actions/cache@v2
-        id: cache-venv  # name for referring later
+        id: cache-venv-python  # name for referring later
         with:
           path: ./.venv/  # what we cache: the virtualenv
           # The cache key depends on requirements.txt
@@ -31,7 +31,7 @@ jobs:
             ${{ runner.os }}-venv-
       - run: python -m venv ./.venv && . ./.venv/bin/activate && 
              pip install -r requirements.txt
-        if: steps.cache-venv.outputs.cache-hit != 'true'
+        if: steps.cache-venv-python.outputs.cache-hit != 'true'
         
       # this is needed for installing r packages.
       - run: sudo apt-get install libcurl4-openssl-dev
@@ -68,6 +68,7 @@ jobs:
       - name: Activate python venv and run script to get survey data 
         run: |
           . ./.venv/bin/activate 
+          pip list
           python data_getter.py
           
       - run: ls
