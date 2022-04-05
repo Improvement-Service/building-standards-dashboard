@@ -133,6 +133,9 @@ colnames(dta)[c(38,56,63)] <- colnames(dta)[28]
 # Remove columns containing additional questions
 dta <- dta[-c(32,33,34,39,40,41,44,45,46,47,50,51,52,53,64)]
 
+# Make sure all data columns are the same data type
+dta[,22:28] <- sapply(dta[,22:28],as.character)
+
 # Pivot indicator data 
 dta <- dta %>% pivot_longer(cols = 22:28, names_to = "Indicator", values_to ="value")
 
