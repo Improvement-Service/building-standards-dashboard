@@ -962,7 +962,7 @@ output$LA_KPO4_Heading <- renderUI({
      council_fltr <- local_authority()
      ##filter dataset based on selected question   
      dta <- dta %>% filter(value != "-")
-     dta$`value` <- as.factor(dta$`value`)
+     dta$`value` <- factor(dta$`value`, levels = c(1,2,3,4))
      #filter by local authority and question and count no. responses
      qstnDta_LA <- dta %>% filter(Indicator == "Thinking of your engagement, how satisfied were you with the time taken to complete the process?") %>%
        filter(`Local Authority Name` == council_fltr) %>% count(value, .drop =F) %>%
@@ -1101,7 +1101,7 @@ output$LA_KPO4_Heading <- renderUI({
      ##filter dataset based on selected question   
      dta <- dta %>% filter(value != "-")
      ##filter dataset based on selected question   
-     dta$`value` <- as.factor(dta$`value`)
+     dta$`value` <- factor(dta$`value`, levels = c(1,2,3,4))
      #filter by local authority and question and count no. responses
      qstnDta_LA <- dta %>% filter(Indicator == "How would you rate the standard of communication provided?") %>%
        filter(`Local Authority Name` == council_fltr) %>% count(value, .drop =F) %>%
@@ -1234,7 +1234,7 @@ output$LA_KPO4_Heading <- renderUI({
        council_fltr <- local_authority()
        dta <- dta %>% filter(value != "-")
      ##filter dataset based on selected question   
-     dta$`value` <- as.factor(dta$`value`)
+     dta$`value` <- factor(dta$`value`, levels = c(1,2,3,4))
      #filter by local authority and question and count no. responses
      qstnDta_LA <- dta %>% filter(Indicator == "Quality of the information provided") %>%
        filter(`Local Authority Name` == council_fltr) %>% count(value, .drop =F) %>%
@@ -1367,7 +1367,7 @@ output$LA_KPO4_Heading <- renderUI({
        council_fltr <- local_authority()
        dta <- dta %>% filter(value != "-")
      ##filter dataset based on selected question   
-     dta$`value` <- as.factor(dta$`value`)
+     dta$`value` <- factor(dta$`value`, levels = c(1,2,3,4))
      #filter by local authority and question and count no. responses
      qstnDta_LA <- dta %>% filter(Indicator == "Service offered by staff") %>%
        filter(`Local Authority Name` == council_fltr) %>% count(value, .drop =F) %>%
@@ -1502,7 +1502,7 @@ output$LA_KPO4_Heading <- renderUI({
        council_fltr <- local_authority()
        dta <- dta %>% filter(value != "-")
       ##filter dataset based on selected question   
-     dta$`value` <- as.factor(dta$`value`)
+     dta$`value` <- factor(dta$`value`, levels = c(1,2,3,4))
      #filter by local authority and question and count no. responses
      qstnDta_LA <- dta %>% filter(Indicator == "Responsiveness to any queries or issues raised") %>%
        filter(`Local Authority Name` == council_fltr) %>% count(value, .drop =F) %>%
@@ -1636,7 +1636,7 @@ output$LA_KPO4_Heading <- renderUI({
        council_fltr <- local_authority()
        dta <- dta %>% filter(value != "-")
      ##filter dataset based on selected question   
-     dta$`value` <- as.factor(dta$`value`)
+     dta$`value` <- factor(dta$`value`, levels = c(1,2,3,4))
      #filter by local authority and question and count no. responses
      qstnDta_LA <- dta %>% filter(Indicator == "To what extent would you agree that you were treated fairly?"   ) %>%
        filter(`Local Authority Name` == council_fltr) %>% count(value, .drop =F) %>%
