@@ -5,8 +5,7 @@ function(input, output, session) {
 
 #first, get the user  
   user <- reactive({
-    #session$user
-    "nicholas.cassidy@improvementservice.org.uk"
+    session$user
   })
   
 #generate ui drop down
