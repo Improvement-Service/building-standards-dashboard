@@ -279,7 +279,7 @@ ggplot(data = line_data,
                  vjust = 0,
                  position = position_dodge(width = 0.9)
                  )+
-  scale_y_continuous(limits = c(0,10), expand = c(0, 0))+
+#  scale_y_continuous(limits = c(0,10), expand = c(0, 0))+
        scale_fill_manual( 
             values = c("cadetblue3", "dimgrey"), name = "")+
        ggtitle("KPO 4 score - over time")+
