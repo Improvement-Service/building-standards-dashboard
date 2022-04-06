@@ -52,7 +52,7 @@ local_auth <- la
      
 ```
 
-This indicator summarises performance across all questions, with differential weightings based on importance. For `r la` in `r curr_year`, overall performance is at `r KPO4_ytd` for the year to date. This is `r abbel_kpo4` the Scotland average of `r scotAv_kpo4` and `r hilow_kpo4` the target value of 7.5.
+This indicator summarises performance across all questions, with differential weightings based on importance. For `r la` in `r curr_year`, overall performance is at `r KPO4_ytd` for the year to date. This is `r abbel_kpo4` the Scotland average of `r scotAv_kpo4` and `r hilow_kpo4` the target value of 7.5.  
 
 ```{r echo = F}
      
@@ -89,6 +89,7 @@ ggplot(data = kpo_data1,
   ylab("KPO 4 Score")+
   theme_classic()
 ```
+\newpage
 
 # Respondent Type
 ```{r echo=FALSE, comment= ""}
@@ -131,6 +132,7 @@ ggplot(data = type_data,
         xlab("Respondent Type")+
         ylab("Percentage of Responses")
 ```
+\newpage
 
 # Response Reason
 ```{r echo=FALSE, comment= ""}
@@ -175,6 +177,7 @@ ggplot(data = reason_data,
          xlab("Reason")+
          ylab("Percentage of Responses")
 ```
+\newpage
 
 # KPO 4 Over Time
 ```{r echo=FALSE, comment= ""}
@@ -278,6 +281,7 @@ ggplot(data = line_data,
        theme_classic()
 
 ```
+\newpage
 
 # Individual Questions
 
@@ -392,6 +396,7 @@ In this year for `r la` to date for the question "Thinking of your engagement, h
   ylab("Percentage of Responses")+
   theme_classic()
 ```
+\newpage
 
 ## Communications
 ```{r echo=FALSE, comment= ""}
@@ -424,6 +429,7 @@ In this year for `r la` to date for the question "How would you rate the standar
   ylab("Percentage of Responses")+
   theme_classic()
 ```
+\newpage
 
 ## Information
 ```{r echo=FALSE, comment= ""}
@@ -454,6 +460,7 @@ In this year for `r la` to date for the question "How would you rate the quality
   ylab("Percentage of Responses")+
   theme_classic()
 ```
+\newpage
 
 ## Staff
 ```{r echo=FALSE, comment= ""}
@@ -485,6 +492,7 @@ In this year for `r la` to date for the question "How would you rate the service
   theme_classic()
          
 ```
+\newpage
 
 ## Responsiveness
 ```{r echo=FALSE, comment= ""}
@@ -514,6 +522,7 @@ In this year for `r la` to date for the question "How would you rate the time ta
   ylab("Percentage of Responses")+
   theme_classic()
 ```
+\newpage
 
 ## Treated Fairly
 ```{r echo=FALSE, comment= ""}
@@ -544,6 +553,7 @@ In this year for `r la` to date for the question "To what extent would you agree
   ylab("Percentage of Responses")+
   theme_classic()
 ```
+\newpage
 
 ## Overall Satisfaction
 ```{r echo=FALSE, comment= ""}

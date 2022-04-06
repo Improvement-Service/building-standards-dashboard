@@ -75,7 +75,7 @@ ui <- dashboardPage(skin = "blue",
                ),
       tabItem(tabName = "RptDl",
             #  h2("Report Download", style = "margin-top:3px"),
-            downloadBttn("report", "Generate report"),
+            div(style = "margin-bottom: 5px",downloadBttn("report", "Generate report")),
               fluidRow(
                 box(width = 8, plotlyOutput("reportKPO4Plot")),
                 box(width = 4,style = "font-size:18px",textOutput("KPO4_text_report"))
