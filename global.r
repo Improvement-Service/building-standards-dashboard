@@ -184,6 +184,11 @@ dta <- dta %>% rename("Q1.4. Other respondent" = "Q1.4. Other (please specify):"
                       "Q2.4. Other reason" = "Q2.4. Other (please specify):") 
 
 
+# Recode "other" respondents and reasons so it doesn't show text value
+dta$`Q1.4. Other respondent`[dta$`Q1.4. Other respondent` != "0"] <- "1"
+dta$`Q2.4. Other reason`[dta$`Q2.4. Other reason` != "0"] <- "1"
+
+
 ############### Download Table Data ############# 
 
 # This data set needs to be unpivoted but without the additional questions and the questions named the same

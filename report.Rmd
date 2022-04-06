@@ -104,7 +104,7 @@ type_dta_filter <- respondent_data %>% filter(question_type == "Type")
      agent_perc <- round(type_dta_filter[type_dta_filter$Question == "Agent/Designer" & type_dta_filter$value == 1 ,"perc"] *100, 1) %>% pull(perc)
      appli_perc <- round(type_dta_filter[type_dta_filter$Question == "Applicant" & type_dta_filter$value == 1 ,"perc"] *100, 1) %>% pull(perc)
      contr_perc <- round(type_dta_filter[type_dta_filter$Question == "Contractor" & type_dta_filter$value == 1 ,"perc"] *100, 1) %>% pull(perc)
-     type_other_perc <- round(type_dta_filter[type_dta_filter$Question == "Other (please specify):" & type_dta_filter$value == 1 ,"perc"] *100, 1) %>% pull(perc)
+     type_other_perc <- round(type_dta_filter[type_dta_filter$Question == "Other" & type_dta_filter$value == 1 ,"perc"] *100, 1) %>% pull(perc)
      #if any are 0 then replace with "none"
      agent_perc <-ifelse(isEmpty(agent_perc), "none", paste0(agent_perc,"%"))
      appli_perc <-ifelse(isEmpty(appli_perc), "none", paste0(appli_perc,"%"))
@@ -146,7 +146,7 @@ ggplot(data = type_data,
      discuss_perc <- round(resp_dta_filter[resp_dta_filter$Question == "To discuss your proposal before applying for a building warrant" & resp_dta_filter$value == 1 ,"perc"] *100, 1) %>% pull(perc)
      appli_perc <- round(resp_dta_filter[resp_dta_filter$Question == "To make an application for a building warrant" & resp_dta_filter$value == 1 ,"perc"] *100, 1) %>% pull(perc)
      constr_perc <- round(resp_dta_filter[resp_dta_filter$Question == "During construction, including submission of a completion certificate" & resp_dta_filter$value == 1 ,"perc"] *100, 1) %>% pull(perc)
-     other_perc <- round(resp_dta_filter[resp_dta_filter$Question == "Other (please specify):" & resp_dta_filter$value == 1 ,"perc"] *100, 1) %>% pull(perc)
+     other_perc <- round(resp_dta_filter[resp_dta_filter$Question == "Other" & resp_dta_filter$value == 1 ,"perc"] *100, 1) %>% pull(perc)
      
      #if any are 0 then replace with "none"
      discuss_perc <-ifelse(isEmpty(discuss_perc), "none", paste0(discuss_perc,"%"))

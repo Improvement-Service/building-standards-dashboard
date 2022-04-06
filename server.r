@@ -225,6 +225,14 @@ output$LA_KPO4_Heading <- renderUI({
     dl_all_data <- dl_all_data()
     council_fltr = local_authority()
     
+    # Recode "other" respondents and reasons so it doesn't show text value
+    dl_all_data$`Q1.4. Other (please specify):`[dl_all_data$`Q1.4. Other (please specify):` != "0"] <- "1"
+    dl_all_data$`Q2.4. Other (please specify):`[dl_all_data$`Q2.4. Other (please specify):` != "0"] <- "1"
+    # Change these columns to numeric so they can be combined with the other columns
+    dl_all_data$`Q1.4. Other (please specify):` <- as.numeric(dl_all_data$`Q1.4. Other (please specify):`)
+    dl_all_data$`Q2.4. Other (please specify):` <- as.numeric(dl_all_data$`Q2.4. Other (please specify):`)
+    
+    
  resp_dta <- dl_all_data %>% group_by(`Local Authority Name`) %>% select(1:12)%>%
     pivot_longer(cols = 5:12, names_to = "Question", values_to = "value")%>% 
     group_by(`Local Authority Name`,Question) %>%
@@ -237,9 +245,14 @@ output$LA_KPO4_Heading <- renderUI({
   ##Remove question numbers
   resp_dta$Question <- gsub("Q[\\.1-9]+\\s", "", resp_dta$Question,perl = T)
   
+  ##Remove "(please specify):"
+  resp_dta$Question[resp_dta$Question == "Other (please specify):"] <- "Other"
+  
   ##Filter to selected council
   resp_dta <- resp_dta%>%filter(`Local Authority Name` == council_fltr)
   
+  
+
   resp_dta
   
   })
@@ -269,9 +282,14 @@ output$LA_KPO4_Heading <- renderUI({
     rename("Q6. How satisfied were you, overall?" = "Q6. Overall, how satisfied were you with the service provided by [question(16082428)][variable(la)] Building Standards?")%>%
     rename("Q1.4. Other respondent" = "Q1.4. Other (please specify):") %>%
     rename("Q2.4. Other reason" = "Q2.4. Other (please specify):") %>%
-    mutate(across(contains(c("Q1.1. Agent/Designer", "Q1.2. Applicant", "Q1.3. Contractor", 
+    mutate(across(contains(c("Q1.1. Agent/Designer", 
+                             "Q1.2. Applicant", 
+                             "Q1.3. Contractor",
+                             "Q1.4. Other respondent",
                              "Q2.1. To discuss your proposal",
-                             "Q2.2. To make an application", "Q2.3. During construction")),
+                             "Q2.2. To make an application", 
+                             "Q2.3. During construction",
+                             "Q2.4. Other reason")),
                   ~recode(., "1" = "Yes", 
                           "0" = "No"))) %>%
     select(-LA)
@@ -772,7 +790,7 @@ output$LA_KPO4_Heading <- renderUI({
      agent_perc <- round(resp_dta_filter[resp_dta_filter$Question == "Agent/Designer" & resp_dta_filter$value == 1 ,"perc"] *100, 1) %>% pull(perc)
      appli_perc <- round(resp_dta_filter[resp_dta_filter$Question == "Applicant" & resp_dta_filter$value == 1 ,"perc"] *100, 1) %>% pull(perc)
      contr_perc <- round(resp_dta_filter[resp_dta_filter$Question == "Contractor" & resp_dta_filter$value == 1 ,"perc"] *100, 1) %>% pull(perc)
-     other_perc <- round(resp_dta_filter[resp_dta_filter$Question == "Other (please specify):" & resp_dta_filter$value == 1 ,"perc"] *100, 1) %>% pull(perc)
+     other_perc <- round(resp_dta_filter[resp_dta_filter$Question == "Other" & resp_dta_filter$value == 1 ,"perc"] *100, 1) %>% pull(perc)
      #if any are 0 then replace with "none"
      agent_perc <-ifelse(isEmpty(agent_perc), "none", paste0(agent_perc,"%"))
      appli_perc <-ifelse(isEmpty(appli_perc), "none", paste0(appli_perc,"%"))
@@ -800,7 +818,7 @@ output$LA_KPO4_Heading <- renderUI({
      discuss_perc <- round(resp_dta_filter[resp_dta_filter$Question == "To discuss your proposal before applying for a building warrant" & resp_dta_filter$value == 1 ,"perc"] *100, 1) %>% pull(perc)
      appli_perc <- round(resp_dta_filter[resp_dta_filter$Question == "To make an application for a building warrant" & resp_dta_filter$value == 1 ,"perc"] *100, 1) %>% pull(perc)
      constr_perc <- round(resp_dta_filter[resp_dta_filter$Question == "During construction, including submission of a completion certificate" & resp_dta_filter$value == 1 ,"perc"] *100, 1) %>% pull(perc)
-     other_perc <- round(resp_dta_filter[resp_dta_filter$Question == "Other (please specify):" & resp_dta_filter$value == 1 ,"perc"] *100, 1) %>% pull(perc)
+     other_perc <- round(resp_dta_filter[resp_dta_filter$Question == "Other" & resp_dta_filter$value == 1 ,"perc"] *100, 1) %>% pull(perc)
      
      #if any are 0 then replace with "none"
      discuss_perc <-ifelse(isEmpty(discuss_perc), "none", paste0(discuss_perc,"%"))
@@ -1968,9 +1986,13 @@ output$LA_KPO4_Heading <- renderUI({
                                  "2" = "No",
                                  "3" = "NA"))) %>%
            dplyr::rename("Quarter" = "Tracking Link") %>%
-           mutate(across(contains(c("Q1.1. Agent/Designer", "Q1.2. Applicant", "Q1.3. Contractor", 
+           mutate(across(contains(c("Q1.1. Agent/Designer", 
+                                    "Q1.2. Applicant", 
+                                    "Q1.3. Contractor", 
+                                    "Other (please specify):",
                                    "Q2.1. To discuss your proposal",
-                                    "Q2.2. To make an application", "Q2.3. During construction")),
+                                    "Q2.2. To make an application", 
+                                   "Q2.3. During construction")),
                          ~recode(., "1" = "Yes", 
                                  "0" = "No"))) %>%
            select(-LA)
