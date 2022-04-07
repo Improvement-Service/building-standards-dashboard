@@ -1,6 +1,7 @@
 ---
-title: "Overview report"
+title: "National Customer Survey Performance Overview Report"
 output: pdf_document
+fontsize: 12pt
 params:
   time_data: NA
   la: NA
@@ -76,11 +77,11 @@ ggplot(data = kpo_data1,
          position = "dodge",
          width = 0.7,
          colour = "black") +
-  geom_text(aes(label = KPO_score, y = KPO_score + 1.2), 
+  geom_text(aes(label = KPO_score, y = KPO_score + 0.8), 
                  vjust = 0,
                  position = position_dodge(width = 0.9) 
                  )+
-  #scale_y_continuous(limits = c(0,11), expand = expansion(mult = c(0, 0.1)))+
+  scale_y_continuous(limits = c(0,11), expand = expansion(mult = c(0, 0.1)))+
   scale_fill_manual(
     values = c("cadetblue3", "dimgrey"),
     name = ""
@@ -130,7 +131,7 @@ ggplot(data = type_data,
                  )+
         coord_flip() +
         theme_classic()+
-     #   scale_y_continuous(expand = c(0, 0))+
+        scale_y_continuous(expand = expansion(mult = c(0, 0.1)))+
         ggtitle("Respondent Type: YTD")+
         xlab("Respondent Type")+
         ylab("Percentage of Responses")
@@ -177,7 +178,7 @@ ggplot(data = reason_data,
                  )+
         coord_flip() +
         theme_classic()+
-      #  scale_y_continuous( expand = c(0, 0))+
+        scale_y_continuous( expand = expansion(mult = c(0, 0.1)))+
          ggtitle("Response Reason:YTD")+
          xlab("Reason")+
          ylab("Percentage of Responses")
@@ -256,7 +257,7 @@ ggplot(data = line_data,
        scale_color_manual( 
             values = c("cadetblue3", "dimgrey"), name = "")+
        ggtitle("KPO 4 score - over time")+
-      # ylim(0,10)+
+     #scale_y_continuous(limits = c(0,11), expand = expansion(mult = c(0, 0.1)))+
        xlab("")+
        ylab("KPO 4 Score")+
        theme_classic()
@@ -279,7 +280,7 @@ ggplot(data = line_data,
                  vjust = 0,
                  position = position_dodge(width = 0.9)
                  )+
-#  scale_y_continuous(limits = c(0,10), expand = c(0, 0))+
+scale_y_continuous(limits = c(0,11), expand = expansion(mult = c(0, 0.1)))+
        scale_fill_manual( 
             values = c("cadetblue3", "dimgrey"), name = "")+
        ggtitle("KPO 4 score - over time")+
@@ -398,6 +399,7 @@ In this year for `r la` to date for the question "Thinking of your engagement, h
     values = c("cadetblue3", "dimgrey"),
     name = ""
     )+
+  scale_y_continuous(expand = expansion(mult = c(0, 0.1)))+
   ggtitle("Satisfaction with time taken - Year to Date")+
   xlab("Responses") +
   ylab("Percentage of Responses")+
@@ -431,6 +433,7 @@ In this year for `r la` to date for the question "How would you rate the standar
   scale_fill_manual(
     values = c("cadetblue3", "dimgrey"), name = ""
   )+
+  scale_y_continuous(expand = expansion(mult = c(0, 0.1)))+
   ggtitle("Standard of Communication - Year to Date")+
   xlab("Responses")+
   ylab("Percentage of Responses")+
@@ -464,6 +467,7 @@ In this year for `r la` to date for the question "How would you rate the quality
     )+
   ggtitle("Quality of information - Year to Date")+
   xlab("Responses") +
+    scale_y_continuous(expand = expansion(mult = c(0, 0.1)))+
   ylab("Percentage of Responses")+
   theme_classic()
 ```
@@ -493,6 +497,7 @@ In this year for `r la` to date for the question "How would you rate the service
     values = c("cadetblue3", "dimgrey"),
     name = ""
     )+
+    scale_y_continuous(expand = expansion(mult = c(0, 0.1)))+
   ggtitle("Service offered by staff - Year to Date")+
   xlab("Responses") +
   ylab("Percentage of Responses")+
@@ -525,6 +530,7 @@ In this year for `r la` to date for the question "How would you rate the time ta
     name = ""
     )+
   ggtitle("Responsiveness to queries or issues - Year to Date")+
+    scale_y_continuous(expand = expansion(mult = c(0, 0.1)))+
   xlab("Responses") +
   ylab("Percentage of Responses")+
   theme_classic()
@@ -556,6 +562,7 @@ In this year for `r la` to date for the question "To what extent would you agree
     name = ""
     )+
   ggtitle("Would you agree you were treated fairly - Year to Date")+
+    scale_y_continuous(expand = expansion(mult = c(0, 0.1)))+
   xlab("Responses") +
   ylab("Percentage of Responses")+
   theme_classic()
@@ -586,6 +593,7 @@ In this year for `r la` to date for the question "Overall, how satisfied were yo
     values = c("cadetblue3", "dimgrey"),
     name = ""
     )+
+    scale_y_continuous(expand = expansion(mult = c(0, 0.1)))+
   ggtitle("Overall satisfaction - Year to Date")+
   xlab("Responses") +
   ylab("Percentage of Responses")+
