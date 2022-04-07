@@ -285,4 +285,8 @@ KPO_popover_text<-paste("KPO4 is calculated by applying the following weightings
                         "Communications and time taken - 12.5% each",
                         "Staff, information, responsiveness, fairness - 6.25% each.",
                         sep = "<br>")
-
+report_popover_text <- paste("This page shows a summary of all", 
+                            "results from the survey. Click the",
+                            "Generate report button to download",
+                            "a pdf report of these results.",
+                             sep = "<br>")

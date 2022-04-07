@@ -1,5 +1,6 @@
 ui <- dashboardPage(skin = "blue",
-  dashboardHeader(title = "NCS Dashboard"),
+  dashboardHeader(title = "National Customer Survey Dashboard",
+                  titleWidth = 400),
  
    dashboardSidebar(
     uiOutput("la_select"),
@@ -10,6 +11,7 @@ ui <- dashboardPage(skin = "blue",
       menuItem("Report Download", tabName = "RptDl", icon = icon("chart-area")),
       menuItem("Data Download", tabName = "DtDl", icon = icon("download")),
       menuItem("Open Text", tabName = "OpTxt", icon = icon("comments")),
+      uiOutput("userpanel"),
       tags$footer(a("Contact us", href = "mailto:research@improvementservice.org.uk"), style = "position:fixed; bottom:0; margin-left:2px")
       
     )
@@ -23,7 +25,7 @@ ui <- dashboardPage(skin = "blue",
                 valueBoxOutput("performanceBox"), #performance for council
                 bsPopover("performanceBox", title = "KPO4 Weightings" ,
                          content = KPO_popover_text,
-                          "right", trigger = "click"),
+                          "right", trigger = "hover"),
                 valueBoxOutput("scotPerfBox"),   #Scotland average performance
                 valueBoxOutput("respBox")
                 ),
@@ -75,7 +77,11 @@ ui <- dashboardPage(skin = "blue",
                ),
       tabItem(tabName = "RptDl",
             #  h2("Report Download", style = "margin-top:3px"),
-            div(style = "margin-bottom: 5px",downloadBttn("report", "Generate report")),
+            div(style = "margin-bottom: 5px; display: inline",downloadBttn("report", "Generate report")),
+            div(style = "float:right", bsButton("q1_pop", label = "", icon = icon("question"), style = "info", size = "extra-small")),
+            bsPopover("q1_pop",title = "About This Page" ,
+                      content = report_popover_text,
+                      "left", trigger = "hover"),
               fluidRow(
                 box(width = 8, plotlyOutput("reportKPO4Plot")),
                 box(width = 4,style = "font-size:18px",textOutput("KPO4_text_report"))
@@ -122,7 +128,7 @@ ui <- dashboardPage(skin = "blue",
             )
               ),
       tabItem(tabName = "DtDl",
-              downloadBttn("all_data_dl", label = "Download all data", style = "jelly"),
+              div(style = "margin-bottom: 5px",downloadBttn("all_data_dl", label = "Download all data", style = "jelly")),
               box(div(DT::dataTableOutput("tableDisp"),style = "font-size:80%; line-height:75%; width:100%; padding-left:0px"),width = 12)
               
               ),
