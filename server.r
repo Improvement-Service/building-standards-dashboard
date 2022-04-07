@@ -2037,4 +2037,15 @@ output$LA_KPO4_Heading <- renderUI({
        
      })
      
+##log in details     
+     output$userpanel <- renderUI({
+       # session$user is non-NULL only in authenticated sessions
+       if (!is.null(session$user)) {
+         usr <- session$user
+         usr <- gsub("(@).+\\..+", "", usr, perl = T)
+         sidebarUserPanel(
+           paste("Logged in as: ", usr, sep = "\n"),
+           subtitle = a(icon("sign-out"), "Logout", href="__logout__"))
+       }
+     })
  }
