@@ -1,6 +1,7 @@
 ---
-title: "Overview report"
+title: "National Customer Survey Performance Overview Report"
 output: pdf_document
+fontsize: 13pt
 params:
   time_data: NA
   la: NA
@@ -54,6 +55,7 @@ local_auth <- la
 
 This indicator summarises performance across all questions, with differential weightings based on importance. For `r la` in `r curr_year`, overall performance is at `r KPO4_ytd` for the year to date. This is `r abbel_kpo4` the Scotland average of `r scotAv_kpo4` and `r hilow_kpo4` the target value of 7.5.  
 
+
 ```{r echo = F}
      
 kpo_data1 <- kpo_data %>% filter(`Tracking Link` == "Total")
@@ -75,11 +77,11 @@ ggplot(data = kpo_data1,
          position = "dodge",
          width = 0.7,
          colour = "black") +
-  geom_text(aes(label = KPO_score, y = KPO_score + 1.2), 
+  geom_text(aes(label = KPO_score, y = KPO_score + 0.8), 
                  vjust = 0,
                  position = position_dodge(width = 0.9) 
                  )+
-  #scale_y_continuous(limits = c(0,11), expand = expansion(mult = c(0, 0.1)))+
+  scale_y_continuous(limits = c(0,11), expand = expansion(mult = c(0, 0.1)))+
   scale_fill_manual(
     values = c("cadetblue3", "dimgrey"),
     name = ""
@@ -113,7 +115,9 @@ type_dta_filter <- respondent_data %>% filter(question_type == "Type")
      type_other_perc <- ifelse(isEmpty(type_other_perc), "No respondents", paste0(type_other_perc, "%"))
 ```
 
-Respondents were asked to provide details on the type of respondent they were, as well as their reason for contacting the Building Standards Service in `r la`. Of the `r type_number` respondents `r agent_perc` were agents or designers, `r appli_perc` were applicants and `r contr_perc` were contractors. `r type_other_perc` said they were an other respondent type.
+  
+Respondents were asked to provide details on the type of respondent they were, as well as their reason for contacting the Building Standards Service in `r la`. Of the `r type_number` respondents `r agent_perc` were agents or designers, `r appli_perc` were applicants and `r contr_perc` were contractors. `r type_other_perc` said they were an other respondent type.  
+
 
 ```{r echo = F}
 ggplot(data = type_data,
@@ -127,7 +131,7 @@ ggplot(data = type_data,
                  )+
         coord_flip() +
         theme_classic()+
-     #   scale_y_continuous(expand = c(0, 0))+
+        scale_y_continuous(expand = expansion(mult = c(0, 0.1)))+
         ggtitle("Respondent Type: YTD")+
         xlab("Respondent Type")+
         ylab("Percentage of Responses")
@@ -158,7 +162,9 @@ ggplot(data = type_data,
      
 ```
 
-Respondents were asked to provide details on the type of respondent they were, as well as their reason for contacting the Building Standards Service in `r la`. Of the `r resp_number` respondents, `r discuss_perc` contacted the local authority to discuss their proposal before applying for a building warrant, `r appli_perc` were making an application for a warrant and `r constr_perc` contacted the service during construction. `r other_perc` contacted the service for some other reason.
+  
+Respondents were asked to provide details on the type of respondent they were, as well as their reason for contacting the Building Standards Service in `r la`. Of the `r resp_number` respondents, `r discuss_perc` contacted the local authority to discuss their proposal before applying for a building warrant, `r appli_perc` were making an application for a warrant and `r constr_perc` contacted the service during construction. `r other_perc` contacted the service for some other reason.  
+
 
 ```{r echo = F}
 ggplot(data = reason_data,
@@ -172,7 +178,7 @@ ggplot(data = reason_data,
                  )+
         coord_flip() +
         theme_classic()+
-      #  scale_y_continuous( expand = c(0, 0))+
+        scale_y_continuous( expand = expansion(mult = c(0, 0.1)))+
          ggtitle("Response Reason:YTD")+
          xlab("Reason")+
          ylab("Percentage of Responses")
@@ -232,7 +238,8 @@ line_data$LA <- factor(line_data$LA, levels = c(la, "Scotland"))
 line_data <- arrange(line_data,LA)
 
 ```
-
+  
+  
 ```{r, eval = length(line_data$`Tracking Link`[line_data$LA == la]) > 1, echo = F}
 
 ggplot(data = line_data,
@@ -250,13 +257,14 @@ ggplot(data = line_data,
        scale_color_manual( 
             values = c("cadetblue3", "dimgrey"), name = "")+
        ggtitle("KPO 4 score - over time")+
-      # ylim(0,10)+
+     #scale_y_continuous(limits = c(0,11), expand = expansion(mult = c(0, 0.1)))+
        xlab("")+
        ylab("KPO 4 Score")+
        theme_classic()
   
 ```
-
+  
+  
 ```{r, eval = length(line_data$`Tracking Link`[line_data$LA == la]) < 2, echo = F}
 
 ggplot(data = line_data,
@@ -272,7 +280,7 @@ ggplot(data = line_data,
                  vjust = 0,
                  position = position_dodge(width = 0.9)
                  )+
-#  scale_y_continuous(limits = c(0,10), expand = c(0, 0))+
+scale_y_continuous(limits = c(0,11), expand = expansion(mult = c(0, 0.1)))+
        scale_fill_manual( 
             values = c("cadetblue3", "dimgrey"), name = "")+
        ggtitle("KPO 4 score - over time")+
@@ -368,7 +376,7 @@ ggplot(data = line_data,
 
 tm <- text_prep(time_data)
 ```
-In this year for `r la` to date for the question "Thinking of your engagement, how satisfied were you with the time taken to complete the process?" responses have been `r tm$pos_or_neg` with `r tm$total_good` percent saying that they were very satisfied or satisfied. The greatest proportion of respondents said they were `r tm$max_name` at `r tm$max_perc` This was followed by `r tm$sec_name` at `r tm$sec_perc` For Scotland overall, most respondents said that they were `r tm$scot_max_name` at `r tm$scot_max_perc`
+In this year for `r la` to date for the question "Thinking of your engagement, how satisfied were you with the time taken to complete the process?" responses have been `r tm$pos_or_neg` with `r tm$total_good` percent saying that they were very satisfied or satisfied. The greatest proportion of respondents said they were `r tm$max_name` at `r tm$max_perc` This was followed by `r tm$sec_name` at `r tm$sec_perc` For Scotland overall, most respondents said that they were `r tm$scot_max_name` at `r tm$scot_max_perc`  
 
 
 ```{r echo = F}
@@ -391,6 +399,7 @@ In this year for `r la` to date for the question "Thinking of your engagement, h
     values = c("cadetblue3", "dimgrey"),
     name = ""
     )+
+  scale_y_continuous(expand = expansion(mult = c(0, 0.1)))+
   ggtitle("Satisfaction with time taken - Year to Date")+
   xlab("Responses") +
   ylab("Percentage of Responses")+
@@ -402,7 +411,7 @@ In this year for `r la` to date for the question "Thinking of your engagement, h
 ```{r echo=FALSE, comment= ""}
 cm_txt <- text_prep(comms_data)
 ```
-In this year for `r la` to date for the question "How would you rate the standard of communication provided?" responses have been `r cm_txt$pos_or_neg` with `r cm_txt$total_good` percent saying that it was good or very good. The greatest proportion of respondents said they felt it was `r cm_txt$max_name` at `r cm_txt$max_perc` This was followed by `r cm_txt$sec_name` at `r cm_txt$sec_perc` For Scotland overall, most respondents said that communication was `r cm_txt$scot_max_name` at `r cm_txt$scot_max_perc`
+In this year for `r la` to date for the question "How would you rate the standard of communication provided?" responses have been `r cm_txt$pos_or_neg` with `r cm_txt$total_good` percent saying that it was good or very good. The greatest proportion of respondents said they felt it was `r cm_txt$max_name` at `r cm_txt$max_perc` This was followed by `r cm_txt$sec_name` at `r cm_txt$sec_perc` For Scotland overall, most respondents said that communication was `r cm_txt$scot_max_name` at `r cm_txt$scot_max_perc`  
 
 ```{r echo = F}
      ggplot(data = comms_data,
@@ -424,6 +433,7 @@ In this year for `r la` to date for the question "How would you rate the standar
   scale_fill_manual(
     values = c("cadetblue3", "dimgrey"), name = ""
   )+
+  scale_y_continuous(expand = expansion(mult = c(0, 0.1)))+
   ggtitle("Standard of Communication - Year to Date")+
   xlab("Responses")+
   ylab("Percentage of Responses")+
@@ -435,7 +445,7 @@ In this year for `r la` to date for the question "How would you rate the standar
 ```{r echo=FALSE, comment= ""}
 inf_txt <- text_prep(info_data)
 ```
-In this year for `r la` to date for the question "How would you rate the quality of information provided?" responses have been `r inf_txt$pos_or_neg` with `r inf_txt$total_good` percent saying that it was good or very good. The greatest proportion of respondents said they felt it was `r inf_txt$max_name` at `r inf_txt$max_perc` This was followed by `r inf_txt$sec_name` at `r inf_txt$sec_perc` For Scotland overall, most respondents said that the information they received was `r inf_txt$scot_max_name` at `r inf_txt$scot_max_perc`
+In this year for `r la` to date for the question "How would you rate the quality of information provided?" responses have been `r inf_txt$pos_or_neg` with `r inf_txt$total_good` percent saying that it was good or very good. The greatest proportion of respondents said they felt it was `r inf_txt$max_name` at `r inf_txt$max_perc` This was followed by `r inf_txt$sec_name` at `r inf_txt$sec_perc` For Scotland overall, most respondents said that the information they received was `r inf_txt$scot_max_name` at `r inf_txt$scot_max_perc`  
 
 ```{r echo = F}
      ggplot(
@@ -457,6 +467,7 @@ In this year for `r la` to date for the question "How would you rate the quality
     )+
   ggtitle("Quality of information - Year to Date")+
   xlab("Responses") +
+    scale_y_continuous(expand = expansion(mult = c(0, 0.1)))+
   ylab("Percentage of Responses")+
   theme_classic()
 ```
@@ -466,7 +477,7 @@ In this year for `r la` to date for the question "How would you rate the quality
 ```{r echo=FALSE, comment= ""}
 staff_txt <- text_prep(staff_data)
 ```
-In this year for `r la` to date for the question "How would you rate the service offered by staff?" responses have been `r staff_txt$pos_or_neg` with `r staff_txt$total_good` percent saying that it was good or very good. The greatest proportion of respondents said they felt it was `r staff_txt$max_name` at `r staff_txt$max_perc` This was followed by `r staff_txt$sec_name` at `r staff_txt$sec_perc` For Scotland overall, most respondents said that the service received was `r staff_txt$scot_max_name` at `r staff_txt$scot_max_perc`
+In this year for `r la` to date for the question "How would you rate the service offered by staff?" responses have been `r staff_txt$pos_or_neg` with `r staff_txt$total_good` percent saying that it was good or very good. The greatest proportion of respondents said they felt it was `r staff_txt$max_name` at `r staff_txt$max_perc` This was followed by `r staff_txt$sec_name` at `r staff_txt$sec_perc` For Scotland overall, most respondents said that the service received was `r staff_txt$scot_max_name` at `r staff_txt$scot_max_perc`  
 
 ```{r echo = F}
      ggplot(
@@ -486,6 +497,7 @@ In this year for `r la` to date for the question "How would you rate the service
     values = c("cadetblue3", "dimgrey"),
     name = ""
     )+
+    scale_y_continuous(expand = expansion(mult = c(0, 0.1)))+
   ggtitle("Service offered by staff - Year to Date")+
   xlab("Responses") +
   ylab("Percentage of Responses")+
@@ -498,7 +510,7 @@ In this year for `r la` to date for the question "How would you rate the service
 ```{r echo=FALSE, comment= ""}
 resp_txt <- text_prep(responsive_data)
 ```
-In this year for `r la` to date for the question "How would you rate the time taken to respond to any queries or issues raised?" responses have been `r resp_txt$pos_or_neg` with `r resp_txt$total_good` percent saying that it was good or very good. The greatest proportion of respondents said they were `r resp_txt$max_name` at `r resp_txt$max_perc` This was followed by `r resp_txt$sec_name` at `r resp_txt$sec_perc` For Scotland overall, most respondents said that responsiveness was `r resp_txt$scot_max_name` at `r resp_txt$scot_max_perc`
+In this year for `r la` to date for the question "How would you rate the time taken to respond to any queries or issues raised?" responses have been `r resp_txt$pos_or_neg` with `r resp_txt$total_good` percent saying that it was good or very good. The greatest proportion of respondents said they were `r resp_txt$max_name` at `r resp_txt$max_perc` This was followed by `r resp_txt$sec_name` at `r resp_txt$sec_perc` For Scotland overall, most respondents said that responsiveness was `r resp_txt$scot_max_name` at `r resp_txt$scot_max_perc`  
 
 ```{r echo = F}
      ggplot(
@@ -518,6 +530,7 @@ In this year for `r la` to date for the question "How would you rate the time ta
     name = ""
     )+
   ggtitle("Responsiveness to queries or issues - Year to Date")+
+    scale_y_continuous(expand = expansion(mult = c(0, 0.1)))+
   xlab("Responses") +
   ylab("Percentage of Responses")+
   theme_classic()
@@ -528,7 +541,7 @@ In this year for `r la` to date for the question "How would you rate the time ta
 ```{r echo=FALSE, comment= ""}
 fair_txt <- text_prep(fair_data)
 ```
-In this year for `r la` to date for the question "To what extent would you agree that you were treated fairly?" responses have been `r fair_txt$pos_or_neg` with `r fair_txt$total_good` percent saying that they agree or strongly agree. The greatest proportion of respondents said they `r fair_txt$max_name` with the statement at `r fair_txt$max_perc` This was followed by `r fair_txt$sec_name` at `r fair_txt$sec_perc` For Scotland overall, most respondents said that they `r fair_txt$scot_max_name` at `r fair_txt$scot_max_perc`
+In this year for `r la` to date for the question "To what extent would you agree that you were treated fairly?" responses have been `r fair_txt$pos_or_neg` with `r fair_txt$total_good` percent saying that they agree or strongly agree. The greatest proportion of respondents said they `r fair_txt$max_name` with the statement at `r fair_txt$max_perc` This was followed by `r fair_txt$sec_name` at `r fair_txt$sec_perc` For Scotland overall, most respondents said that they `r fair_txt$scot_max_name` at `r fair_txt$scot_max_perc`  
 
 ```{r echo = F}
      ggplot(
@@ -549,6 +562,7 @@ In this year for `r la` to date for the question "To what extent would you agree
     name = ""
     )+
   ggtitle("Would you agree you were treated fairly - Year to Date")+
+    scale_y_continuous(expand = expansion(mult = c(0, 0.1)))+
   xlab("Responses") +
   ylab("Percentage of Responses")+
   theme_classic()
@@ -559,7 +573,7 @@ In this year for `r la` to date for the question "To what extent would you agree
 ```{r echo=FALSE, comment= ""}
 ovr_txt <- text_prep(overall_data)
 ```
-In this year for `r la` to date for the question "Overall, how satisfied were you with the service provided?" responses have been `r ovr_txt$pos_or_neg` with `r ovr_txt$total_good` percent saying that they were very satisfied or satisfied. The greatest proportion of respondents said they were `r ovr_txt$max_name` at `r ovr_txt$max_perc` This was followed by `r ovr_txt$sec_name` at `r ovr_txt$sec_perc` For Scotland overall, most respondents said that they were `r ovr_txt$scot_max_name` at `r ovr_txt$scot_max_perc`
+In this year for `r la` to date for the question "Overall, how satisfied were you with the service provided?" responses have been `r ovr_txt$pos_or_neg` with `r ovr_txt$total_good` percent saying that they were very satisfied or satisfied. The greatest proportion of respondents said they were `r ovr_txt$max_name` at `r ovr_txt$max_perc` This was followed by `r ovr_txt$sec_name` at `r ovr_txt$sec_perc` For Scotland overall, most respondents said that they were `r ovr_txt$scot_max_name` at `r ovr_txt$scot_max_perc`  
 
 ```{r echo = F}
      ggplot(
@@ -579,6 +593,7 @@ In this year for `r la` to date for the question "Overall, how satisfied were yo
     values = c("cadetblue3", "dimgrey"),
     name = ""
     )+
+    scale_y_continuous(expand = expansion(mult = c(0, 0.1)))+
   ggtitle("Overall satisfaction - Year to Date")+
   xlab("Responses") +
   ylab("Percentage of Responses")+
