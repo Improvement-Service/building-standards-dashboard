@@ -83,48 +83,48 @@ ui <- dashboardPage(skin = "blue",
                       content = report_popover_text,
                       "left", trigger = "hover"),
               fluidRow(
-                box(width = 8, plotlyOutput("reportKPO4Plot")),
-                box(width = 4,style = "font-size:18px",textOutput("KPO4_text_report"))
+                box(width = 8, plotlyOutput("reportKPO4Plot")%>%withSpinner()),
+                box(width = 4,style = "font-size:18px",textOutput("KPO4_text_report")%>%withSpinner())
               ),
               fluidRow(
-                box(width = 8, plotlyOutput("resp_type_graph_report")),
-                box(width = 4,style = "font-size:18px",textOutput("respondent_type_text_report"))
+                box(width = 8, plotlyOutput("resp_type_graph_report")%>%withSpinner()),
+                box(width = 4,style = "font-size:18px",textOutput("respondent_type_text_report")%>%withSpinner())
                ),
             fluidRow(
-              box(width = 8, plotlyOutput("resp_reason_graph_report")),
-              box(width = 4,style = "font-size:18px",textOutput("respondent_reason_text_report"))
+              box(width = 8, plotlyOutput("resp_reason_graph_report")%>%withSpinner()),
+              box(width = 4,style = "font-size:18px",textOutput("respondent_reason_text_report")%>%withSpinner())
             ),
             fluidRow(
-              box(width = 8, plotlyOutput("ovrPerfLine")),
-              box(width = 4, style = "font-size:18px",textOutput("quarter_text"))
+              box(width = 8, plotlyOutput("ovrPerfLine")%>%withSpinner()),
+              box(width = 4, style = "font-size:18px",textOutput("quarter_text")%>%withSpinner())
             ),
             fluidRow(
               box(width = 8, plotlyOutput("question_time_report")),
               box(width = 4, style = "font-size:18px",textOutput("question_time_report_text"))
             ),
             fluidRow(
-              box(width = 8, plotlyOutput("question_comms_report")),
-              box(width = 4, style = "font-size:18px",textOutput("question_comms_report_text"))
+              box(width = 8, plotlyOutput("question_comms_report")%>%withSpinner()),
+              box(width = 4, style = "font-size:18px",textOutput("question_comms_report_text")%>%withSpinner())
             ),
             fluidRow(
-              box(width = 8, plotlyOutput("question_info_report")),
-              box(width = 4, style = "font-size:18px",textOutput("question_info_report_text"))
+              box(width = 8, plotlyOutput("question_info_report")%>%withSpinner()),
+              box(width = 4, style = "font-size:18px",textOutput("question_info_report_text")%>%withSpinner())
             ),
             fluidRow(
-              box(width = 8, plotlyOutput("question_staff_report")),
-              box(width = 4, style = "font-size:18px",textOutput("question_staff_report_text"))
+              box(width = 8, plotlyOutput("question_staff_report")%>%withSpinner()),
+              box(width = 4, style = "font-size:18px",textOutput("question_staff_report_text")%>%withSpinner())
             ),
             fluidRow(
-              box(width = 8, plotlyOutput("question_responsiveness_report")),
-              box(width = 4, style = "font-size:18px",textOutput("question_responsiveness_report_text"))
+              box(width = 8, plotlyOutput("question_responsiveness_report")%>%withSpinner()),
+              box(width = 4, style = "font-size:18px",textOutput("question_responsiveness_report_text")%>%withSpinner())
             ),
             fluidRow(
-              box(width = 8, plotlyOutput("question_fair_report")),
-              box(width = 4, style = "font-size:18px",textOutput("question_fair_report_text"))
+              box(width = 8, plotlyOutput("question_fair_report")%>%withSpinner()),
+              box(width = 4, style = "font-size:18px",textOutput("question_fair_report_text")%>%withSpinner())
             ),
             fluidRow(
-              box(width = 8, plotlyOutput("question_overall_report")),
-              box(width = 4,  style = "font-size:18px", textOutput("question_overall_report_text"))
+              box(width = 8, plotlyOutput("question_overall_report")%>%withSpinner()),
+              box(width = 4,  style = "font-size:18px", textOutput("question_overall_report_text")%>%withSpinner())
             )
               ),
       tabItem(tabName = "DtDl",
