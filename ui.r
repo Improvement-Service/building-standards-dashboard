@@ -12,7 +12,8 @@ ui <- dashboardPage(skin = "blue",
       menuItem("Open Text", tabName = "OpTxt", icon = icon("comments")),
       tags$footer(a("Contact us", href = "mailto:research@improvementservice.org.uk"), style = "position:fixed; bottom:0; margin-left:2px")
       
-    )
+    ),
+    uiOutput("KPO_data_dl")
   ),
   
   dashboardBody(
