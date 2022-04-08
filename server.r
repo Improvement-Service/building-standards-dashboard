@@ -5,8 +5,7 @@ function(input, output, session) {
 
 #first, get the user  
   user <- reactive({
-    #session$user
-    "nicholas.cassidy@improvementservice.org.uk"
+    session$user
   })
   
 #generate ui drop down
@@ -424,6 +423,24 @@ output$LA_KPO4_Heading <- renderUI({
   total_la_max_sum$Area[is.na(total_la_max_sum$Area)] <- "Scotland"
   
   total_la_max_sum <- total_la_max_sum %>% arrange(Quarter)
+  
+  # Create download button for KPO 4 data
+  output$KPO_data_file <- downloadHandler(
+    filename = paste("KPO4_Data", ".csv", sep = ""),
+    content = function(file) {
+      write.csv(total_la_max_sum, file)
+    }
+  )
+  
+  # Create conditionality to only show download button if IS or SG
+  output$KPO_data_dl <- renderUI({
+    user <- user()
+    if(grepl("improvementservice.org.uk|gov.scot", user, ignore.case = T)) {
+      downloadBttn("KPO_data_file", label = "Download KPO4 Data", style = "jelly")
+    }else{
+      return()
+    }
+  })
   
 #Create performance box for selected Council  
   output$performanceBox <- renderValueBox({
