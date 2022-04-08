@@ -4,7 +4,7 @@ ui <- dashboardPage(skin = "blue",
  
    dashboardSidebar(
     uiOutput("la_select"),
-    
+    uiOutput("KPO_data_dl"),
     sidebarMenu(
       menuItem("Performance Overview", tabName="PrfOvr", icon = icon("dashboard")),
       menuItem("Question Results", tabName = "Qstns", icon = icon("question-circle")),
@@ -14,8 +14,7 @@ ui <- dashboardPage(skin = "blue",
       uiOutput("userpanel"),
       tags$footer(a("Contact us", href = "mailto:research@improvementservice.org.uk"), style = "position:fixed; bottom:0; margin-left:2px")
       
-    ),
-    uiOutput("KPO_data_dl")
+    )
   ),
   
   dashboardBody(
