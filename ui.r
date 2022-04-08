@@ -22,21 +22,21 @@ ui <- dashboardPage(skin = "blue",
       tabItem(tabName = "PrfOvr",
               uiOutput("LA_KPO4_Heading"),
               fluidRow(
-                valueBoxOutput("performanceBox"), #performance for council
+                valueBoxOutput("performanceBox")%>%withSpinner(), #performance for council
                 bsPopover("performanceBox", title = "KPO4 Weightings" ,
                          content = KPO_popover_text,
                           "right", trigger = "hover"),
-                valueBoxOutput("scotPerfBox"),   #Scotland average performance
-                valueBoxOutput("respBox")
+                valueBoxOutput("scotPerfBox")%>%withSpinner(),   #Scotland average performance
+                valueBoxOutput("respBox")%>%withSpinner()
                 ),
               fluidRow(
                 box(width = 8,
-                  plotlyOutput("ovrPerfBar")
+                  plotlyOutput("ovrPerfBar")%>%withSpinner()
                   ),
                 tabBox(width = 4,
                        title = "Respondents", 
                        id = "RespOverViewTabs",
-                       tabPanel("Type",plotlyOutput("respDoughnut")),
+                       tabPanel("Type",plotlyOutput("respDoughnut")%>%withSpinner()),
                        tabPanel("Reason", plotlyOutput("plotly_pie"))
                 )
                )
