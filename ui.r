@@ -82,7 +82,7 @@ ui <- dashboardPage(skin = "blue",
             bsPopover("q1_pop",title = "About This Page" ,
                       content = report_popover_text,
                       "left", trigger = "hover"),
-              fluidRow(
+              fluidRow(style = "margin-top:10px",
                 box(width = 8, plotlyOutput("reportKPO4Plot")%>%withSpinner()),
                 box(width = 4,style = "font-size:18px",textOutput("KPO4_text_report")%>%withSpinner())
               ),
