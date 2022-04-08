@@ -436,7 +436,7 @@ output$LA_KPO4_Heading <- renderUI({
   output$KPO_data_dl <- renderUI({
     user <- user()
     if(grepl("improvementservice.org.uk|gov.scot", user, ignore.case = T)) {
-      downloadBttn("KPO_data_file", label = "Download KPO4 Data", style = "jelly")
+      downloadBttn("KPO_data_file", label = "Download KPO4 Data", style = "jelly", size = "sm")
     }else{
       return()
     }
