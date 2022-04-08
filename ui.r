@@ -22,12 +22,12 @@ ui <- dashboardPage(skin = "blue",
       tabItem(tabName = "PrfOvr",
               uiOutput("LA_KPO4_Heading"),
               fluidRow(
-                valueBoxOutput("performanceBox")%>%withSpinner(), #performance for council
+                valueBoxOutput("performanceBox"), #performance for council
                 bsPopover("performanceBox", title = "KPO4 Weightings" ,
                          content = KPO_popover_text,
                           "right", trigger = "hover"),
                 valueBoxOutput("scotPerfBox")%>%withSpinner(),   #Scotland average performance
-                valueBoxOutput("respBox")%>%withSpinner()
+                valueBoxOutput("respBox")
                 ),
               fluidRow(
                 box(width = 8,
