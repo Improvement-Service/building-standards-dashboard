@@ -403,6 +403,28 @@ output$LA_KPO4_Heading <- renderUI({
     mutate(KPO_score = round((1-KPO4_weighted/maxAvailable)*10,1))
   })
   
+  
+  ##Create KPO4 download for all LA's
+  
+  total_la_max_sum <- scot_max %>%      
+    group_by(`Local Authority Name`,`Tracking Link`) %>%
+    summarise(across(c(maxAvailable,KPO4_weighted),sum, na.rm = T)) %>% 
+    bind_rows(summarise(.,across(where(is.numeric), sum),
+                        across(where(is.character), ~"Total")))  %>%
+    ##generate the KPO score (out of 10)    
+    mutate(KPO_score = round((1-KPO4_weighted/maxAvailable)*10,1)) %>%
+    rbind(scot_max_sum) %>%
+    select(-maxAvailable, -KPO4_weighted) %>%
+    rename(Area = `Local Authority Name`) %>%
+    rename(Quarter = `Tracking Link`) %>%
+    rename(`KPO4 Score` = KPO_score)
+  
+  total_la_max_sum$Quarter <- recode(total_la_max_sum$Quarter, "Total" = "Year to Date")
+  
+  total_la_max_sum$Area[is.na(total_la_max_sum$Area)] <- "Scotland"
+  
+  total_la_max_sum <- total_la_max_sum %>% arrange(Quarter)
+  
 #Create performance box for selected Council  
   output$performanceBox <- renderValueBox({
     la_max_sum <- la_max_sum()
