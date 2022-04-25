@@ -422,7 +422,7 @@ output$LA_KPO4_Heading <- renderUI({
   
   total_la_max_sum$Area[is.na(total_la_max_sum$Area)] <- "Scotland"
   
-  total_la_max_sum <- total_la_max_sum %>% arrange(`Financial Year`,Quarter)
+  total_la_max_sum <- total_la_max_sum %>% arrange(`Financial Year`, Quarter)
   
   # Create download button for KPO 4 data
   output$KPO_data_file <- downloadHandler(
@@ -445,22 +445,46 @@ output$LA_KPO4_Heading <- renderUI({
 #Create performance box for selected Council  
   output$performanceBox <- renderValueBox({
     la_max_sum <- la_max_sum()
-    kpo_colr <- ifelse(la_max_sum[la_max_sum$`Tracking Link` =="Total", "KPO_score"] > 7.5, "green", ifelse(la_max_sum[la_max_sum$`Tracking Link` =="Total", "KPO_score"] < 6.5, "red", "orange"))
+    kpo_colr <- ifelse(
+      la_max_sum[la_max_sum$`Tracking Link` =="Total" & la_max_sum$`Financial Year` == fin_yr, "KPO_score"] > 7.5, 
+      "green", 
+      ifelse(la_max_sum[la_max_sum$`Tracking Link` =="Total" & la_max_sum$`Financial Year` == fin_yr, "KPO_score"] < 6.5, 
+             "red", 
+             "orange"
+             )
+      )
     valueBox(
-      value = round(la_max_sum[la_max_sum$`Tracking Link` =="Total", "KPO_score"],1), "Council KPO4 YTD", icon = icon("chart-bar"), color = kpo_colr
+      value = round(la_max_sum[la_max_sum$`Tracking Link` =="Total" & la_max_sum$`Financial Year` == fin_yr, "KPO_score"],1), 
+      "Council KPO4 YTD", 
+      icon = icon("chart-bar"), 
+      color = kpo_colr
     )
   })
 #Create performance box for Scotland
   output$scotPerfBox<- renderValueBox({
    valueBox(
-      value = round(scot_max_sum[scot_max_sum$`Tracking Link` =="Total", "KPO_score"],1), "Scotland Average", icon = icon("times"), color = "navy"
+      value = round(scot_max_sum[scot_max_sum$`Tracking Link` =="Total" & scot_max_sum$`Financial Year` == fin_yr, "KPO_score"],1), 
+      "Scotland Average", 
+      icon = icon("times"), 
+      color = "navy"
     )
   })
 #Create responses valuebox
     output$respBox <- renderValueBox({
       unpivot_data <- unpivot_data()
       valueBox(
-        value = paste(nrow(filter(unpivot_data, Quarter == crnt_qtr)), "Responses"), paste(nrow(unpivot_data),"Year to Date"), icon = icon("user-friends"), color = "light-blue"
+        value = paste(nrow(
+          filter(unpivot_data, Quarter == crnt_qtr & `Financial Year` == fin_yr)
+          ), 
+          "Responses"
+          ), 
+        paste(nrow(
+          filter(unpivot_data, `Financial Year` == fin_yr)
+          ),
+          "Year to Date"
+          ), 
+        icon = icon("user-friends"), 
+        color = "light-blue"
       )
     })
     

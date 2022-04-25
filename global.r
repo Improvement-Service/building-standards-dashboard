@@ -30,7 +30,7 @@ fin_yr <- gsub("\\ ", "-", crnt_date, perl=T)
 fin_yr <- gsub("-Q[0-9]","", fin_yr)%>% as.numeric(.) 
 fin_yr2 <-  fin_yr + 1
 fin_yr2 <- substr(fin_yr2,3,4) 
-fin_yr <- paste(fin_yr, fin_yr2, sep = "-")
+fin_yr <- paste(fin_yr, fin_yr2, sep = "/")
 rm(fin_yr2)
 crnt_qtr <- gsub("[0-9]*\\ Q", "Quarter ", crnt_date, perl = T)
 
