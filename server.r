@@ -494,9 +494,13 @@ output$LA_KPO4_Heading <- renderUI({
       
       #rename Total as year to date
       la_max_sum$`Tracking Link` <- recode(la_max_sum$`Tracking Link`, "Total" = "Year to Date")
+      
+      la_max_sum <- la_max_sum %>% filter(`Financial Year` == fin_yr)
      
         ##Set colours for quarter by kpo4
-      kpo_clrs <- la_max_sum %>% filter(`Tracking Link` != "Year to Date") %>% pull(KPO_score)
+      kpo_clrs <- la_max_sum %>% 
+        filter(`Tracking Link` != "Year to Date") %>% 
+        pull(KPO_score)
       clrs <- ifelse(kpo_clrs >7.5, "forestgreen", ifelse(kpo_clrs <6.5, "firebrick", "darkorange"))
       
       p <- ggplot(data = la_max_sum) +
