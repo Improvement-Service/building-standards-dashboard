@@ -5,7 +5,7 @@ function(input, output, session) {
 
 #first, get the user  
   user <- reactive({
-    session$user
+    "cara.connachan@improvementservice.org.uk"
   })
   
 #generate ui drop down
@@ -380,12 +380,13 @@ output$LA_KPO4_Heading <- renderUI({
   scot_max[is.na(scot_max$value), "maxAvailable"] <- NA
   scot_max$KPO4_weighted <- (scot_max$value-1) * KPOweights_multiplier
   ##calculate KPO4 for quarter for all results   
-  scot_max_sum <- scot_max %>% group_by(`Tracking Link`) %>%
+  scot_max_sum <- scot_max %>% group_by(`Tracking Link`, `Financial Year`) %>%
     summarise(across(c(maxAvailable,KPO4_weighted),sum, na.rm = T)) %>% 
+    group_by(`Financial Year`) %>%
     bind_rows(summarise(.,across(where(is.numeric), sum),
                         across(where(is.character), ~"Total")))  %>%
     ##generate the KPO score (out of 10)    
-    mutate(KPO_score = (1-KPO4_weighted/maxAvailable)*10)
+    mutate(KPO_score = round((1-KPO4_weighted/maxAvailable)*10,1))
   
   
   ##calculate KPO4 for quarter for selected local authority    
@@ -394,8 +395,9 @@ output$LA_KPO4_Heading <- renderUI({
     council_fltr <- local_authority()
     
     la_max_sum <- scot_max %>% filter(`Local Authority Name` == council_fltr) %>%     
-    group_by(`Tracking Link`) %>%
+    group_by(`Tracking Link`, `Financial Year`) %>%
     summarise(across(c(maxAvailable,KPO4_weighted),sum, na.rm = T)) %>% 
+    group_by(`Financial Year`) %>%
     bind_rows(summarise(.,across(where(is.numeric), sum),
                         across(where(is.character), ~"Total")))  %>%
   ##generate the KPO score (out of 10)    
@@ -406,10 +408,8 @@ output$LA_KPO4_Heading <- renderUI({
   ##Create KPO4 download for all LA's
   
   total_la_max_sum <- scot_max %>%      
-    group_by(`Local Authority Name`,`Tracking Link`) %>%
+    group_by(`Local Authority Name`,`Tracking Link`, `Financial Year`) %>%
     summarise(across(c(maxAvailable,KPO4_weighted),sum, na.rm = T)) %>% 
-    bind_rows(summarise(.,across(where(is.numeric), sum),
-                        across(where(is.character), ~"Total")))  %>%
     ##generate the KPO score (out of 10)    
     mutate(KPO_score = round((1-KPO4_weighted/maxAvailable)*10,1)) %>%
     rbind(scot_max_sum) %>%
@@ -422,7 +422,7 @@ output$LA_KPO4_Heading <- renderUI({
   
   total_la_max_sum$Area[is.na(total_la_max_sum$Area)] <- "Scotland"
   
-  total_la_max_sum <- total_la_max_sum %>% arrange(Quarter)
+  total_la_max_sum <- total_la_max_sum %>% arrange(`Financial Year`,Quarter)
   
   # Create download button for KPO 4 data
   output$KPO_data_file <- downloadHandler(
