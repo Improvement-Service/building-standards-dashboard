@@ -43,7 +43,7 @@ la <- params$la
 ## KPO 4 Score
 ```{r echo=FALSE, comment= ""}
 ## Set up text for KPO4 
-kpo_data1 <- kpo_data %>% filter(`Tracking Link` == "Total")
+kpo_data1 <- kpo_data %>% filter(`Tracking Link` == "Total" & `Financial Year` == fin_yr)
 local_auth <- la
      curr_year <- fin_yr
      KPO4_ytd <- kpo_data1 %>% filter(id == la) %>% pull(KPO_score)
@@ -58,7 +58,7 @@ This indicator summarises performance across all questions, with differential we
 
 ```{r echo = F}
      
-kpo_data1 <- kpo_data %>% filter(`Tracking Link` == "Total")
+kpo_data1 <- kpo_data %>% filter(`Tracking Link` == "Total" & `Financial Year` == fin_yr)
 
 # Set the council values as a factor so the data can be arranged to have the council first regardless of alphabetical order
      kpo_data1$id <- factor(kpo_data1$id, levels = c(la, "Scotland"))
@@ -188,7 +188,10 @@ ggplot(data = reason_data,
 # KPO 4 Over Time
 ```{r echo=FALSE, comment= ""}
 #get the number of quarters for rendering the text
-     no_quarts <- length(unique(dta$`Tracking Link`[dta$`Local Authority Name` == la]))
+ dta <- dta %>% filter(`Financial Year` == fin_yr)    
+ no_quarts <- length(unique(dta$`Tracking Link`[dta$`Local Authority Name` == la]))
+ 
+  kpo_data <- kpo_data %>% filter(`Financial Year` == fin_yr) %>% ungroup()
     
     #filter to get KPO for quarter 1
     Q1_kpo <- kpo_data %>% filter(`Tracking Link` == "Quarter 1", id == la) %>%

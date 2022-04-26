@@ -789,7 +789,7 @@ output$LA_KPO4_Heading <- renderUI({
      all_kpo_data <- report_kpo_data()
      council_fltr <- local_authority()
      
-     all_kpo_data <- all_kpo_data %>% filter(`Tracking Link` == "Total")
+     all_kpo_data <- all_kpo_data %>% filter(`Tracking Link` == "Total" & `Financial Year` == fin_yr)
      
     # Set the council values as a factor so the data can be arranged to have the council first regardless of alphabetical order
      all_kpo_data$id <- factor(all_kpo_data$id, levels = c(council_fltr, "Scotland"))
@@ -826,7 +826,7 @@ output$LA_KPO4_Heading <- renderUI({
   ##Only select the full year data - 
     ##this will need to be updated when more than one year is available  
      council_fltr <- local_authority()
-     all_kpo_data <- report_kpo_data() %>% filter(`Tracking Link` == "Total")
+     all_kpo_data <- report_kpo_data() %>% filter(`Tracking Link` == "Total" & `Financial Year` == fin_yr)
      local_auth <- council_fltr
      curr_year <- fin_yr
      KPO4_ytd <- all_kpo_data %>% filter(id == council_fltr) %>% pull(KPO_score)
@@ -910,7 +910,8 @@ output$LA_KPO4_Heading <- renderUI({
      scot_max_sum$LA <- "Scotland"
      la_max_sum$LA <- council_fltr
      
-     quarts_dta <- rbind(scot_max_sum,la_max_sum) %>% filter(`Tracking Link` != "Total")
+     quarts_dta <- rbind(scot_max_sum,la_max_sum) %>% 
+       filter(`Tracking Link` != "Total" & `Financial Year` == fin_yr)
      quarts_dta$KPO_score <- round(quarts_dta$KPO_score,1)
      quarts_dta
    })
@@ -999,6 +1000,11 @@ output$LA_KPO4_Heading <- renderUI({
      council_fltr <- local_authority()
      #kpo data
      all_kpo_data <- report_kpo_data()
+     
+     all_kpo_data <- all_kpo_data %>% filter(`Financial Year` == fin_yr) %>% ungroup()
+     
+     dta <- dta %>% filter(`Financial Year` == fin_yr)
+     
     #get the number of quarters for rendering the text
      no_quarts <- length(unique(dta$`Tracking Link`[dta$`Local Authority Name` == council_fltr]))
      
@@ -1044,6 +1050,8 @@ output$LA_KPO4_Heading <- renderUI({
    ##generate data to be used in graph and text
    question_time_data_report <- reactive({
      council_fltr <- local_authority()
+     #filter to current financial year
+     dta <- dta %>% filter(`Financial Year` == fin_yr)
      ##filter dataset based on selected question   
      dta <- dta %>% filter(value != "-")
      dta$`value` <- factor(dta$`value`, levels = c(1,2,3,4))
@@ -1182,6 +1190,8 @@ output$LA_KPO4_Heading <- renderUI({
    ##generate data to be used in graph and text
    question_comms_data_report <- reactive({
      council_fltr <- local_authority()
+     #filter to current financial year
+     dta <- dta %>% filter(`Financial Year` == fin_yr)
      ##filter dataset based on selected question   
      dta <- dta %>% filter(value != "-")
      ##filter dataset based on selected question   
@@ -1316,6 +1326,8 @@ output$LA_KPO4_Heading <- renderUI({
      ##generate data to be used in graph and text
      question_info_data_report <- reactive({
        council_fltr <- local_authority()
+       #filter to current financial year
+       dta <- dta %>% filter(`Financial Year` == fin_yr)
        dta <- dta %>% filter(value != "-")
      ##filter dataset based on selected question   
      dta$`value` <- factor(dta$`value`, levels = c(1,2,3,4))
@@ -1449,6 +1461,8 @@ output$LA_KPO4_Heading <- renderUI({
    ##create graph and text for Question 4 on report page=============
      question_staff_data_report <- reactive({
        council_fltr <- local_authority()
+       #filter to current financial year
+       dta <- dta %>% filter(`Financial Year` == fin_yr)
        dta <- dta %>% filter(value != "-")
      ##filter dataset based on selected question   
      dta$`value` <- factor(dta$`value`, levels = c(1,2,3,4))
@@ -1584,6 +1598,8 @@ output$LA_KPO4_Heading <- renderUI({
    
      question_responsiveness_data_report <- reactive({
        council_fltr <- local_authority()
+       #filter to current financial year
+       dta <- dta %>% filter(`Financial Year` == fin_yr)
        dta <- dta %>% filter(value != "-")
       ##filter dataset based on selected question   
      dta$`value` <- factor(dta$`value`, levels = c(1,2,3,4))
@@ -1718,6 +1734,8 @@ output$LA_KPO4_Heading <- renderUI({
    ##create graph and text for Question 6 on report page---------
      question_fairly_data_report <- reactive({
        council_fltr <- local_authority()
+       #filter to current financial year
+       dta <- dta %>% filter(`Financial Year` == fin_yr)
        dta <- dta %>% filter(value != "-")
      ##filter dataset based on selected question   
      dta$`value` <- factor(dta$`value`, levels = c(1,2,3,4))
@@ -1851,6 +1869,8 @@ output$LA_KPO4_Heading <- renderUI({
    ##create graph for Question 7 on report page===========
      question_overall_data_report <- reactive({
        council_fltr <- local_authority()
+       #filter to current financial year
+       dta <- dta %>% filter(`Financial Year` == fin_yr)
      ##filter dataset based on selected question   
      dta <- dta %>% filter(value != "-")
      dta$`value` <- factor(dta$`value`, levels = c(1,2,3,4))
