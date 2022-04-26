@@ -624,7 +624,8 @@ output$LA_KPO4_Heading <- renderUI({
     ##select applicant reason using partial match
       slctn_reason <- names(select(dta, contains(input$Qs_reason_input)))
       filter_data <- dta %>% filter(if_any(slctn_respondent, ~ . == 1)) %>%
-        filter(if_any(slctn_reason, ~.==1))
+        filter(if_any(slctn_reason, ~.==1)) %>%
+        filter(`Financial Year` == fin_yr)
       filter_data
     })
     
