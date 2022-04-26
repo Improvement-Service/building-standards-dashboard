@@ -234,7 +234,7 @@ output$LA_KPO4_Heading <- renderUI({
     
  resp_dta <- dl_all_data %>% group_by(`Local Authority Name`) %>% select(1:12)%>%
     pivot_longer(cols = 5:12, names_to = "Question", values_to = "value")%>% 
-    group_by(`Local Authority Name`,Question) %>%
+    group_by(`Financial Year`,`Local Authority Name`,Question) %>%
     count(value) %>%
     mutate(perc = n/sum(n))
   
@@ -247,10 +247,8 @@ output$LA_KPO4_Heading <- renderUI({
   ##Remove "(please specify):"
   resp_dta$Question[resp_dta$Question == "Other (please specify):"] <- "Other"
   
-  ##Filter to selected council
-  resp_dta <- resp_dta%>%filter(`Local Authority Name` == council_fltr)
-  
-  
+  ##Filter to selected council & current financial year
+  resp_dta <- resp_dta%>%filter(`Financial Year` == fin_yr & `Local Authority Name` == council_fltr)
 
   resp_dta
   
