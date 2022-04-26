@@ -2104,7 +2104,9 @@ output$LA_KPO4_Heading <- renderUI({
                   ), columnDefs = list(list(className = "dt-center", targets = "_all"))))
      })
 
-##create table to show comments for selected question 
+     ##Generate Open Text Table====================
+     
+     ##create table to show comments for selected question 
      output$cmnt_table <- DT::renderDataTable({
        unpivot_data <- unpivot_data()
        ##need to filter the data based on selections and recode answers
@@ -2119,7 +2121,7 @@ output$LA_KPO4_Heading <- renderUI({
        
        filter_data <- unpivot_data %>% filter(if_any(slctn_respondent, ~ . == "Yes")) %>%
          filter(if_any(slctn_reason, ~.== "Yes")) %>%
-         select(contains(input$cmnts_slct))
+         select(Quarter, `Financial Year`,contains(input$cmnts_slct))
        datatable(filter_data, filter = "top",rownames = FALSE, class = "row-border",escape = F,extensions = c("Scroller", "FixedColumns"))
        
      })
