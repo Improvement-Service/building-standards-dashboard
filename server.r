@@ -453,7 +453,7 @@ output$LA_KPO4_Heading <- renderUI({
       )
     valueBox(
       value = round(la_max_sum[la_max_sum$`Tracking Link` =="Total" & la_max_sum$`Financial Year` == fin_yr, "KPO_score"],1), 
-      "Council KPO4 YTD", 
+      paste("Council KPO4 YTD",fin_yr),
       icon = icon("chart-bar"), 
       color = kpo_colr
     )
@@ -462,7 +462,7 @@ output$LA_KPO4_Heading <- renderUI({
   output$scotPerfBox<- renderValueBox({
    valueBox(
       value = round(scot_max_sum[scot_max_sum$`Tracking Link` =="Total" & scot_max_sum$`Financial Year` == fin_yr, "KPO_score"],1), 
-      "Scotland Average", 
+      paste("Scotland Average KPO4 YTD", fin_yr), 
       icon = icon("times"), 
       color = "navy"
     )
@@ -474,12 +474,12 @@ output$LA_KPO4_Heading <- renderUI({
         value = paste(nrow(
           filter(unpivot_data, Quarter == crnt_qtr & `Financial Year` == fin_yr)
           ), 
-          "Responses"
-          ), 
+          paste("Responses", gsub("Quarter\\ ","Q",crnt_qtr, perl = T))
+          ),
         paste(nrow(
           filter(unpivot_data, `Financial Year` == fin_yr)
           ),
-          "Year to Date"
+          paste("Year to Date", fin_yr)
           ), 
         icon = icon("user-friends"), 
         color = "light-blue"
