@@ -491,29 +491,38 @@ output$LA_KPO4_Heading <- renderUI({
       la_max_sum <- la_max_sum()
       
       #rename Total as year to date
-      la_max_sum$`Tracking Link` <- recode(la_max_sum$`Tracking Link`, "Total" = "Year to Date")
-      
-      la_max_sum <- la_max_sum %>% filter(`Financial Year` == fin_yr)
+      la_max_sum$`Tracking Link` <- recode(la_max_sum$`Tracking Link`, "Total" = "YTD")
      
+      # Filter to only include the Quarters for current year
+      la_max_sum <- la_max_sum %>% filter(`Tracking Link` == "YTD" | (`Tracking Link` != "YTD" & `Financial Year` == fin_yr))
+      
+      # Add Financial year to quarter labels
+      la_max_sum$`Tracking Link` <- gsub("Quarter\\ ","Q",la_max_sum$`Tracking Link`, perl = T)
+      la_max_sum$Label <- paste(la_max_sum$`Tracking Link`, la_max_sum$`Financial Year`, sep = " ")
+      
+      # Store the number of YTD values to determine the colours for these bars
+      YTD <- length(la_max_sum$`Tracking Link`[la_max_sum$`Tracking Link` == "YTD"])
+      
+      
         ##Set colours for quarter by kpo4
       kpo_clrs <- la_max_sum %>% 
-        filter(`Tracking Link` != "Year to Date") %>% 
+        filter(`Tracking Link` != "YTD") %>% 
         pull(KPO_score)
       clrs <- ifelse(kpo_clrs >7.5, "forestgreen", ifelse(kpo_clrs <6.5, "firebrick", "darkorange"))
       
       p <- ggplot(data = la_max_sum) +
          geom_bar(aes(
-           x = `Tracking Link`, 
+           x = Label, 
            y = KPO_score,
            text = paste(
-             paste("Quarter:", `Tracking Link`),
+             paste("Quarter:", Label),
              paste("KPO 4 Score", KPO_score),
              sep = "\n"
            )
            ), 
            stat = "identity",
            position = "dodge", 
-           fill = c(clrs, "grey13"), 
+           fill = c(clrs, rep("grey13", YTD)), 
            width = 0.7, 
            colour = "black"
            ) +
@@ -522,7 +531,7 @@ output$LA_KPO4_Heading <- renderUI({
          ggtitle("KPO4 performance by quarter and YTD")+
          ylab("KPO 4 Score") +
          xlab("Response period") +
-         theme(axis.text.x = element_text(size = 12),
+         theme(axis.text.x = element_text(size = 10),
                axis.title = element_text(size = 13))
       ggplotly(p, tooltip = "text")
     })
