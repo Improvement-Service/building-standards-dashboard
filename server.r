@@ -621,6 +621,20 @@ output$LA_KPO4_Heading <- renderUI({
     
 ##Create graphs to display results by questions================================
   
+    # Create select button for financial year, dependent on number of years available
+    output$fin_yr <- renderUI({
+      council_fltr <- local_authority()
+      dta <- dta %>% filter(`Local Authority Name` == council_fltr) 
+      years <- unique(dta$`Financial Year`)
+      no_years <- length(unique(dta$`Financial Year`))
+      if(no_years > 1){
+        selectizeInput("fin_yr_selection", "Select financial year",
+                       choices = years, selected = fin_yr)
+      } else{
+        return()
+      }
+    })
+    
     ##Create filtered dataset from checkboxes
     qstn_dataset_filtered <- reactive({
       council_fltr <- local_authority()
@@ -633,8 +647,18 @@ output$LA_KPO4_Heading <- renderUI({
     ##select applicant reason using partial match
       slctn_reason <- names(select(dta, contains(input$Qs_reason_input)))
       filter_data <- dta %>% filter(if_any(slctn_respondent, ~ . == 1)) %>%
-        filter(if_any(slctn_reason, ~.==1)) %>%
-        filter(`Financial Year` == fin_yr)
+        filter(if_any(slctn_reason, ~.==1)) 
+        
+    #filter to correct financial year
+      no_years <- length(unique(dta$`Financial Year`))
+      
+      filter_data <- if(no_years > 1) {
+        filter(filter_data, `Financial Year` == input$fin_yr_selection)
+      } else
+      {
+        filter(filter_data, `Financial Year` == fin_yr)
+      }
+        
       filter_data
     })
     
@@ -713,6 +737,8 @@ output$LA_KPO4_Heading <- renderUI({
        ungroup()%>%
        mutate(`% of responses` = round((n/total_responses*100),1))
      
+     # Remove NA for where there is no values for a quarter
+     qstnDta <- qstnDta %>% filter(!is.na(value))
      
      ##set labels for response groups
      qstnDta$Response <- qstnDta$value
