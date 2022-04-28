@@ -24,15 +24,20 @@ LA_Names <- c("Aberdeen City", "Aberdeenshire","Angus", "Argyll and Bute" ,
 LA <- c(1:32)
 LA_names_dta <- data.frame(LA_Names, LA)
 
-# Create a variable for storing the current quarter
+# Create a variable for storing the current financial year and quarter
 crnt_date <- as.yearqtr(Sys.Date(), format = "%Y-%m-%d")-1/4
-fin_yr <- gsub("\\ ", "-", crnt_date, perl=T)
-fin_yr <- gsub("-Q[0-9]","", fin_yr)%>% as.numeric(.) 
-fin_yr2 <-  fin_yr + 1
-fin_yr2 <- substr(fin_yr2,3,4) 
-fin_yr <- paste(fin_yr, fin_yr2, sep = "/")
-rm(fin_yr2)
+crnt_fin_yr <- gsub("\\ ", "-", crnt_date, perl=T)
+crnt_fin_yr <- gsub("-Q[0-9]","", crnt_fin_yr)%>% as.numeric(.) 
+crnt_fin_yr2 <-  crnt_fin_yr + 1
+crnt_fin_yr2 <- substr(crnt_fin_yr2,3,4) 
+fin_yr <- paste(crnt_fin_yr, crnt_fin_yr2, sep = "/")
+rm(crnt_fin_yr2)
 crnt_qtr <- gsub("[0-9]*\\ Q", "Quarter ", crnt_date, perl = T)
+
+# Create a variable for storing the previous financial year
+prev_fin_yr <- crnt_fin_yr - 1
+crnt_fin_yr <- substr(crnt_fin_yr,3,4) 
+prev_fin_yr <- paste(prev_fin_yr, crnt_fin_yr, sep = "/")
 
 ####### Unchanged data #######
 fresh_dta <- read_csv("survey_data.csv", col_types = "c") %>% select(-"Tracking Link")
