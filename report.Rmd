@@ -243,13 +243,25 @@ line_data$LA <- factor(line_data$LA, levels = c(la, "Scotland"))
 # arrange the data and store order of colours
 line_data <- arrange(line_data,LA)
 
+
+# Add Financial year to quarter labels
+ line_data$`Tracking Link` <- gsub("Quarter\\ ","Q",line_data$`Tracking Link`, perl = T)
+ line_data$Label <- paste(line_data$`Tracking Link`, line_data$`Financial Year`, sep = " ")
+
+# arrange the data to set the order of colours
+ line_data <- arrange(line_data,LA,`Financial Year`)
+      
+# Set the date labels as a factor to ensure they stay in order
+ QLabels <- unique(line_data$Label)
+ line_data$Label <- factor(line_data$Label, levels = QLabels)
+
 ```
   
   
 ```{r, eval = length(line_data$`Tracking Link`[line_data$LA == la]) > 1, echo = F}
 
 ggplot(data = line_data,
-       aes(x = `Tracking Link`, 
+       aes(x = Label, 
          y = KPO_score, 
          group = LA, 
          colour = LA)

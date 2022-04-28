@@ -947,7 +947,8 @@ output$LA_KPO4_Heading <- renderUI({
      la_max_sum$LA <- council_fltr
      
      quarts_dta <- rbind(scot_max_sum,la_max_sum) %>% 
-       filter(`Tracking Link` != "Total" & `Financial Year` == fin_yr)
+       filter(`Tracking Link` != "Total")
+       
      quarts_dta$KPO_score <- round(quarts_dta$KPO_score,1)
      quarts_dta
    })
@@ -963,19 +964,27 @@ output$LA_KPO4_Heading <- renderUI({
        
     # Set the council values as a factor so the data can be arranged to have the council first regardless of alphabetical order
       report_line_data$LA <- factor(report_line_data$LA, levels = c(council_fltr, "Scotland"))
-       
-       # arrange the data and store order of colours
-       report_line_data <- arrange(report_line_data,LA)
+    
+      # Add Financial year to quarter labels
+      report_line_data$`Tracking Link` <- gsub("Quarter\\ ","Q",report_line_data$`Tracking Link`, perl = T)
+      report_line_data$Label <- paste(report_line_data$`Tracking Link`, report_line_data$`Financial Year`, sep = " ")
+
+      # arrange the data to set the order of colours
+      report_line_data <- arrange(report_line_data,LA,`Financial Year`)
+      
+      # Set the date labels as a factor to ensure they stay in order
+      QLabels <- unique(report_line_data$Label)
+      report_line_data$Label <- factor(report_line_data$Label, levels = QLabels)
 
      plt <- ggplot(data = report_line_data) +
        geom_line(aes(
-         x = `Tracking Link`, 
+         x = Label, 
          y = KPO_score, 
          group = LA, 
          colour = LA,
          text = paste(
            LA,
-           paste("Quarter:", `Tracking Link`),
+           paste("Quarter:", Label),
            paste("KPO 4 Score:", KPO_score),
            sep = "\n"
          )
