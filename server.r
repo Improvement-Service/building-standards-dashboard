@@ -824,7 +824,7 @@ output$LA_KPO4_Heading <- renderUI({
      all_kpo_data <- report_kpo_data()
      council_fltr <- local_authority()
      
-     all_kpo_data <- all_kpo_data %>% filter(`Tracking Link` == "Total" & `Financial Year` == fin_yr)
+     all_kpo_data <- all_kpo_data %>% filter(`Tracking Link` == "Total")
      
     # Set the council values as a factor so the data can be arranged to have the council first regardless of alphabetical order
      all_kpo_data$id <- factor(all_kpo_data$id, levels = c(council_fltr, "Scotland"))
@@ -832,24 +832,25 @@ output$LA_KPO4_Heading <- renderUI({
      # arrange the data and store order of colours
      all_kpo_data <- arrange(all_kpo_data, id)
      
+     # Store number of years to determine colours of bars
+     Years <- length(unique(all_kpo_data$`Financial Year`))
+     
      p <- ggplot(data = all_kpo_data) +
        geom_bar(aes(
-         x = `Tracking Link`, 
+         x = `Financial Year`, 
          y = KPO_score, 
          fill = id,
-         text = paste("Year to date", id, paste("KPO 4 Score:", KPO_score),sep = "\n")), 
+         text = paste(`Financial Year`, id, paste("KPO 4 Score:", KPO_score),sep = "\n")), 
          stat = "identity",
          position = "dodge",
          width = 0.7, 
          colour = "black")+
        scale_y_continuous(limits = c(0,10), expand = expansion(mult = c(0, 0.1)))+
-       scale_fill_manual(values = c("cadetblue3","dimgrey"), name = "")+ 
+       scale_fill_manual(values = rep(c("cadetblue3","dimgrey"),Years), name = "")+ 
        ggtitle("KPO 4 score - Year to Date")+
        xlab("")+
        ylab("KPO 4 Score")+
-       theme_classic()+
-       theme(axis.text.x=element_blank(),
-             axis.ticks.x=element_blank())
+       theme_classic()
      
      ggplotly(p, tooltip = "text")
      

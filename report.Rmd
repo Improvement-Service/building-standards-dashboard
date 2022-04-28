@@ -58,17 +58,20 @@ This indicator summarises performance across all questions, with differential we
 
 ```{r echo = F}
      
-kpo_data1 <- kpo_data %>% filter(`Tracking Link` == "Total" & `Financial Year` == fin_yr)
+kpo_data1 <- kpo_data %>% filter(`Tracking Link` == "Total")
 
 # Set the council values as a factor so the data can be arranged to have the council first regardless of alphabetical order
      kpo_data1$id <- factor(kpo_data1$id, levels = c(la, "Scotland"))
      
      # arrange the data and store order of colours
      kpo_data1 <- arrange(kpo_data1, id)
+     
+     # Store number of years to determine colours of bars
+     Years <- length(unique(kpo_data1$`Financial Year`))
 
 ggplot(data = kpo_data1,
             aes(
-         x = `Tracking Link`, 
+         x = `Financial Year`, 
          y = KPO_score, 
          fill = id)
          ) +
@@ -83,7 +86,7 @@ ggplot(data = kpo_data1,
                  )+
   scale_y_continuous(limits = c(0,11), expand = expansion(mult = c(0, 0.1)))+
   scale_fill_manual(
-    values = c("cadetblue3", "dimgrey"),
+    values = rep(c("cadetblue3", "dimgrey"),Years),
     name = ""
     )+
   ggtitle("KPO 4 score - Year to Date")+
