@@ -1100,14 +1100,14 @@ text_multiple_kpo <- paste0("This indicator summarises performance across all qu
        select(KPO_score)
      #render text for quarter 1
      Q1_text<- paste0("In ", first_Q, " performance for KPO 4 calculated across all responses for all questions was ",
-                      Q1_kpo,". ")
+                      Q1_kpo," for ", council_fltr,". ")
      #filter to get KPO for quarter 2
      Q2_kpo <- all_kpo_data %>% filter(`Tracking Link` == second_Q) %>%
        select(KPO_score)
      #compare quarter 2 and quarter 1
      comp_Q12 <- tryCatch({ifelse(Q2_kpo > Q1_kpo+0.2, "rose", ifelse(Q2_kpo < Q1_kpo-0.2, "fell", "stayed the same"))},error =function(error_message){""})
      #render text for quarter 2                   
-     Q2_text<- paste0(Q1_text,"Performance then ", comp_Q12," in ", second_Q, " to stand at ", Q2_kpo)
+     Q2_text<- paste0(Q1_text,"Performance then ", comp_Q12," in ", second_Q, " to stand at ", Q2_kpo, ".")
      
      #filter to get KPO for quarter 3
      Q3_kpo <- all_kpo_data %>% filter(`Tracking Link` == third_Q) %>%
@@ -1115,7 +1115,7 @@ text_multiple_kpo <- paste0("This indicator summarises performance across all qu
      #compare quarter 3 and quarter 2 - ignore if error occurs
      comp_Q23 <- tryCatch({ifelse(Q3_kpo > Q2_kpo+0.2, "higher than", ifelse(Q3_kpo < Q2_kpo-0.2, "lower than", "the same as"))},error =function(error_message){""})
      #render text for quarter 3                   
-     Q3_text<- paste0(Q2_text,". In ", third_Q, " performance was ", comp_Q23," ", second_Q," at ", Q3_kpo)
+     Q3_text<- paste0(Q2_text,". In ", third_Q, " performance was ", comp_Q23," ", second_Q," at ", Q3_kpo, ".")
      
      #filter to get KPO for quarter 4
      Q4_kpo <- all_kpo_data %>% filter(`Tracking Link` == fourth_Q) %>%
@@ -1124,10 +1124,10 @@ text_multiple_kpo <- paste0("This indicator summarises performance across all qu
      comp_Q34 <- tryCatch({ifelse(Q4_kpo > Q3_kpo+0.2, "higher than", ifelse(Q4_kpo < Q3_kpo-0.2, "lower than", "the same as"))},error =function(error_message){""})
      #render text for quarter 4                   
      Q4_text<- paste0(
-       Q3_text, ". In ", fourth_Q," performance was ", comp_Q34," ",third_Q," and stands at ", Q4_kpo)
+       Q3_text, ". In ", fourth_Q," performance was ", comp_Q34," ",third_Q," and stands at ", Q4_kpo, ".")
      
      
-     final_text <- ifelse(
+     main_text <- ifelse(
        length(QLabels) == 1, 
        Q1_text, 
        ifelse(length(QLabels) == 2, 
@@ -1138,8 +1138,54 @@ text_multiple_kpo <- paste0("This indicator summarises performance across all qu
                      )
               )
        )
-     final_text
+     
+     # If there is data for more than 1 financial year compare most recent quarter with same quarter in previous year
+     extra_data <- report_kpo_data()
+     
+     # filter to current quarter and selected council
+     extra_data <- extra_data %>% filter(`Tracking Link` == crnt_qtr, id == council_fltr)
+     
+     # Store values for current financial year and previous financial year
+     first_fin_yr <- if(length(extra_data$`Tracking Link`) > 1){
+       filter(extra_data, `Financial Year` == prev_fin_yr) %>%
+         ungroup() %>%
+         select(KPO_score)
+     } else {
+         0
+       }
+     
+     second_fin_yr <- if(length(extra_data$`Tracking Link`) > 1){
+       filter(extra_data, `Financial Year` == fin_yr) %>%
+         ungroup() %>%
+         select(KPO_score)
+     } else {
+         0}
+     
+     # Compare values and create text
+     extra_comp <- tryCatch({ifelse(second_fin_yr > first_fin_yr + 0.2, " higher than in ", ifelse(second_fin_yr < first_fin_yr -0.2, " lower than in ", " the same as in "))},error =function(error_message){""})
+     extra_comp_value <- ifelse(extra_comp == " the same as in ", "", second_fin_yr - first_fin_yr)
+       
+     extra_text <- paste0(
+       "KPO 4 performance in ", 
+       crnt_qtr, 
+       " ", 
+       fin_yr, 
+       " was ", 
+       extra_comp_value, 
+       extra_comp,
+       crnt_qtr, 
+       " ",
+       prev_fin_yr,
+       "."
+       )
+     
+     final_text <- ifelse(
+       length(unique(extra_data$`Financial Year`)) > 1,
+       paste(main_text, extra_text),
+       main_text
+     )
 
+     final_text
    })
    
 ##create graph and text for Question 1 on report page=================
