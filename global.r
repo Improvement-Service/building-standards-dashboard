@@ -166,7 +166,7 @@ dta <- dta[,c(1:3, 14, 4:13)]
 
 # Code local authority name for councils completing survey without login
 dta <- merge(dta, LA_names_dta)
-dta[is.na(dta$`Local Authority Name`),"Local Authority Name"] <- dta[is.na(dta$`Local Authority Name`),"LA_Names"]
+dta$`Local Authority Name` <- dta$LA_Names
 dta <- dta %>% select(-LA_Names)
 
 #remove question numbers from Indicator column and tidy up questions
@@ -226,7 +226,7 @@ unpivot_data_global <- unpivot_data_global[,c(1:3,ncol(unpivot_data_global),4:(n
 
 # Code local authority name for councils completing survey without login
 unpivot_data_global <- merge(unpivot_data_global, LA_names_dta)
-unpivot_data_global[unpivot_data_global$`Local Authority Name` == "-" ,"Local Authority Name"] <- unpivot_data_global[unpivot_data_global$`Local Authority Name` == "-","LA_Names"]
+unpivot_data_global$`Local Authority Name` <- unpivot_data_global$LA_Names
 unpivot_data_global <- unpivot_data_global %>% select(-LA_Names)
 unpivot_data_global <- unpivot_data_global[,c(2:4,1,5:ncol(unpivot_data_global))]
 

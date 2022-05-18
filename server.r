@@ -208,7 +208,7 @@ output$LA_KPO4_Heading <- renderUI({
   
   # Code local authority name for councils completing survey without login
   dl_all_data <- merge(dl_all_data, LA_names_dta)
-  dl_all_data[dl_all_data$`Local Authority Name` == "-" ,"Local Authority Name"] <- dl_all_data[dl_all_data$`Local Authority Name` == "-","LA_Names"]
+  dl_all_data$`Local Authority Name` <- dl_all_data$LA_Names
   dl_all_data <- dl_all_data %>% select(-LA_Names)
   dl_all_data <- dl_all_data[,c(2:4,1,5:ncol(dl_all_data))]
   dl_all_data
