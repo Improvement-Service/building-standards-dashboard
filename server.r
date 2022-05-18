@@ -80,7 +80,7 @@ output$la_select <- renderUI({
                               return("Falkirk")
                             } else 
         #Fife
-                              if(grepl("fife.gov.uk;", user,ignore.case = TRUE)){
+                              if(grepl("fife.gov.uk", user,ignore.case = TRUE)){
                                 return("Fife")
                               } else 
         #Glasgow                         
