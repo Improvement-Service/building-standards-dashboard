@@ -199,27 +199,8 @@ output$LA_KPO4_Heading <- renderUI({
   
   # Remove redundant columns and reorder
   dl_all_data <- dl_all_data[-c(1,2,4)]
-  dl_all_data <- dl_all_data[,c("Tracking Link","Financial Year","Local Authority Name","Q. Please select a local authority",
-                                "Q. Please select the local authority that your response relates to","Q1.1. Agent/Designer",
-                                "Q1.2. Applicant", "Q1.3. Contractor", "Q1.4. Other (please specify):", 
-                                "Q2.1. To discuss your proposal before applying for a building warrant",
-                                "Q2.2. To make an application for a building warrant",
-                                "Q2.3. During construction, including submission of a completion certificate",
-                                "Q2.4. Other (please specify):", 
-                                "Q3. Thinking of your engagement with [question(16082428)][variable(la)] Building Standards from beginning to end, how satisfied were you that the time taken to deal with your application or enquiry met the timescales that you were promised?",
-                                "Please explain your answer:...24",
-                                "Q4. How would you rate the standard of communication provided by [question(16082428)][variable(la)] Building Standards service following your initial contact or once your application had been submitted?",
-                                "Please explain your answer:...26",
-                                "Q.1. Quality of the information provided...27",
-                                "Q.2. Service offered by staff...28",
-                                "Q.3. Time taken to respond to any queries or issues raised",
-                                "Q.4. Please explain your answers:...30",
-                                "Q5. To what extent would you agree that you were treated fairly by [question(16082428)][variable(la)] Building Standards?",
-                                "Please explain your answer:...32",
-                                "Q6. Overall, how satisfied were you with the service provided by [question(16082428)][variable(la)] Building Standards?",
-                                "Please explain your answer:...34",
-                                "Q7. If you have any other comments about your experience, please use this space to leave these:\nPlease note that we are unable to reply to specific cases, if you would like to discuss your experience further, please contact the Council directly.",
-                                "Ended date")]
+  dl_all_data <- dl_all_data[,c((ncol(dl_all_data)-1),ncol(dl_all_data),2,11,12,3:10,13:(ncol(dl_all_data)-2),1)]
+  
   
   # pivot to combine both LA columns, rename, then remove duplicates
   dl_all_data <- dl_all_data %>% pivot_longer(cols = 4:5, names_to = "extra", values_to ="LA") %>%
