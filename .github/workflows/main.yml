@@ -76,10 +76,6 @@ jobs:
           . ./venv/bin/activate 
           python data_getter.py
           
-      - run: ls
-      
-      - run: cat survey_data.csv
-          
       - name: Authorize and deploy app
         run: |
             rsconnect::setAccountInfo('${{ secrets.RSCONNECT_USER }}', '${{ secrets.RSCONNECT_TOKEN }}', '${{ secrets.RSCONNECT_SECRET }}')
