@@ -71,9 +71,9 @@ ui <- dashboardPage(skin = "blue",
                 status = "info",
                 animation = "pulse"
               ))),
-              tabBox(width = 12,
-                    tabPanel("Year to Date",plotlyOutput("YTDqstsPlot")),
-                    tabPanel("Summary by Quarter", plotlyOutput("qrtsQsplot")))
+              tabBox(width = 12, height = "66vh",
+                    tabPanel("Year to Date",plotlyOutput("YTDqstsPlot", height = "60vh")),
+                    tabPanel("Summary by Quarter", plotlyOutput("qrtsQsplot", height = "60vh")))
                ),
       tabItem(tabName = "RptDl",
             #  h2("Report Download", style = "margin-top:3px"),
