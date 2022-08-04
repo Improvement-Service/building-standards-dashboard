@@ -198,8 +198,28 @@ output$LA_KPO4_Heading <- renderUI({
   dl_all_data$`Tracking Link` <- gsub("[0-9]*\\ Q", "Quarter ", dl_all_data$`Tracking Link`, perl = T)
   
   # Remove redundant columns and reorder
-  dl_all_data <- dl_all_data[-c(1:4)]
-  dl_all_data <- dl_all_data[,c((ncol(dl_all_data)-1),ncol(dl_all_data),1,10,11,2:9,12:(ncol(dl_all_data)-2))]
+  dl_all_data <- dl_all_data[-c(1,2,4)]
+  dl_all_data <- dl_all_data[,c("Tracking Link","Financial Year","Local Authority Name","Q. Please select a local authority",
+                                "Q. Please select the local authority that your response relates to","Q1.1. Agent/Designer",
+                                "Q1.2. Applicant", "Q1.3. Contractor", "Q1.4. Other (please specify):", 
+                                "Q2.1. To discuss your proposal before applying for a building warrant",
+                                "Q2.2. To make an application for a building warrant",
+                                "Q2.3. During construction, including submission of a completion certificate",
+                                "Q2.4. Other (please specify):", 
+                                "Q3. Thinking of your engagement with [question(16082428)][variable(la)] Building Standards from beginning to end, how satisfied were you that the time taken to deal with your application or enquiry met the timescales that you were promised?",
+                                "Please explain your answer:...24",
+                                "Q4. How would you rate the standard of communication provided by [question(16082428)][variable(la)] Building Standards service following your initial contact or once your application had been submitted?",
+                                "Please explain your answer:...26",
+                                "Q.1. Quality of the information provided...27",
+                                "Q.2. Service offered by staff...28",
+                                "Q.3. Time taken to respond to any queries or issues raised",
+                                "Q.4. Please explain your answers:...30",
+                                "Q5. To what extent would you agree that you were treated fairly by [question(16082428)][variable(la)] Building Standards?",
+                                "Please explain your answer:...32",
+                                "Q6. Overall, how satisfied were you with the service provided by [question(16082428)][variable(la)] Building Standards?",
+                                "Please explain your answer:...34",
+                                "Q7. If you have any other comments about your experience, please use this space to leave these:\nPlease note that we are unable to reply to specific cases, if you would like to discuss your experience further, please contact the Council directly.",
+                                "Ended date")]
   
   # pivot to combine both LA columns, rename, then remove duplicates
   dl_all_data <- dl_all_data %>% pivot_longer(cols = 4:5, names_to = "extra", values_to ="LA") %>%
@@ -222,6 +242,8 @@ output$LA_KPO4_Heading <- renderUI({
   resp_dta <- reactive({
     
     dl_all_data <- dl_all_data()
+    ##remove the end date column
+    dl_all_data <- dl_all_data[-26]
     council_fltr = local_authority()
     
     # Recode "other" respondents and reasons so it doesn't show text value
@@ -264,12 +286,14 @@ output$LA_KPO4_Heading <- renderUI({
     
   # Select columns based on council (ensures duplicate columns and additional questions are filtered out)
   unpivot_data <- if(council_fltr == "City of Edinburgh")
-  {unpivot_data_global[,c(1:12,70:82)]} else
+  {unpivot_data_global[,c(1:12,70:82,84)]} else
     if(council_fltr == "Orkney Islands")
-    {unpivot_data_global[,c(1:12,47:50,56:58,63,65:69)]}else
+    {unpivot_data_global[,c(1:12,47:50,56:58,63,65:69,84)]}else
       if(council_fltr == "West Lothian")
-      {unpivot_data_global[,c(1:12,26:30,34:41)]}else
-      {unpivot_data_global[,c(1:25)]}
+      {unpivot_data_global[,c(1:12,26:30,34:41,84)]}else
+        if(council_fltr == "Angus")
+        {unpivot_data_global[,c(1:25,83,84)]}else
+         {unpivot_data_global[,c(1:25, 84)]}
   
   #tidy up question names
   unpivot_data <- unpivot_data %>% 
@@ -281,6 +305,7 @@ output$LA_KPO4_Heading <- renderUI({
     rename("Q6. How satisfied were you, overall?" = "Q6. Overall, how satisfied were you with the service provided by [question(16082428)][variable(la)] Building Standards?")%>%
     rename("Q1.4. Other respondent" = "Q1.4. Other (please specify):") %>%
     rename("Q2.4. Other reason" = "Q2.4. Other (please specify):") %>%
+    rename("Submission date" = "Ended date") %>%
     mutate(across(contains(c("Q1.1. Agent/Designer", 
                              "Q1.2. Applicant", 
                              "Q1.3. Contractor",
@@ -1998,7 +2023,9 @@ output$LA_KPO4_Heading <- renderUI({
        content = function(file) {
          dl_all_data <- dl_all_data()
          council_fltr <- local_authority()
-         
+         ##Reorder columns so that submission date moves to start
+         dl_all_data <- dl_all_data %>% rename("Submission date" = "Ended date")
+         dl_all_data <- dl_all_data[c(ncol(dl_all_data), 1:(ncol(dl_all_data)-1))]
          ##recode all responses for the download from a number to text, remove LA column
          dl_all_data <- dl_all_data %>% filter(`Local Authority Name` == council_fltr) %>%
            mutate(across(contains("how satisfied"), 
@@ -2045,6 +2072,8 @@ output$LA_KPO4_Heading <- renderUI({
 ##create table with all data to explore     
      output$tableDisp <- DT::renderDataTable({
        unpivot_data <- unpivot_data()
+       ##move the date to the front
+       unpivot_data <- unpivot_data[c((ncol(unpivot_data)),1:(ncol(unpivot_data)-1))]
        names(unpivot_data)[3:ncol(unpivot_data)] <- gsub("Q[1-9\\.]+\\s","",names(unpivot_data)[3:ncol(unpivot_data)], perl = T)
        tbl <- datatable(unpivot_data, rownames = FALSE, class = "row-border",escape = F,extensions = c("Scroller", "FixedColumns"), 
                         options = list(pageLength = 32, scrollY = 250, dom = "t", 

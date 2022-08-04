@@ -216,8 +216,8 @@ unpivot_data_global$`Tracking Link` <- unpivot_data_global$`Tracking Link`- 1/4
 unpivot_data_global$`Tracking Link` <- gsub("[0-9]*\\ Q", "Quarter ", unpivot_data_global$`Tracking Link`, perl = T)
 
 # Remove redundant columns and reorder
-unpivot_data_global <- unpivot_data_global[-c(1:10)]
-unpivot_data_global <- unpivot_data_global[,c((ncol(unpivot_data_global)-1),ncol(unpivot_data_global),1,10,11,2:9,12:(ncol(unpivot_data_global)-2))]
+unpivot_data_global <- unpivot_data_global[-c(1:8,10)]
+unpivot_data_global <- unpivot_data_global[,c((ncol(unpivot_data_global)-1),ncol(unpivot_data_global),2,11,12,3:10,13:(ncol(unpivot_data_global)-2),1)]
 
 # pivot to combine both LA columns, rename, then remove duplicates
 unpivot_data_global <- unpivot_data_global %>% pivot_longer(cols = 4:5, names_to = "extra", values_to ="LA") %>%

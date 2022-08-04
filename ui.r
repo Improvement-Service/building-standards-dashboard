@@ -30,14 +30,14 @@ ui <- dashboardPage(skin = "blue",
                 valueBoxOutput("respBox")
                 ),
               fluidRow(
-                box(width = 8,
-                  plotlyOutput("ovrPerfBar")%>%withSpinner()
+                box(width = 8,height = "66vh",
+                  plotlyOutput("ovrPerfBar", height = "60vh")%>%withSpinner()
                   ),
-                tabBox(width = 4,
+                tabBox(width = 4,height = "66vh",
                        title = "Respondents", 
                        id = "RespOverViewTabs",
-                       tabPanel("Type",plotlyOutput("respDoughnut")%>%withSpinner()),
-                       tabPanel("Reason", plotlyOutput("plotly_pie"))
+                       tabPanel("Type",plotlyOutput("respDoughnut",height = "60vh")%>%withSpinner()),
+                       tabPanel("Reason", plotlyOutput("plotly_pie",height = "60vh"))
                 )
                )
               ), 
@@ -129,7 +129,8 @@ ui <- dashboardPage(skin = "blue",
               ),
       tabItem(tabName = "DtDl",
               div(style = "margin-bottom: 5px",downloadBttn("all_data_dl", label = "Download all data", style = "jelly")),
-              box(div(DT::dataTableOutput("tableDisp"),style = "font-size:80%; line-height:75%; width:100%; padding-left:0px"),width = 12)
+              box(div(DT::dataTableOutput("tableDisp", height = "75vh"),style = "font-size:80%; line-height:75%; width:100%; padding-left:0px"),
+                  width = 12, height = "80vh")
               
               ),
       tabItem(tabName = "OpTxt",
@@ -159,7 +160,7 @@ ui <- dashboardPage(skin = "blue",
                 status = "info",
                 animation = "pulse"
               )),
-              box(DT::dataTableOutput("cmnt_table"), width = 12)
+              box(DT::dataTableOutput("cmnt_table"), width = 12, height = "70vh")
               )
       )
     )
