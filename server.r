@@ -120,7 +120,7 @@ output$la_select <- renderUI({
                                                   return("Perth and Kinross")
                                                 } else 
         #Renfrewshire
-                                                  if(grepl("renfrewshire.gov.uk", user,ignore.case = TRUE)){
+                                                  if(grepl("\\<renfrewshire.gov.uk", user,ignore.case = TRUE, fixed = TRUE)){
                                                     return("Renfrewshire")
                                                   } else 
         #Scottish Borders
@@ -152,7 +152,7 @@ output$la_select <- renderUI({
                                                                   return("West Lothian")
                                                                 } else 
         #East Renfrewshire
-                                                                  if(grepl("eastrenfrewshire.gov.uk", user,ignore.case = TRUE)){
+                                                                  if(grepl("\\<eastrenfrewshire.gov.uk", user,ignore.case = TRUE)){
                                                                     return("East Renfrewshire")
                                                                   } else{
                                                                     input$LA_selection
