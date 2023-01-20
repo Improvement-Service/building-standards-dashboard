@@ -43,17 +43,45 @@ la <- params$la
 ## KPO 4 Score
 ```{r echo=FALSE, comment= ""}
 ## Set up text for KPO4 
-kpo_data1 <- kpo_data %>% filter(`Tracking Link` == "Total")
-local_auth <- la
-     curr_year <- fin_yr
+
+# store the number of financial years available for council
+all_kpo_data <- kpo_data
+  Years <- all_kpo_data %>% filter(id == la)
+  Years <- length(unique(Years$`Financial Year`))
+
+# calculate values for current KPO4 and how it compares with Scotland and target
+  kpo_data1 <- kpo_data %>% filter(`Tracking Link` == "Total" & `Financial Year` == fin_yr)
+
+
      KPO4_ytd <- kpo_data1 %>% filter(id == la) %>% pull(KPO_score)
      hilow_kpo4 <- ifelse(KPO4_ytd > 7.5, "higher than", ifelse(KPO4_ytd < 7.5, "lower than", "equal to"))
      scotAv_kpo4 <- kpo_data1 %>% filter(id == "Scotland") %>% pull(KPO_score)
      abbel_kpo4 <- ifelse(KPO4_ytd > scotAv_kpo4, "higher than", ifelse(KPO4_ytd < scotAv_kpo4, "lower than", "equal to"))
      
+  #Store value for previous financial year
+     KPO4_prev <- all_kpo_data %>% filter(`Tracking Link` == "Total" & `Financial Year` == prev_fin_yr)
+     KPO4_prev <- KPO4_prev %>% filter(id == la) %>% pull(KPO_score)
+     
+    # create text for comparison with previous year
+     change_value <- KPO4_ytd - KPO4_prev
+     change_text <- if_else(change_value < 0, "a decrease", "an increase")
+     
+# text for when there is only 1 financial year
+     text_kpo <- paste0("This indicator summarises performance across all questions, with differential weightings based on importance. For ", council_fltr," in ",fin_yr, " overall
+performance is at ", KPO4_ytd, " for the year to date. ", "This is ",abbel_kpo4,
+" the Scotland average of ", scotAv_kpo4," and ", hilow_kpo4," the target value of 7.5.")
+     
+    # text for when there are more than 1 financial years     
+text_multiple_kpo <- paste0("This indicator summarises performance across all questions, with differential weightings based on importance. For ", la," in ",fin_yr, " overall
+performance is at ", KPO4_ytd, " for the year to date. ", "This reflects ", change_text,
+" of ", change_value, " points from the performance of ", KPO4_prev, " in ", prev_fin_yr, ".",
+" The year to date performance of ", la, " in ", fin_yr, " is ", abbel_kpo4,
+" the Scotland average of ", scotAv_kpo4," and ", hilow_kpo4," the target value of 7.5.")
+     
+     
 ```
 
-This indicator summarises performance across all questions, with differential weightings based on importance. For `r la` in `r curr_year`, overall performance is at `r KPO4_ytd` for the year to date. This is `r abbel_kpo4` the Scotland average of `r scotAv_kpo4` and `r hilow_kpo4` the target value of 7.5.  
+`r ifelse(Years > 1,text_multiple_kpo, text_kpo)`
 
 
 ```{r echo = F}
@@ -65,10 +93,13 @@ kpo_data1 <- kpo_data %>% filter(`Tracking Link` == "Total")
      
      # arrange the data and store order of colours
      kpo_data1 <- arrange(kpo_data1, id)
+     
+     # Store number of years to determine colours of bars
+     Years <- length(unique(kpo_data1$`Financial Year`))
 
 ggplot(data = kpo_data1,
             aes(
-         x = `Tracking Link`, 
+         x = `Financial Year`, 
          y = KPO_score, 
          fill = id)
          ) +
@@ -83,7 +114,7 @@ ggplot(data = kpo_data1,
                  )+
   scale_y_continuous(limits = c(0,11), expand = expansion(mult = c(0, 0.1)))+
   scale_fill_manual(
-    values = c("cadetblue3", "dimgrey"),
+    values = rep(c("cadetblue3", "dimgrey"),Years),
     name = ""
     )+
   ggtitle("KPO 4 score - Year to Date")+
@@ -188,46 +219,124 @@ ggplot(data = reason_data,
 # KPO 4 Over Time
 ```{r echo=FALSE, comment= ""}
 #get the number of quarters for rendering the text
-     no_quarts <- length(unique(dta$`Tracking Link`[dta$`Local Authority Name` == la]))
+# filter to quarters, selected council and current financial year
+     kpo_data1 <- kpo_data %>% filter(
+       `Tracking Link` != "Total",
+        `Financial Year` == fin_yr,  
+       id == council_fltr
+       ) %>% ungroup()
+     
+     # Set the quarter labels as a factor to ensure they stay in order
+     QLabels <- unique(kpo_data1$`Tracking Link`)
+     kpo_data1$`Tracking Link` <- factor(kpo_data1$`Tracking Link`, levels = QLabels)
+     
+     # Store the names of the quarters by position, if there is a quarter missing this will be empty
+     first_Q <- kpo_data1$`Tracking Link`[[1]]
+     second_Q <- if(length(QLabels) > 1)
+                    {kpo_data1$`Tracking Link`[[2]]} else
+                    {0}
+     third_Q <- if(length(QLabels) > 2) 
+     {kpo_data1$`Tracking Link`[[3]]} else
+         {0}
+     fourth_Q <- if(length(QLabels) >3)
+       {kpo_data1$`Tracking Link`[[4]]} else
+       {0}
     
-    #filter to get KPO for quarter 1
-    Q1_kpo <- kpo_data %>% filter(`Tracking Link` == "Quarter 1", id == la) %>%
-      pull(KPO_score)
-    #render text for quarter 1
-    Q1_text<- paste0("In Quarter 1 performance for KPO 4 calculated across all responses for all questions was ",
-                      Q1_kpo,". ")
-    #filter to get KPO for quarter 2
-    Q2_kpo <- kpo_data %>% filter(`Tracking Link` == "Quarter 2", id == la) %>%
-      pull(KPO_score)
-    #compare quarter 2 and quarter 1
-    comp_Q12 <- tryCatch({ifelse(Q2_kpo > Q1_kpo+0.2, "rose", ifelse(Q2_kpo < Q1_kpo-0.2, "fell", "stayed the same "))},error =function(error_message){""})
-    #render text for quarter 2                   
-    Q2_text<- paste0(Q1_text,"Performance then ", comp_Q12,
-            " in Quarter 2 to stand at ", Q2_kpo)
-    
-    #filter to get KPO for quarter 3
-    Q3_kpo <- kpo_data %>% filter(`Tracking Link` == "Quarter 3", id == la) %>%
-      pull(KPO_score)
-    #compare quarter 3 and quarter 2 - ignore if error occurs
-    comp_Q23 <- tryCatch({ifelse(Q3_kpo > Q2_kpo+0.2, "higher than", ifelse(Q3_kpo < Q2_kpo-0.2, "lower than", "the same as"))},error =function(error_message){""})
-    #render text for quarter 3                   
-    Q3_text<- paste0(Q2_text,". In Quarter 3 performance was ", comp_Q23,
-                     " Quarter 2 at ", Q3_kpo)
-    
-    #filter to get KPO for quarter 4
-    Q4_kpo <- kpo_data %>% filter(`Tracking Link` == "Quarter 4", id == la) %>%
-      pull(KPO_score)
-    #compare quarter 4 and quarter 3 - ignore if error occurs
-    comp_Q34 <- tryCatch({ifelse(Q4_kpo > Q3_kpo+0.2, "higher than", ifelse(Q4_kpo < Q3_kpo-0.2, "lower than", "the same as"))},error =function(error_message){""})
-    #render text for quarter 4                   
-    Q3_text<- paste0(Q3_text, ". In Quarter 4 performance was ", comp_Q34,
-                     " Quarter 3, and stands at ", Q4_kpo)
-    
-    final_text <- ifelse(no_quarts == 1, Q1_text, ifelse(no_quarts == 2, Q2_text, ifelse(no_quarts == 3, Q3_text, Q4_text)))
+     #filter to get KPO for quarter 1
+     Q1_kpo <- kpo_data1 %>% filter(`Tracking Link` == first_Q) %>%
+       select(KPO_score)
+     #render text for quarter 1
+     Q1_text<- paste0("In ", first_Q, " performance for KPO 4 calculated across all responses for all questions was ",
+                      Q1_kpo," for ", council_fltr,". ")
+     #filter to get KPO for quarter 2
+     Q2_kpo <- kpo_data1 %>% filter(`Tracking Link` == second_Q) %>%
+       select(KPO_score)
+     #compare quarter 2 and quarter 1
+     comp_Q12 <- tryCatch({ifelse(Q2_kpo > Q1_kpo+0.2, "rose", ifelse(Q2_kpo < Q1_kpo-0.2, "fell", "stayed the same"))},error =function(error_message){""})
+     #render text for quarter 2                   
+     Q2_text<- paste0(Q1_text,"Performance then ", comp_Q12," in ", second_Q, " to stand at ", Q2_kpo, ".")
+     
+     #filter to get KPO for quarter 3
+     Q3_kpo <- kpo_data1 %>% filter(`Tracking Link` == third_Q) %>%
+       select(KPO_score)
+     #compare quarter 3 and quarter 2 - ignore if error occurs
+     comp_Q23 <- tryCatch({ifelse(Q3_kpo > Q2_kpo+0.2, "higher than", ifelse(Q3_kpo < Q2_kpo-0.2, "lower than", "the same as"))},error =function(error_message){""})
+     #render text for quarter 3                   
+     Q3_text<- paste0(Q2_text,". In ", third_Q, " performance was ", comp_Q23," ", second_Q," at ", Q3_kpo, ".")
+     
+     #filter to get KPO for quarter 4
+     Q4_kpo <- kpo_data1 %>% filter(`Tracking Link` == fourth_Q) %>%
+       select(KPO_score)
+     #compare quarter 4 and quarter 3 - ignore if error occurs
+     comp_Q34 <- tryCatch({ifelse(Q4_kpo > Q3_kpo+0.2, "higher than", ifelse(Q4_kpo < Q3_kpo-0.2, "lower than", "the same as"))},error =function(error_message){""})
+     #render text for quarter 4                   
+     Q4_text<- paste0(
+       Q3_text, ". In ", fourth_Q," performance was ", comp_Q34," ",third_Q," and stands at ", Q4_kpo, ".")
+     
+     
+     main_text <- ifelse(
+       length(QLabels) == 1, 
+       Q1_text, 
+       ifelse(length(QLabels) == 2, 
+              Q2_text, 
+              ifelse(length(QLabels) == 3, 
+                     Q3_text, 
+                     Q4_text
+                     )
+              )
+       )
+     
+     # If there is data for more than 1 financial year compare most recent quarter with same quarter in previous year
+     extra_data <- kpo_data
+     
+     # filter to current quarter and selected council
+     extra_data <- extra_data %>% filter(`Tracking Link` == crnt_qtr, id == council_fltr)
+     
+     # Store values for current financial year and previous financial year
+     first_fin_yr <- if(length(extra_data$`Tracking Link`) > 1){
+       filter(extra_data, `Financial Year` == prev_fin_yr) %>%
+         ungroup() %>%
+         select(KPO_score)
+     } else {
+         0
+       }
+     
+     second_fin_yr <- if(length(extra_data$`Tracking Link`) > 1){
+       filter(extra_data, `Financial Year` == fin_yr) %>%
+         ungroup() %>%
+         select(KPO_score)
+     } else {
+         0}
+     
+     # Compare values and create text
+     extra_comp <- tryCatch({ifelse(second_fin_yr > first_fin_yr + 0.2, " higher than in ", ifelse(second_fin_yr < first_fin_yr -0.2, " lower than in ", " the same as in "))},error =function(error_message){""})
+     extra_comp_value <- ifelse(extra_comp == " the same as in ", "", second_fin_yr - first_fin_yr)
+       
+     extra_text <- paste0(
+       "KPO 4 performance in ", 
+       crnt_qtr, 
+       " ", 
+       fin_yr, 
+       " was ", 
+       extra_comp_value, 
+       extra_comp,
+       crnt_qtr, 
+       " ",
+       prev_fin_yr,
+       "."
+       )
+     
+     final_text <- ifelse(
+       length(unique(extra_data$`Financial Year`)) > 1,
+       paste(main_text, extra_text),
+       main_text
+     )
+
+     final_text
     
 ```    
     
-`r ifelse(no_quarts == 1, Q1_text, ifelse(no_quarts == 2, Q2_text, ifelse(no_quarts == 3, Q3_text, Q4_text)))`
+`r ifelse(length(unique(extra_data$`Financial Year`)) > 1, paste(main_text, extra_text), main_text)`
     
 ```{r echo = F}
 
@@ -237,13 +346,25 @@ line_data$LA <- factor(line_data$LA, levels = c(la, "Scotland"))
 # arrange the data and store order of colours
 line_data <- arrange(line_data,LA)
 
+
+# Add Financial year to quarter labels
+ line_data$`Tracking Link` <- gsub("Quarter\\ ","Q",line_data$`Tracking Link`, perl = T)
+ line_data$Label <- paste(line_data$`Tracking Link`, line_data$`Financial Year`, sep = " ")
+
+# arrange the data to set the order of colours
+ line_data <- arrange(line_data,LA,`Financial Year`)
+      
+# Set the date labels as a factor to ensure they stay in order
+ QLabels <- unique(line_data$Label)
+ line_data$Label <- factor(line_data$Label, levels = QLabels)
+
 ```
   
   
 ```{r, eval = length(line_data$`Tracking Link`[line_data$LA == la]) > 1, echo = F}
 
 ggplot(data = line_data,
-       aes(x = `Tracking Link`, 
+       aes(x = Label, 
          y = KPO_score, 
          group = LA, 
          colour = LA)

@@ -48,7 +48,8 @@ ui <- dashboardPage(skin = "blue",
               selectInput("Qstn_tab2", label = "Select Question",
                           choices = c("All Questions", unique(dta$Indicator)),
                           selected = "All Questions"
-                          )),
+                          ),
+              uiOutput("fin_yr")),
               column(4,
               prettyCheckboxGroup(
                 inputId = "Qs_resp_input",

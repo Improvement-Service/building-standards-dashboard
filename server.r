@@ -5,7 +5,7 @@ function(input, output, session) {
 
 #first, get the user  
   user <- reactive({
-    session$user
+    "cara.connachan@improvementservice.org.uk"
   })
   
 #generate ui drop down
@@ -237,7 +237,7 @@ output$LA_KPO4_Heading <- renderUI({
     
  resp_dta <- dl_all_data %>% group_by(`Local Authority Name`) %>% select(1:12)%>%
     pivot_longer(cols = 5:12, names_to = "Question", values_to = "value")%>% 
-    group_by(`Local Authority Name`,Question) %>%
+    group_by(`Financial Year`,`Local Authority Name`,Question) %>%
     count(value) %>%
     mutate(perc = n/sum(n))
   
@@ -250,10 +250,8 @@ output$LA_KPO4_Heading <- renderUI({
   ##Remove "(please specify):"
   resp_dta$Question[resp_dta$Question == "Other (please specify):"] <- "Other"
   
-  ##Filter to selected council
-  resp_dta <- resp_dta%>%filter(`Local Authority Name` == council_fltr)
-  
-  
+  ##Filter to selected council & current financial year
+  resp_dta <- resp_dta%>%filter(`Financial Year` == fin_yr & `Local Authority Name` == council_fltr)
 
   resp_dta
   
@@ -386,12 +384,13 @@ output$LA_KPO4_Heading <- renderUI({
   scot_max[is.na(scot_max$value), "maxAvailable"] <- NA
   scot_max$KPO4_weighted <- (scot_max$value-1) * KPOweights_multiplier
   ##calculate KPO4 for quarter for all results   
-  scot_max_sum <- scot_max %>% group_by(`Tracking Link`) %>%
+  scot_max_sum <- scot_max %>% group_by(`Tracking Link`, `Financial Year`) %>%
     summarise(across(c(maxAvailable,KPO4_weighted),sum, na.rm = T)) %>% 
+    group_by(`Financial Year`) %>%
     bind_rows(summarise(.,across(where(is.numeric), sum),
                         across(where(is.character), ~"Total")))  %>%
     ##generate the KPO score (out of 10)    
-    mutate(KPO_score = (1-KPO4_weighted/maxAvailable)*10)
+    mutate(KPO_score = round((1-KPO4_weighted/maxAvailable)*10,1))
   
   
   ##calculate KPO4 for quarter for selected local authority    
@@ -400,8 +399,9 @@ output$LA_KPO4_Heading <- renderUI({
     council_fltr <- local_authority()
     
     la_max_sum <- scot_max %>% filter(`Local Authority Name` == council_fltr) %>%     
-    group_by(`Tracking Link`) %>%
+    group_by(`Tracking Link`, `Financial Year`) %>%
     summarise(across(c(maxAvailable,KPO4_weighted),sum, na.rm = T)) %>% 
+    group_by(`Financial Year`) %>%
     bind_rows(summarise(.,across(where(is.numeric), sum),
                         across(where(is.character), ~"Total")))  %>%
   ##generate the KPO score (out of 10)    
@@ -412,10 +412,8 @@ output$LA_KPO4_Heading <- renderUI({
   ##Create KPO4 download for all LA's
   
   total_la_max_sum <- scot_max %>%      
-    group_by(`Local Authority Name`,`Tracking Link`) %>%
+    group_by(`Local Authority Name`,`Tracking Link`, `Financial Year`) %>%
     summarise(across(c(maxAvailable,KPO4_weighted),sum, na.rm = T)) %>% 
-    bind_rows(summarise(.,across(where(is.numeric), sum),
-                        across(where(is.character), ~"Total")))  %>%
     ##generate the KPO score (out of 10)    
     mutate(KPO_score = round((1-KPO4_weighted/maxAvailable)*10,1)) %>%
     rbind(scot_max_sum) %>%
@@ -428,7 +426,7 @@ output$LA_KPO4_Heading <- renderUI({
   
   total_la_max_sum$Area[is.na(total_la_max_sum$Area)] <- "Scotland"
   
-  total_la_max_sum <- total_la_max_sum %>% arrange(Quarter)
+  total_la_max_sum <- total_la_max_sum %>% arrange(`Financial Year`, Quarter)
   
   # Create download button for KPO 4 data
   output$KPO_data_file <- downloadHandler(
@@ -451,22 +449,46 @@ output$LA_KPO4_Heading <- renderUI({
 #Create performance box for selected Council  
   output$performanceBox <- renderValueBox({
     la_max_sum <- la_max_sum()
-    kpo_colr <- ifelse(la_max_sum[la_max_sum$`Tracking Link` =="Total", "KPO_score"] > 7.5, "green", ifelse(la_max_sum[la_max_sum$`Tracking Link` =="Total", "KPO_score"] < 6.5, "red", "orange"))
+    kpo_colr <- ifelse(
+      la_max_sum[la_max_sum$`Tracking Link` =="Total" & la_max_sum$`Financial Year` == fin_yr, "KPO_score"] > 7.5, 
+      "green", 
+      ifelse(la_max_sum[la_max_sum$`Tracking Link` =="Total" & la_max_sum$`Financial Year` == fin_yr, "KPO_score"] < 6.5, 
+             "red", 
+             "orange"
+             )
+      )
     valueBox(
-      value = round(la_max_sum[la_max_sum$`Tracking Link` =="Total", "KPO_score"],1), "Council KPO4 YTD", icon = icon("chart-bar"), color = kpo_colr
+      value = round(la_max_sum[la_max_sum$`Tracking Link` =="Total" & la_max_sum$`Financial Year` == fin_yr, "KPO_score"],1), 
+      paste("Council KPO4 YTD",fin_yr),
+      icon = icon("chart-bar"), 
+      color = kpo_colr
     )
   })
 #Create performance box for Scotland
   output$scotPerfBox<- renderValueBox({
    valueBox(
-      value = round(scot_max_sum[scot_max_sum$`Tracking Link` =="Total", "KPO_score"],1), "Scotland Average", icon = icon("times"), color = "navy"
+      value = round(scot_max_sum[scot_max_sum$`Tracking Link` =="Total" & scot_max_sum$`Financial Year` == fin_yr, "KPO_score"],1), 
+      paste("Scotland Average KPO4 YTD", fin_yr), 
+      icon = icon("times"), 
+      color = "navy"
     )
   })
 #Create responses valuebox
     output$respBox <- renderValueBox({
       unpivot_data <- unpivot_data()
       valueBox(
-        value = paste(nrow(filter(unpivot_data, Quarter == crnt_qtr)), "Responses"), paste(nrow(unpivot_data),"Year to Date"), icon = icon("user-friends"), color = "light-blue"
+        value = paste(nrow(
+          filter(unpivot_data, Quarter == crnt_qtr & `Financial Year` == fin_yr)
+          ), 
+          paste("Responses", gsub("Quarter\\ ","Q",crnt_qtr, perl = T))
+          ),
+        paste(nrow(
+          filter(unpivot_data, `Financial Year` == fin_yr)
+          ),
+          paste("Year to Date", fin_yr)
+          ), 
+        icon = icon("user-friends"), 
+        color = "light-blue"
       )
     })
     
@@ -475,25 +497,38 @@ output$LA_KPO4_Heading <- renderUI({
       la_max_sum <- la_max_sum()
       
       #rename Total as year to date
-      la_max_sum$`Tracking Link` <- recode(la_max_sum$`Tracking Link`, "Total" = "Year to Date")
+      la_max_sum$`Tracking Link` <- recode(la_max_sum$`Tracking Link`, "Total" = "YTD")
      
+      # Filter to only include the Quarters for current year
+      la_max_sum <- la_max_sum %>% filter(`Tracking Link` == "YTD" | (`Tracking Link` != "YTD" & `Financial Year` == fin_yr))
+      
+      # Add Financial year to quarter labels
+      la_max_sum$`Tracking Link` <- gsub("Quarter\\ ","Q",la_max_sum$`Tracking Link`, perl = T)
+      la_max_sum$Label <- paste(la_max_sum$`Tracking Link`, la_max_sum$`Financial Year`, sep = " ")
+      
+      # Store the number of YTD values to determine the colours for these bars
+      YTD <- length(la_max_sum$`Tracking Link`[la_max_sum$`Tracking Link` == "YTD"])
+      
+      
         ##Set colours for quarter by kpo4
-      kpo_clrs <- la_max_sum %>% filter(`Tracking Link` != "Year to Date") %>% pull(KPO_score)
+      kpo_clrs <- la_max_sum %>% 
+        filter(`Tracking Link` != "YTD") %>% 
+        pull(KPO_score)
       clrs <- ifelse(kpo_clrs >7.5, "forestgreen", ifelse(kpo_clrs <6.5, "firebrick", "darkorange"))
       
       p <- ggplot(data = la_max_sum) +
          geom_bar(aes(
-           x = `Tracking Link`, 
+           x = Label, 
            y = KPO_score,
            text = paste(
-             paste("Quarter:", `Tracking Link`),
+             paste("Quarter:", Label),
              paste("KPO 4 Score", KPO_score),
              sep = "\n"
            )
            ), 
            stat = "identity",
            position = "dodge", 
-           fill = c(clrs, "grey13"), 
+           fill = c(clrs, rep("grey13", YTD)), 
            width = 0.7, 
            colour = "black"
            ) +
@@ -502,7 +537,7 @@ output$LA_KPO4_Heading <- renderUI({
          ggtitle("KPO4 performance by quarter and YTD")+
          ylab("KPO 4 Score") +
          xlab("Response period") +
-         theme(axis.text.x = element_text(size = 12),
+         theme(axis.text.x = element_text(size = 10),
                axis.title = element_text(size = 13))
       ggplotly(p, tooltip = "text")
     })
@@ -592,6 +627,20 @@ output$LA_KPO4_Heading <- renderUI({
     
 ##Create graphs to display results by questions================================
   
+    # Create select button for financial year, dependent on number of years available
+    output$fin_yr <- renderUI({
+      council_fltr <- local_authority()
+      dta <- dta %>% filter(`Local Authority Name` == council_fltr) 
+      years <- unique(dta$`Financial Year`)
+      no_years <- length(unique(dta$`Financial Year`))
+      if(no_years > 1){
+        selectizeInput("fin_yr_selection", "Select financial year",
+                       choices = years, selected = fin_yr)
+      } else{
+        return()
+      }
+    })
+    
     ##Create filtered dataset from checkboxes
     qstn_dataset_filtered <- reactive({
       council_fltr <- local_authority()
@@ -604,7 +653,18 @@ output$LA_KPO4_Heading <- renderUI({
     ##select applicant reason using partial match
       slctn_reason <- names(select(dta, contains(input$Qs_reason_input)))
       filter_data <- dta %>% filter(if_any(slctn_respondent, ~ . == 1)) %>%
-        filter(if_any(slctn_reason, ~.==1))
+        filter(if_any(slctn_reason, ~.==1)) 
+        
+    #filter to correct financial year
+      no_years <- length(unique(dta$`Financial Year`))
+      
+      filter_data <- if(no_years > 1) {
+        filter(filter_data, `Financial Year` == input$fin_yr_selection)
+      } else
+      {
+        filter(filter_data, `Financial Year` == fin_yr)
+      }
+        
       filter_data
     })
     
@@ -683,6 +743,8 @@ output$LA_KPO4_Heading <- renderUI({
        ungroup()%>%
        mutate(`% of responses` = round((n/total_responses*100),1))
      
+     # Remove NA for where there is no values for a quarter
+     qstnDta <- qstnDta %>% filter(!is.na(value))
      
      ##set labels for response groups
      qstnDta$Response <- qstnDta$value
@@ -776,24 +838,25 @@ output$LA_KPO4_Heading <- renderUI({
      # arrange the data and store order of colours
      all_kpo_data <- arrange(all_kpo_data, id)
      
+     # Store number of years to determine colours of bars
+     Years <- length(unique(all_kpo_data$`Financial Year`))
+     
      p <- ggplot(data = all_kpo_data) +
        geom_bar(aes(
-         x = `Tracking Link`, 
+         x = `Financial Year`, 
          y = KPO_score, 
          fill = id,
-         text = paste("Year to date", id, paste("KPO 4 Score:", KPO_score),sep = "\n")), 
+         text = paste(`Financial Year`, id, paste("KPO 4 Score:", KPO_score),sep = "\n")), 
          stat = "identity",
          position = "dodge",
          width = 0.7, 
          colour = "black")+
        scale_y_continuous(limits = c(0,10), expand = expansion(mult = c(0, 0.1)))+
-       scale_fill_manual(values = c("cadetblue3","dimgrey"), name = "")+ 
+       scale_fill_manual(values = rep(c("cadetblue3","dimgrey"),Years), name = "")+ 
        ggtitle("KPO 4 score - Year to Date")+
        xlab("")+
        ylab("KPO 4 Score")+
-       theme_classic()+
-       theme(axis.text.x=element_blank(),
-             axis.ticks.x=element_blank())
+       theme_classic()
      
      ggplotly(p, tooltip = "text")
      
@@ -802,23 +865,48 @@ output$LA_KPO4_Heading <- renderUI({
    
    ##Render text for KPO4 Overall perf to year
    output$KPO4_text_report <- renderText({
-  ##Only select the full year data - 
-    ##this will need to be updated when more than one year is available  
      council_fltr <- local_authority()
-     all_kpo_data <- report_kpo_data() %>% filter(`Tracking Link` == "Total")
-     local_auth <- council_fltr
-     curr_year <- fin_yr
+     
+     # store the number of financial years available for council
+     all_kpo_data <- report_kpo_data()
+     Years <- all_kpo_data %>% filter(id == council_fltr)
+     Years <- length(unique(Years$`Financial Year`))
+     
+    # calculate values for current KPO4 and how it compares with Scotland and target
+     all_kpo_data <- all_kpo_data %>% filter(`Tracking Link` == "Total" & `Financial Year` == fin_yr)
      KPO4_ytd <- all_kpo_data %>% filter(id == council_fltr) %>% pull(KPO_score)
      hilow_kpo4 <- ifelse(KPO4_ytd > 7.5, "higher than", ifelse(KPO4_ytd < 7.5, "lower than", "equal to"))
      scotAv_kpo4 <- all_kpo_data %>% filter(id == "Scotland") %>% pull(KPO_score)
      abbel_kpo4 <- ifelse(KPO4_ytd > scotAv_kpo4, "higher than",ifelse(KPO4_ytd < scotAv_kpo4, "lower than", "equal to"))
      
+    #Store value for previous financial year
+     KPO4_prev <- report_kpo_data() %>% filter(`Tracking Link` == "Total" & `Financial Year` == prev_fin_yr)
+     KPO4_prev <- KPO4_prev %>% filter(id == council_fltr) %>% pull(KPO_score)
+     
+     # create text for comparison with previous year
+     change_value <- KPO4_ytd - KPO4_prev
+     change_text <- if_else(change_value < 0, "a decrease", "an increase")
+     
+     # text for when there is only 1 financial year
      text_kpo <- paste0("This indicator summarises performance across all questions, with differential
-                       weightings based on importance. For ", local_auth," in ",curr_year, " overall
+                       weightings based on importance. For ", council_fltr," in ",fin_yr, " overall
                        performance is at ", KPO4_ytd, " for the year to date. ", "This is ",abbel_kpo4,
                        " the Scotland average of ", scotAv_kpo4," and ", hilow_kpo4," the target value
                        of 7.5.")
-     return(text_kpo)
+     
+# text for when there are more than 1 financial years     
+text_multiple_kpo <- paste0("This indicator summarises performance across all questions, with differential
+                       weightings based on importance. For ", council_fltr," in ",fin_yr, " overall
+                       performance is at ", KPO4_ytd, " for the year to date. ", "This reflects ", change_text,
+                                 " of ", change_value, " points from the performance of ", KPO4_prev, " in ", prev_fin_yr, ".",
+                                 " The year to date performance of ", council_fltr, " in ", fin_yr, " is ", abbel_kpo4,
+                                " the Scotland average of ", scotAv_kpo4," and ", hilow_kpo4," the target value
+                       of 7.5.")
+     
+# Conditional statement to select text based on the number of financial years available    
+ final_text <- ifelse(Years > 1,text_multiple_kpo, text_kpo)
+     
+     return(final_text)
    })
    
   ##Text for respondent types 
@@ -889,7 +977,9 @@ output$LA_KPO4_Heading <- renderUI({
      scot_max_sum$LA <- "Scotland"
      la_max_sum$LA <- council_fltr
      
-     quarts_dta <- rbind(scot_max_sum,la_max_sum) %>% filter(`Tracking Link` != "Total")
+     quarts_dta <- rbind(scot_max_sum,la_max_sum) %>% 
+       filter(`Tracking Link` != "Total")
+       
      quarts_dta$KPO_score <- round(quarts_dta$KPO_score,1)
      quarts_dta
    })
@@ -905,19 +995,27 @@ output$LA_KPO4_Heading <- renderUI({
        
     # Set the council values as a factor so the data can be arranged to have the council first regardless of alphabetical order
       report_line_data$LA <- factor(report_line_data$LA, levels = c(council_fltr, "Scotland"))
-       
-       # arrange the data and store order of colours
-       report_line_data <- arrange(report_line_data,LA)
+    
+      # Add Financial year to quarter labels
+      report_line_data$`Tracking Link` <- gsub("Quarter\\ ","Q",report_line_data$`Tracking Link`, perl = T)
+      report_line_data$Label <- paste(report_line_data$`Tracking Link`, report_line_data$`Financial Year`, sep = " ")
+
+      # arrange the data to set the order of colours
+      report_line_data <- arrange(report_line_data,LA,`Financial Year`)
+      
+      # Set the date labels as a factor to ensure they stay in order
+      QLabels <- unique(report_line_data$Label)
+      report_line_data$Label <- factor(report_line_data$Label, levels = QLabels)
 
      plt <- ggplot(data = report_line_data) +
        geom_line(aes(
-         x = `Tracking Link`, 
+         x = Label, 
          y = KPO_score, 
          group = LA, 
          colour = LA,
          text = paste(
            LA,
-           paste("Quarter:", `Tracking Link`),
+           paste("Quarter:", Label),
            paste("KPO 4 Score:", KPO_score),
            sep = "\n"
          )
@@ -976,46 +1074,124 @@ output$LA_KPO4_Heading <- renderUI({
    output$quarter_text <- renderText({
      
      council_fltr <- local_authority()
-     #kpo data
+    
+      #kpo data
      all_kpo_data <- report_kpo_data()
-    #get the number of quarters for rendering the text
-     no_quarts <- length(unique(dta$`Tracking Link`[dta$`Local Authority Name` == council_fltr]))
      
+     # filter to quarters, selected council and current financial year
+     all_kpo_data <- all_kpo_data %>% filter(
+       `Tracking Link` != "Total",
+        `Financial Year` == fin_yr,  
+       id == council_fltr
+       ) %>% ungroup()
+     
+     # Set the quarter labels as a factor to ensure they stay in order
+     QLabels <- unique(all_kpo_data$`Tracking Link`)
+     all_kpo_data$`Tracking Link` <- factor(all_kpo_data$`Tracking Link`, levels = QLabels)
+     
+     # Store the names of the quarters by position, if there is a quarter missing this will be empty
+     first_Q <- all_kpo_data$`Tracking Link`[[1]]
+     second_Q <- if(length(QLabels) > 1)
+                    {all_kpo_data$`Tracking Link`[[2]]} else
+                    {0}
+     third_Q <- if(length(QLabels) > 2) 
+     {all_kpo_data$`Tracking Link`[[3]]} else
+         {0}
+     fourth_Q <- if(length(QLabels) >3)
+       {all_kpo_data$`Tracking Link`[[4]]} else
+       {0}
+    
+     #filter to get KPO for quarter 1
+     Q1_kpo <- all_kpo_data %>% filter(`Tracking Link` == first_Q) %>%
+       select(KPO_score)
+     #render text for quarter 1
+     Q1_text<- paste0("In ", first_Q, " performance for KPO 4 calculated across all responses for all questions was ",
+                      Q1_kpo," for ", council_fltr,". ")
+     #filter to get KPO for quarter 2
+     Q2_kpo <- all_kpo_data %>% filter(`Tracking Link` == second_Q) %>%
+       select(KPO_score)
+     #compare quarter 2 and quarter 1
+     comp_Q12 <- tryCatch({ifelse(Q2_kpo > Q1_kpo+0.2, "rose", ifelse(Q2_kpo < Q1_kpo-0.2, "fell", "stayed the same"))},error =function(error_message){""})
+     #render text for quarter 2                   
+     Q2_text<- paste0(Q1_text,"Performance then ", comp_Q12," in ", second_Q, " to stand at ", Q2_kpo, ".")
+     
+     #filter to get KPO for quarter 3
+     Q3_kpo <- all_kpo_data %>% filter(`Tracking Link` == third_Q) %>%
+       select(KPO_score)
+     #compare quarter 3 and quarter 2 - ignore if error occurs
+     comp_Q23 <- tryCatch({ifelse(Q3_kpo > Q2_kpo+0.2, "higher than", ifelse(Q3_kpo < Q2_kpo-0.2, "lower than", "the same as"))},error =function(error_message){""})
+     #render text for quarter 3                   
+     Q3_text<- paste0(Q2_text,". In ", third_Q, " performance was ", comp_Q23," ", second_Q," at ", Q3_kpo, ".")
+     
+     #filter to get KPO for quarter 4
+     Q4_kpo <- all_kpo_data %>% filter(`Tracking Link` == fourth_Q) %>%
+       select(KPO_score)
+     #compare quarter 4 and quarter 3 - ignore if error occurs
+     comp_Q34 <- tryCatch({ifelse(Q4_kpo > Q3_kpo+0.2, "higher than", ifelse(Q4_kpo < Q3_kpo-0.2, "lower than", "the same as"))},error =function(error_message){""})
+     #render text for quarter 4                   
+     Q4_text<- paste0(
+       Q3_text, ". In ", fourth_Q," performance was ", comp_Q34," ",third_Q," and stands at ", Q4_kpo, ".")
+     
+     
+     main_text <- ifelse(
+       length(QLabels) == 1, 
+       Q1_text, 
+       ifelse(length(QLabels) == 2, 
+              Q2_text, 
+              ifelse(length(QLabels) == 3, 
+                     Q3_text, 
+                     Q4_text
+                     )
+              )
+       )
+     
+     # If there is data for more than 1 financial year compare most recent quarter with same quarter in previous year
+     extra_data <- report_kpo_data()
+     
+     # filter to current quarter and selected council
+     extra_data <- extra_data %>% filter(`Tracking Link` == crnt_qtr, id == council_fltr)
+     
+     # Store values for current financial year and previous financial year
+     first_fin_yr <- if(length(extra_data$`Tracking Link`) > 1){
+       filter(extra_data, `Financial Year` == prev_fin_yr) %>%
+         ungroup() %>%
+         select(KPO_score)
+     } else {
+         0
+       }
+     
+     second_fin_yr <- if(length(extra_data$`Tracking Link`) > 1){
+       filter(extra_data, `Financial Year` == fin_yr) %>%
+         ungroup() %>%
+         select(KPO_score)
+     } else {
+         0}
+     
+     # Compare values and create text
+     extra_comp <- tryCatch({ifelse(second_fin_yr > first_fin_yr + 0.2, " higher than in ", ifelse(second_fin_yr < first_fin_yr -0.2, " lower than in ", " the same as in "))},error =function(error_message){""})
+     extra_comp_value <- ifelse(extra_comp == " the same as in ", "", second_fin_yr - first_fin_yr)
+       
+     extra_text <- paste0(
+       "KPO 4 performance in ", 
+       crnt_qtr, 
+       " ", 
+       fin_yr, 
+       " was ", 
+       extra_comp_value, 
+       extra_comp,
+       crnt_qtr, 
+       " ",
+       prev_fin_yr,
+       "."
+       )
+     
+     final_text <- ifelse(
+       length(unique(extra_data$`Financial Year`)) > 1,
+       paste(main_text, extra_text),
+       main_text
+     )
 
-    #filter to get KPO for quarter 1
-    Q1_kpo <- all_kpo_data %>% filter(`Tracking Link` == "Quarter 1", id == council_fltr) %>%
-      select(KPO_score)
-    #render text for quarter 1
-    Q1_text<- paste0("In Quarter 1 performance for KPO 4 calculated across all responses for all questions was ",
-                      Q1_kpo,". ")
-    #filter to get KPO for quarter 2
-    Q2_kpo <- all_kpo_data %>% filter(`Tracking Link` == "Quarter 2", id == council_fltr) %>%
-      select(KPO_score)
-    #compare quarter 2 and quarter 1
-    comp_Q12 <- tryCatch({ifelse(Q2_kpo > Q1_kpo+0.2, "rose", ifelse(Q2_kpo < Q1_kpo-0.2, "fell", "stayed the same"))},error =function(error_message){""})
-    #render text for quarter 2                   
-    Q2_text<- paste0(Q1_text,"Performance then ", comp_Q12," in Quarter 2 to stand at ", Q2_kpo)
-    
-    #filter to get KPO for quarter 3
-    Q3_kpo <- all_kpo_data %>% filter(`Tracking Link` == "Quarter 3", id == council_fltr) %>%
-      select(KPO_score)
-    #compare quarter 3 and quarter 2 - ignore if error occurs
-    comp_Q23 <- tryCatch({ifelse(Q3_kpo > Q2_kpo+0.2, "higher than", ifelse(Q3_kpo < Q2_kpo-0.2, "lower than", "the same as"))},error =function(error_message){""})
-    #render text for quarter 3                   
-    Q3_text<- paste0(Q2_text,". In Quarter 3 performance was ", comp_Q23," Quarter 2 at ", Q3_kpo)
-    
-    #filter to get KPO for quarter 4
-    Q4_kpo <- all_kpo_data %>% filter(`Tracking Link` == "Quarter 4", id == council_fltr) %>%
-      select(KPO_score)
-    #compare quarter 4 and quarter 3 - ignore if error occurs
-    comp_Q34 <- tryCatch({ifelse(Q4_kpo > Q3_kpo+0.2, "higher than", ifelse(Q4_kpo < Q3_kpo-0.2, "lower than", "the same as"))},error =function(error_message){""})
-    #render text for quarter 4                   
-    Q4_text<- paste0(
-      Q3_text, ". In Quarter 4 performance was ", comp_Q34," Quarter 3, and stands at ", Q4_kpo)
-    
-    
-    final_text <- ifelse(no_quarts == 1, Q1_text, ifelse(no_quarts == 2, Q2_text, ifelse(no_quarts == 3, Q3_text, Q4_text)))
-    final_text
+     final_text
    })
    
 ##create graph and text for Question 1 on report page=================
@@ -1023,6 +1199,8 @@ output$LA_KPO4_Heading <- renderUI({
    ##generate data to be used in graph and text
    question_time_data_report <- reactive({
      council_fltr <- local_authority()
+     #filter to current financial year
+     dta <- dta %>% filter(`Financial Year` == fin_yr)
      ##filter dataset based on selected question   
      dta <- dta %>% filter(value != "-")
      dta$`value` <- factor(dta$`value`, levels = c(1,2,3,4))
@@ -1161,6 +1339,8 @@ output$LA_KPO4_Heading <- renderUI({
    ##generate data to be used in graph and text
    question_comms_data_report <- reactive({
      council_fltr <- local_authority()
+     #filter to current financial year
+     dta <- dta %>% filter(`Financial Year` == fin_yr)
      ##filter dataset based on selected question   
      dta <- dta %>% filter(value != "-")
      ##filter dataset based on selected question   
@@ -1295,6 +1475,8 @@ output$LA_KPO4_Heading <- renderUI({
      ##generate data to be used in graph and text
      question_info_data_report <- reactive({
        council_fltr <- local_authority()
+       #filter to current financial year
+       dta <- dta %>% filter(`Financial Year` == fin_yr)
        dta <- dta %>% filter(value != "-")
      ##filter dataset based on selected question   
      dta$`value` <- factor(dta$`value`, levels = c(1,2,3,4))
@@ -1428,6 +1610,8 @@ output$LA_KPO4_Heading <- renderUI({
    ##create graph and text for Question 4 on report page=============
      question_staff_data_report <- reactive({
        council_fltr <- local_authority()
+       #filter to current financial year
+       dta <- dta %>% filter(`Financial Year` == fin_yr)
        dta <- dta %>% filter(value != "-")
      ##filter dataset based on selected question   
      dta$`value` <- factor(dta$`value`, levels = c(1,2,3,4))
@@ -1563,6 +1747,8 @@ output$LA_KPO4_Heading <- renderUI({
    
      question_responsiveness_data_report <- reactive({
        council_fltr <- local_authority()
+       #filter to current financial year
+       dta <- dta %>% filter(`Financial Year` == fin_yr)
        dta <- dta %>% filter(value != "-")
       ##filter dataset based on selected question   
      dta$`value` <- factor(dta$`value`, levels = c(1,2,3,4))
@@ -1697,6 +1883,8 @@ output$LA_KPO4_Heading <- renderUI({
    ##create graph and text for Question 6 on report page---------
      question_fairly_data_report <- reactive({
        council_fltr <- local_authority()
+       #filter to current financial year
+       dta <- dta %>% filter(`Financial Year` == fin_yr)
        dta <- dta %>% filter(value != "-")
      ##filter dataset based on selected question   
      dta$`value` <- factor(dta$`value`, levels = c(1,2,3,4))
@@ -1830,6 +2018,8 @@ output$LA_KPO4_Heading <- renderUI({
    ##create graph for Question 7 on report page===========
      question_overall_data_report <- reactive({
        council_fltr <- local_authority()
+       #filter to current financial year
+       dta <- dta %>% filter(`Financial Year` == fin_yr)
      ##filter dataset based on selected question   
      dta <- dta %>% filter(value != "-")
      dta$`value` <- factor(dta$`value`, levels = c(1,2,3,4))
@@ -2067,7 +2257,9 @@ output$LA_KPO4_Heading <- renderUI({
                   ), columnDefs = list(list(className = "dt-center", targets = "_all"))))
      })
 
-##create table to show comments for selected question 
+     ##Generate Open Text Table====================
+     
+     ##create table to show comments for selected question 
      output$cmnt_table <- DT::renderDataTable({
        unpivot_data <- unpivot_data()
        ##need to filter the data based on selections and recode answers
@@ -2082,7 +2274,7 @@ output$LA_KPO4_Heading <- renderUI({
        
        filter_data <- unpivot_data %>% filter(if_any(slctn_respondent, ~ . == "Yes")) %>%
          filter(if_any(slctn_reason, ~.== "Yes")) %>%
-         select(contains(input$cmnts_slct))
+         select(Quarter, `Financial Year`,contains(input$cmnts_slct))
        datatable(filter_data, filter = "top",rownames = FALSE, class = "row-border",escape = F,extensions = c("Scroller", "FixedColumns"))
        
      })
