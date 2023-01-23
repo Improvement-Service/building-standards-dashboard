@@ -13,7 +13,7 @@ output$la_select <- renderUI({
   user <- user()
   if(grepl("improvementservice.org.uk|gov.scot", user, ignore.case = T)){
     selectizeInput("LA_selection", "",
-                   choices =LA_Names, options = list(placeholder = "Select Your Local Authority",
+                   choices =LA_names, options = list(placeholder = "Select Your Local Authority",
                                                      onInitialize = I('function() { this.setValue(""); }')))
   } else{
     return()
@@ -209,8 +209,8 @@ output$LA_KPO4_Heading <- renderUI({
   
   # Code local authority name for councils completing survey without login
   dl_all_data <- merge(dl_all_data, LA_names_dta)
-  dl_all_data$`Local Authority Name` <- dl_all_data$LA_Names
-  dl_all_data <- dl_all_data %>% select(-LA_Names)
+  dl_all_data$`Local Authority Name` <- dl_all_data$LA_names
+  dl_all_data <- dl_all_data %>% select(-LA_names)
   dl_all_data <- dl_all_data[,c(2:4,1,5:ncol(dl_all_data))]
   dl_all_data
   })
@@ -370,16 +370,16 @@ output$LA_KPO4_Heading <- renderUI({
 ##Create outputs for KPO4 Summary Page===========================  
   
 ##calculated the KPO4 score based on weighted responses
-  KPOdta <- dta %>% mutate(value = as.numeric(value)) %>% mutate(KPO_weight = value-1)
-  KPOweights_multiplier <- outer(dta$Indicator == "Thinking of your engagement, how satisfied were you with the time taken to complete the process?",2)+
-    outer(dta$Indicator == "How would you rate the standard of communication provided?",2) +
-    outer(dta$Indicator == "Overall, how satisfied were you with the service provided?",8)
+  KPOdta <- pivot_dta %>% mutate(value = as.numeric(value)) %>% mutate(KPO_weight = value-1)
+  KPOweights_multiplier <- outer(pivot_dta$Indicator == "Thinking of your engagement, how satisfied were you with the time taken to complete the process?",2)+
+    outer(pivot_dta$Indicator == "How would you rate the standard of communication provided?",2) +
+    outer(pivot_dta$Indicator == "Overall, how satisfied were you with the service provided?",8)
   KPOweights_multiplier <- replace(KPOweights_multiplier, KPOweights_multiplier==0, 1)
   
   KPOdta$KPO_weight <- KPOdta$KPO_weight * KPOweights_multiplier  
   
   ##get total and max values for Scotland and Selected LA by quarter
-  scot_max <- dta %>% mutate(maxAvailable = 4) %>% mutate(value = as.numeric(value))
+  scot_max <- pivot_dta %>% mutate(maxAvailable = 4) %>% mutate(value = as.numeric(value))
   scot_max$maxAvailable <- (scot_max$maxAvailable-1) * KPOweights_multiplier 
   scot_max[is.na(scot_max$value), "maxAvailable"] <- NA
   scot_max$KPO4_weighted <- (scot_max$value-1) * KPOweights_multiplier
@@ -630,9 +630,9 @@ output$LA_KPO4_Heading <- renderUI({
     # Create select button for financial year, dependent on number of years available
     output$fin_yr <- renderUI({
       council_fltr <- local_authority()
-      dta <- dta %>% filter(`Local Authority Name` == council_fltr) 
-      years <- unique(dta$`Financial Year`)
-      no_years <- length(unique(dta$`Financial Year`))
+      pivot_dta <- pivot_dta %>% filter(`Local Authority Name` == council_fltr) 
+      years <- unique(pivot_dta$`Financial Year`)
+      no_years <- length(unique(pivot_dta$`Financial Year`))
       if(no_years > 1){
         selectizeInput("fin_yr_selection", "Select financial year",
                        choices = years, selected = fin_yr)
@@ -645,18 +645,18 @@ output$LA_KPO4_Heading <- renderUI({
     qstn_dataset_filtered <- reactive({
       council_fltr <- local_authority()
       
-      names(dta) <- gsub("Q[1-9\\.]+\\s","",names(dta), perl = T)
-      dta$`Tracking Link` <- as.factor(dta$`Tracking Link`)
-      dta <- dta %>% filter(`Local Authority Name` == council_fltr)
+      names(pivot_dta) <- gsub("Q[1-9\\.]+\\s","",names(pivot_dta), perl = T)
+      pivot_dta$`Tracking Link` <- as.factor(pivot_dta$`Tracking Link`)
+      pivot_dta <- pivot_dta %>% filter(`Local Authority Name` == council_fltr)
     ##select applicant type  
       slctn_respondent <- input$Qs_resp_input
     ##select applicant reason using partial match
-      slctn_reason <- names(select(dta, contains(input$Qs_reason_input)))
-      filter_data <- dta %>% filter(if_any(slctn_respondent, ~ . == 1)) %>%
+      slctn_reason <- names(select(pivot_dta, contains(input$Qs_reason_input)))
+      filter_data <- pivot_dta %>% filter(if_any(slctn_respondent, ~ . == 1)) %>%
         filter(if_any(slctn_reason, ~.==1)) 
         
     #filter to correct financial year
-      no_years <- length(unique(dta$`Financial Year`))
+      no_years <- length(unique(pivot_dta$`Financial Year`))
       
       filter_data <- if(no_years > 1) {
         filter(filter_data, `Financial Year` == input$fin_yr_selection)
@@ -1217,18 +1217,18 @@ text_multiple_kpo <- paste0("This indicator summarises performance across all qu
    question_time_data_report <- reactive({
      council_fltr <- local_authority()
      #filter to current financial year
-     dta <- dta %>% filter(`Financial Year` == fin_yr)
+     pivot_dta <- pivot_dta %>% filter(`Financial Year` == fin_yr)
      ##filter dataset based on selected question   
-     dta <- dta %>% filter(value != "-")
-     dta$`value` <- factor(dta$`value`, levels = c(1,2,3,4))
+     pivot_dta <- pivot_dta %>% filter(value != "-")
+     pivot_dta$`value` <- factor(pivot_dta$`value`, levels = c(1,2,3,4))
      #filter by local authority and question and count no. responses
-     qstnDta_LA <- dta %>% filter(Indicator == "Thinking of your engagement, how satisfied were you with the time taken to complete the process?") %>%
+     qstnDta_LA <- pivot_dta %>% filter(Indicator == "Thinking of your engagement, how satisfied were you with the time taken to complete the process?") %>%
        filter(`Local Authority Name` == council_fltr) %>% count(value, .drop =F) %>%
        mutate(Selection = council_fltr)
 
      
      #get all data for this question and count no. responses, bind LA count
-     qstnDta <- dta %>% filter(Indicator == "Thinking of your engagement, how satisfied were you with the time taken to complete the process?") %>%
+     qstnDta <- pivot_dta %>% filter(Indicator == "Thinking of your engagement, how satisfied were you with the time taken to complete the process?") %>%
        count(value, .drop =F) %>%
        mutate(Selection = "Scotland") %>%
        rbind(qstnDta_LA )
@@ -1357,18 +1357,18 @@ text_multiple_kpo <- paste0("This indicator summarises performance across all qu
    question_comms_data_report <- reactive({
      council_fltr <- local_authority()
      #filter to current financial year
-     dta <- dta %>% filter(`Financial Year` == fin_yr)
+     pivot_dta <- pivot_dta %>% filter(`Financial Year` == fin_yr)
      ##filter dataset based on selected question   
-     dta <- dta %>% filter(value != "-")
+     pivot_dta <- pivot_dta %>% filter(value != "-")
      ##filter dataset based on selected question   
-     dta$`value` <- factor(dta$`value`, levels = c(1,2,3,4))
+     pivot_dta$`value` <- factor(pivot_dta$`value`, levels = c(1,2,3,4))
      #filter by local authority and question and count no. responses
-     qstnDta_LA <- dta %>% filter(Indicator == "How would you rate the standard of communication provided?") %>%
+     qstnDta_LA <- pivot_dta %>% filter(Indicator == "How would you rate the standard of communication provided?") %>%
        filter(`Local Authority Name` == council_fltr) %>% count(value, .drop =F) %>%
        mutate(Selection = council_fltr)
      
      #get all data for this question and count no. responses, bind LA count
-     qstnDta <- dta %>% filter(Indicator == "How would you rate the standard of communication provided?") %>%
+     qstnDta <- pivot_dta %>% filter(Indicator == "How would you rate the standard of communication provided?") %>%
        count(value, .drop =F) %>%
        mutate(Selection = "Scotland") %>%
        rbind(qstnDta_LA )
@@ -1493,17 +1493,17 @@ text_multiple_kpo <- paste0("This indicator summarises performance across all qu
      question_info_data_report <- reactive({
        council_fltr <- local_authority()
        #filter to current financial year
-       dta <- dta %>% filter(`Financial Year` == fin_yr)
-       dta <- dta %>% filter(value != "-")
+       pivot_dta <- pivot_dta %>% filter(`Financial Year` == fin_yr)
+       pivot_dta <- pivot_dta %>% filter(value != "-")
      ##filter dataset based on selected question   
-     dta$`value` <- factor(dta$`value`, levels = c(1,2,3,4))
+     pivot_dta$`value` <- factor(pivot_dta$`value`, levels = c(1,2,3,4))
      #filter by local authority and question and count no. responses
-     qstnDta_LA <- dta %>% filter(Indicator == "Quality of the information provided") %>%
+     qstnDta_LA <- pivot_dta %>% filter(Indicator == "Quality of the information provided") %>%
        filter(`Local Authority Name` == council_fltr) %>% count(value, .drop =F) %>%
        mutate(Selection = council_fltr)
      
      #get all data for this question and count no. responses, bind LA count
-     qstnDta <- dta %>% filter(Indicator == "Quality of the information provided") %>%
+     qstnDta <- pivot_dta %>% filter(Indicator == "Quality of the information provided") %>%
        count(value, .drop =F) %>%
        mutate(Selection = "Scotland") %>%
        rbind(qstnDta_LA )
@@ -1628,12 +1628,12 @@ text_multiple_kpo <- paste0("This indicator summarises performance across all qu
      question_staff_data_report <- reactive({
        council_fltr <- local_authority()
        #filter to current financial year
-       dta <- dta %>% filter(`Financial Year` == fin_yr)
-       dta <- dta %>% filter(value != "-")
+       pivot_dta <- pivot_dta %>% filter(`Financial Year` == fin_yr)
+       pivot_dta <- pivot_dta %>% filter(value != "-")
      ##filter dataset based on selected question   
-     dta$`value` <- factor(dta$`value`, levels = c(1,2,3,4))
+     pivot_dta$`value` <- factor(pivot_dta$`value`, levels = c(1,2,3,4))
      #filter by local authority and question and count no. responses
-     qstnDta_LA <- dta %>% filter(Indicator == "Service offered by staff") %>%
+     qstnDta_LA <- pivot_dta %>% filter(Indicator == "Service offered by staff") %>%
        filter(`Local Authority Name` == council_fltr) %>% count(value, .drop =F) %>%
        mutate(Selection = council_fltr)
      
@@ -1765,17 +1765,17 @@ text_multiple_kpo <- paste0("This indicator summarises performance across all qu
      question_responsiveness_data_report <- reactive({
        council_fltr <- local_authority()
        #filter to current financial year
-       dta <- dta %>% filter(`Financial Year` == fin_yr)
-       dta <- dta %>% filter(value != "-")
+       pivot_dta <- pivot_dta %>% filter(`Financial Year` == fin_yr)
+       pivot_dta <- pivot_dta %>% filter(value != "-")
       ##filter dataset based on selected question   
-     dta$`value` <- factor(dta$`value`, levels = c(1,2,3,4))
+     pivot_dta$`value` <- factor(pivot_dta$`value`, levels = c(1,2,3,4))
      #filter by local authority and question and count no. responses
-     qstnDta_LA <- dta %>% filter(Indicator == "Responsiveness to any queries or issues raised") %>%
+     qstnDta_LA <- pivot_dta %>% filter(Indicator == "Responsiveness to any queries or issues raised") %>%
        filter(`Local Authority Name` == council_fltr) %>% count(value, .drop =F) %>%
        mutate(Selection = council_fltr)
      
      #get all data for this question and count no. responses, bind LA count
-     qstnDta <- dta %>% filter(Indicator == "Responsiveness to any queries or issues raised") %>%
+     qstnDta <- pivot_dta %>% filter(Indicator == "Responsiveness to any queries or issues raised") %>%
        count(value, .drop =F) %>%
        mutate(Selection = "Scotland") %>%
        rbind(qstnDta_LA )
@@ -1901,17 +1901,17 @@ text_multiple_kpo <- paste0("This indicator summarises performance across all qu
      question_fairly_data_report <- reactive({
        council_fltr <- local_authority()
        #filter to current financial year
-       dta <- dta %>% filter(`Financial Year` == fin_yr)
-       dta <- dta %>% filter(value != "-")
+       pivot_dta <- pivot_dta %>% filter(`Financial Year` == fin_yr)
+       pivot_dta <- pivot_dta %>% filter(value != "-")
      ##filter dataset based on selected question   
-     dta$`value` <- factor(dta$`value`, levels = c(1,2,3,4))
+     pivot_dta$`value` <- factor(pivot_dta$`value`, levels = c(1,2,3,4))
      #filter by local authority and question and count no. responses
-     qstnDta_LA <- dta %>% filter(Indicator == "To what extent would you agree that you were treated fairly?"   ) %>%
+     qstnDta_LA <- pivot_dta %>% filter(Indicator == "To what extent would you agree that you were treated fairly?"   ) %>%
        filter(`Local Authority Name` == council_fltr) %>% count(value, .drop =F) %>%
        mutate(Selection = council_fltr)
      
      #get all data for this question and count no. responses, bind LA count
-     qstnDta <- dta %>% filter(Indicator == "To what extent would you agree that you were treated fairly?"   ) %>%
+     qstnDta <- pivot_dta %>% filter(Indicator == "To what extent would you agree that you were treated fairly?"   ) %>%
        count(value, .drop =F) %>%
        mutate(Selection = "Scotland") %>%
        rbind(qstnDta_LA )
@@ -2036,17 +2036,17 @@ text_multiple_kpo <- paste0("This indicator summarises performance across all qu
      question_overall_data_report <- reactive({
        council_fltr <- local_authority()
        #filter to current financial year
-       dta <- dta %>% filter(`Financial Year` == fin_yr)
+       pivot_dta <- pivot_dta %>% filter(`Financial Year` == fin_yr)
      ##filter dataset based on selected question   
-     dta <- dta %>% filter(value != "-")
-     dta$`value` <- factor(dta$`value`, levels = c(1,2,3,4))
+     pivot_dta <- pivot_dta %>% filter(value != "-")
+     pivot_dta$`value` <- factor(pivot_dta$`value`, levels = c(1,2,3,4))
      #filter by local authority and question and count no. responses
-     qstnDta_LA <- dta %>% filter(Indicator == "Overall, how satisfied were you with the service provided?") %>%
+     qstnDta_LA <- pivot_dta %>% filter(Indicator == "Overall, how satisfied were you with the service provided?") %>%
        filter(`Local Authority Name` == council_fltr) %>% count(value, .drop =F) %>%
        mutate(Selection = council_fltr)
      
      #get all data for this question and count no. responses, bind LA count
-     qstnDta <- dta %>% filter(Indicator == "Overall, how satisfied were you with the service provided?") %>%
+     qstnDta <- pivot_dta %>% filter(Indicator == "Overall, how satisfied were you with the service provided?") %>%
        count(value, .drop =F) %>%
        mutate(Selection = "Scotland") %>%
        rbind(qstnDta_LA )
