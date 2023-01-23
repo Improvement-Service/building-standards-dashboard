@@ -343,16 +343,13 @@ ggplot(data = reason_data,
 # Set the council values as a factor so the data can be arranged to have the council first regardless of alphabetical order
 line_data$LA <- factor(line_data$LA, levels = c(la, "Scotland"))
 
-# arrange the data and store order of colours
-line_data <- arrange(line_data,LA)
-
-
 # Add Financial year to quarter labels
  line_data$`Tracking Link` <- gsub("Quarter\\ ","Q",line_data$`Tracking Link`, perl = T)
  line_data$Label <- paste(line_data$`Tracking Link`, line_data$`Financial Year`, sep = " ")
+ line_data$`Tracking Link` <- gsub("Q", "", line_data$`Tracking Link`, perl = T)
 
 # arrange the data to set the order of colours
- line_data <- arrange(line_data,LA,`Financial Year`)
+ line_data <- arrange(line_data,`Financial Year`, `Tracking Link`, LA)
       
 # Set the date labels as a factor to ensure they stay in order
  QLabels <- unique(line_data$Label)
@@ -361,7 +358,7 @@ line_data <- arrange(line_data,LA)
 ```
   
   
-```{r, eval = length(line_data$`Tracking Link`[line_data$LA == la]) > 1, echo = F}
+```{r, eval = length(line_data$LA[line_data$LA == la]) > 1, echo = F}
 
 ggplot(data = line_data,
        aes(x = Label, 
@@ -386,8 +383,15 @@ ggplot(data = line_data,
 ```
   
   
-```{r, eval = length(line_data$`Tracking Link`[line_data$LA == la]) < 2, echo = F}
+```{r, eval = length(line_data$LA[line_data$LA == la]) < 2, echo = F}
 
+qrtr_available <- line_data$`Tracking Link`[report_line_data$LA == la]
+year_available <- line_data$`Financial Year`[report_line_data$LA == la]
+      
+line_data <- line_data %>% 
+  filter(`Tracking Link` == qrtr_available,
+         `Financial Year` == year_available
+         )
 ggplot(data = line_data,
        aes(x = `Tracking Link`, 
          y = KPO_score, 

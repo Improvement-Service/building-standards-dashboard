@@ -991,7 +991,10 @@ text_multiple_kpo <- paste0("This indicator summarises performance across all qu
      report_line_data <- report_line_data()
      council_fltr <- local_authority()
      
-     if(length(report_line_data$`Tracking Link`[report_line_data$LA == council_fltr]) > 1){
+     # checks if there is more than one quarter available for the council
+     # TRUE = line Graph
+     # FALSE = bar graph
+     if(length(report_line_data$LA[report_line_data$LA == council_fltr]) > 1){
        
     # Set the council values as a factor so the data can be arranged to have the council first regardless of alphabetical order
       report_line_data$LA <- factor(report_line_data$LA, levels = c(council_fltr, "Scotland"))
@@ -999,9 +1002,10 @@ text_multiple_kpo <- paste0("This indicator summarises performance across all qu
       # Add Financial year to quarter labels
       report_line_data$`Tracking Link` <- gsub("Quarter\\ ","Q",report_line_data$`Tracking Link`, perl = T)
       report_line_data$Label <- paste(report_line_data$`Tracking Link`, report_line_data$`Financial Year`, sep = " ")
+      report_line_data$`Tracking Link` <- gsub("Q", "", report_line_data$`Tracking Link`, perl = T)
 
       # arrange the data to set the order of colours
-      report_line_data <- arrange(report_line_data,LA,`Financial Year`)
+      report_line_data <- arrange(report_line_data,`Financial Year`, `Tracking Link`, LA)
       
       # Set the date labels as a factor to ensure they stay in order
       QLabels <- unique(report_line_data$Label)
@@ -1033,7 +1037,20 @@ text_multiple_kpo <- paste0("This indicator summarises performance across all qu
      } 
      else
     {
-       # Set the council values as a factor so the data can be arranged to have the council first regardless of alphabetical order
+       
+      # creates bar graph for cases where there is only one quarter of data for the LA
+      
+      # pulls out the quarter and financial year available for the selected council
+      # there may be more than one quarter for Scotland so need to filter so that's not included
+      qrtr_available <- report_line_data$`Tracking Link`[report_line_data$LA == council_fltr]
+      year_available <- report_line_data$`Financial Year`[report_line_data$LA == council_fltr]
+      
+      report_line_data <- report_line_data %>% 
+        filter(`Tracking Link` == qrtr_available,
+               `Financial Year` == year_available
+               )
+      
+      # Set the council values as a factor so the data can be arranged to have the council first regardless of alphabetical order
        report_line_data$LA <- factor(report_line_data$LA, levels = c(council_fltr, "Scotland"))
        
        # arrange the data and store order of colours
