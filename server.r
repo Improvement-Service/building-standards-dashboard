@@ -1138,7 +1138,7 @@ text_multiple_kpo <- paste0("This indicator summarises performance across all qu
      #compare quarter 3 and quarter 2 - ignore if error occurs
      comp_Q23 <- tryCatch({ifelse(Q3_kpo > Q2_kpo+0.2, "higher than", ifelse(Q3_kpo < Q2_kpo-0.2, "lower than", "the same as"))},error =function(error_message){""})
      #render text for quarter 3                   
-     Q3_text<- paste0(Q2_text,". In ", third_Q, " performance was ", comp_Q23," ", second_Q," at ", Q3_kpo, ".")
+     Q3_text<- paste0(Q2_text," In ", third_Q, " performance was ", comp_Q23," ", second_Q," at ", Q3_kpo, ".")
      
      #filter to get KPO for quarter 4
      Q4_kpo <- all_kpo_data %>% filter(`Tracking Link` == fourth_Q) %>%
