@@ -1,7 +1,6 @@
 function(input, output, session) {
 
-
-###### Reactive global data #######  
+# Set up reactive council selection based on log in -------------------------
 
 #first, get the user  
   user <- reactive({
@@ -166,7 +165,24 @@ output$LA_KPO4_Heading <- renderUI({
   h2(paste("KPO4 Performance", la_name, sep = " - "),style = "margin-top:3px")
 })
   
-#### Download Data 
+##log in details     
+output$userpanel <- renderUI({
+  # session$user is non-NULL only in authenticated sessions
+  if (!is.null(session$user)) {
+    usr <- session$user
+    usr <- gsub("(@).+\\..+", "", usr, perl = T)
+    sidebarUserPanel(
+      paste("Logged in as: ", usr, sep = "\n"),
+      subtitle = a(icon("sign-out"), "Logout", href="__logout__"))
+  }
+})
+
+
+# Download Data - format data for download --------------------------------
+
+# This data is used in the data download page as this is to be presented in
+# a wide un-pivoted format. It keeps the additional questions for applicable
+# councils. 
   
   # Select columns based on council (ensures duplicate columns and questions from other councils are filtered out)
   dl_all_data <- reactive({
@@ -216,7 +232,7 @@ output$LA_KPO4_Heading <- renderUI({
   })
   
 
-##### Respondents and reasons data 
+# Respondents & Reasons data ---------------------------------------------- 
   
   # Generate another dataframe with respondent types
   
@@ -233,7 +249,8 @@ output$LA_KPO4_Heading <- renderUI({
     # Change these columns to numeric so they can be combined with the other columns
     dl_all_data$`Q1.4. Other (please specify):` <- as.numeric(dl_all_data$`Q1.4. Other (please specify):`)
     dl_all_data$`Q2.4. Other (please specify):` <- as.numeric(dl_all_data$`Q2.4. Other (please specify):`)
-    
+
+   
     
  resp_dta <- dl_all_data %>% group_by(`Local Authority Name`) %>% select(1:12)%>%
     pivot_longer(cols = 5:12, names_to = "Question", values_to = "value")%>% 
@@ -257,8 +274,8 @@ output$LA_KPO4_Heading <- renderUI({
   
   })
   
-### Final reactive steps to create unpivot_data
-  
+# Finalise unpivot data ---------------------------------------------------
+# This is used in the data download table and the respondent no. value box
   unpivot_data <- reactive({
   
     council_fltr <- local_authority()
@@ -367,7 +384,7 @@ output$LA_KPO4_Heading <- renderUI({
   unpivot_data
   })
   
-##Create outputs for KPO4 Summary Page===========================  
+# Create KPO4 Score Data ---------------------------------------------------
   
 ##calculated the KPO4 score based on weighted responses
   KPOdta <- pivot_dta %>% mutate(value = as.numeric(value)) %>% mutate(KPO_weight = value-1)
@@ -428,7 +445,7 @@ output$LA_KPO4_Heading <- renderUI({
   
   total_la_max_sum <- total_la_max_sum %>% arrange(`Financial Year`, Quarter)
   
-  # Create download button for KPO 4 data
+# Create KPO4 download ---------------------------------------------------
   output$KPO_data_file <- downloadHandler(
     filename = paste("KPO4_Data", ".csv", sep = ""),
     content = function(file) {
@@ -445,6 +462,8 @@ output$LA_KPO4_Heading <- renderUI({
       return()
     }
   })
+  
+# Performance Overview Tab (Performance boxes) ------------------------------
   
 #Create performance box for selected Council  
   output$performanceBox <- renderValueBox({
@@ -492,6 +511,7 @@ output$LA_KPO4_Heading <- renderUI({
       )
     })
     
+# Performance Overview tab (KPO4 bar plot) -----------------------------------
 ##Create bar plot for overall performance
     output$ovrPerfBar <- renderPlotly({
       la_max_sum <- la_max_sum()
@@ -542,7 +562,7 @@ output$LA_KPO4_Heading <- renderUI({
       ggplotly(p, tooltip = "text")
     })
     
-##Create barplots for respondent types and reasons---
+# Performance Overview tab (respondent type & reason plots)------------------
     
   ##n.b. I am using the same output twice, in the UI, but this is not allowed, so this
     #is the suggested workaround i.e. assign the output twice
@@ -625,7 +645,7 @@ output$LA_KPO4_Heading <- renderUI({
       ggplotly(pfig, tooltip = "text")
     })
     
-##Create graphs to display results by questions================================
+# Questions results tab (Data filtering)--------------------------------
   
     # Create select button for financial year, dependent on number of years available
     output$fin_yr <- renderUI({
@@ -667,6 +687,9 @@ output$LA_KPO4_Heading <- renderUI({
         
       filter_data
     })
+    
+    
+# Questions Results tab (YTD plot)---------------------------------------
     
     #First graph for full breakdown of responses in year to date  
    output$YTDqstsPlot <- renderPlotly({
@@ -724,7 +747,9 @@ output$LA_KPO4_Heading <- renderUI({
        theme_classic()
     ggplotly(p, tooltip = "text")
    })
-   
+
+# Questions Results tab (Summary by quarters plot)-------------------------
+    
   #Second summary of %age Good/v.good by quarter
    output$qrtsQsplot <- renderPlotly({
   ##filter dataset based on selected question   
@@ -810,7 +835,7 @@ output$LA_KPO4_Heading <- renderUI({
        ggplotly(p)
    })
    
-##Report page outputs =====================================
+# Report Download Tab (KPO4 YTD)------------------------------------------
 
    #create data for kpo in report page   
    report_kpo_data <- reactive({
@@ -909,6 +934,8 @@ text_multiple_kpo <- paste0("This indicator summarises performance across all qu
      return(final_text)
    })
    
+# Report download tab (respondent reason & type)----------------------------
+   
   ##Text for respondent types 
    output$respondent_type_text_report <- renderText({
      resp_dta <- resp_dta()
@@ -968,7 +995,7 @@ text_multiple_kpo <- paste0("This indicator summarises performance across all qu
      txt_respondents
    })
    
-   
+# Report download tab (KPO4 over time)-------------------------------------
 #Create data for performance over time graph
    report_line_data <- reactive({
      la_max_sum <- la_max_sum()
@@ -1211,7 +1238,7 @@ text_multiple_kpo <- paste0("This indicator summarises performance across all qu
      final_text
    })
    
-##create graph and text for Question 1 on report page=================
+# Report Download tab (Q1 - Time taken)--------------------------------------
 
    ##generate data to be used in graph and text
    question_time_data_report <- reactive({
@@ -1352,7 +1379,7 @@ text_multiple_kpo <- paste0("This indicator summarises performance across all qu
            "at", scot_max_perc)
    })
    
-  ##create graph and text for Question 2 on report page========
+# Report download tab (Q2 - Standard of communication)-----------------------
    ##generate data to be used in graph and text
    question_comms_data_report <- reactive({
      council_fltr <- local_authority()
@@ -1488,7 +1515,7 @@ text_multiple_kpo <- paste0("This indicator summarises performance across all qu
              "at", scot_max_perc)
      })
   
-   ##create graph and text for Question 3 on report page==========
+# Report download tab (Q3 - Quality of info)---------------------------------
      ##generate data to be used in graph and text
      question_info_data_report <- reactive({
        council_fltr <- local_authority()
@@ -1624,7 +1651,7 @@ text_multiple_kpo <- paste0("This indicator summarises performance across all qu
              "at", scot_max_perc)
      })
      
-   ##create graph and text for Question 4 on report page=============
+# Report download tab (Q4 - Service offered by staff) --------------------
      question_staff_data_report <- reactive({
        council_fltr <- local_authority()
        #filter to current financial year
@@ -1760,7 +1787,7 @@ text_multiple_kpo <- paste0("This indicator summarises performance across all qu
              "at", scot_max_perc)
      })
      
-  ##create graph and text for Question 5 on report page-------------------
+# Report download tab (Q5 - Responsiveness to queries/issues)---------------
    
      question_responsiveness_data_report <- reactive({
        council_fltr <- local_authority()
@@ -1897,7 +1924,7 @@ text_multiple_kpo <- paste0("This indicator summarises performance across all qu
              "at", scot_max_perc)
      })
      
-   ##create graph and text for Question 6 on report page---------
+# Report download tab (Q6 - Treated fairly)-----------------------------
      question_fairly_data_report <- reactive({
        council_fltr <- local_authority()
        #filter to current financial year
@@ -2032,7 +2059,7 @@ text_multiple_kpo <- paste0("This indicator summarises performance across all qu
              "at", scot_max_perc)
      })
      
-   ##create graph for Question 7 on report page===========
+# Report download tab (Q7 - Overall satisfaction)---------------------------
      question_overall_data_report <- reactive({
        council_fltr <- local_authority()
        #filter to current financial year
@@ -2168,7 +2195,7 @@ text_multiple_kpo <- paste0("This indicator summarises performance across all qu
              "at", scot_max_perc)
      })
      
-##Generate download from report page-------------
+# Report download tab (Report download)-----------------------------------
      output$report <- downloadHandler(
        filename = "report.pdf",
        content = function(file) {
@@ -2205,7 +2232,7 @@ text_multiple_kpo <- paste0("This indicator summarises performance across all qu
        }
      )
      
-  ##Generate Data download to Excel====================
+# Data download tab (Data download button)-----------------------------------
      output$all_data_dl <- downloadHandler(
        filename = paste("All_Data", ".csv", sep = ""),
        content = function(file) {
@@ -2257,7 +2284,7 @@ text_multiple_kpo <- paste0("This indicator summarises performance across all qu
          write.csv(dl_all_data, file)
        }
      )
-##create table with all data to explore     
+# Data download tab (Data table)--------------------------------------------    
      output$tableDisp <- DT::renderDataTable({
        unpivot_data <- unpivot_data()
        ##move the date to the front
@@ -2274,7 +2301,7 @@ text_multiple_kpo <- paste0("This indicator summarises performance across all qu
                   ), columnDefs = list(list(className = "dt-center", targets = "_all"))))
      })
 
-     ##Generate Open Text Table====================
+# Open Text tab-------------------------------------------------------------
      
      ##create table to show comments for selected question 
      output$cmnt_table <- DT::renderDataTable({
@@ -2296,15 +2323,5 @@ text_multiple_kpo <- paste0("This indicator summarises performance across all qu
        
      })
      
-##log in details     
-     output$userpanel <- renderUI({
-       # session$user is non-NULL only in authenticated sessions
-       if (!is.null(session$user)) {
-         usr <- session$user
-         usr <- gsub("(@).+\\..+", "", usr, perl = T)
-         sidebarUserPanel(
-           paste("Logged in as: ", usr, sep = "\n"),
-           subtitle = a(icon("sign-out"), "Logout", href="__logout__"))
-       }
-     })
+
  }
