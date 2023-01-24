@@ -257,27 +257,27 @@ pivot_dta$`Q2.4. Other reason`[pivot_dta$`Q2.4. Other reason` != "0"] <- "1"
 # This data set needs to be unpivoted but without the additional questions 
 # and the questions named the same
 
-unpivot_data_global <- read_csv("survey_data.csv", col_types = "c") %>% 
+dwnld_table_dta <- read_csv("survey_data.csv", col_types = "c") %>% 
   select(-"Tracking Link")
-unpivot_data_global[is.na(unpivot_data_global$`Local Authority Name`), "Local Authority Name"] <- "-"
-unpivot_data_global$`Ended date` <- as.Date(unpivot_data_global$`Ended date`, 
-                                            format = "%d/%m/%Y")
+dwnld_table_dta[is.na(dwnld_table_dta$`Local Authority Name`), "Local Authority Name"] <- "-"
+dwnld_table_dta$`Ended date` <- as.Date(dwnld_table_dta$`Ended date`, 
+                                        format = "%d/%m/%Y")
 
 # Need to code these as characters because when all responses are in the first column, 
 # this is numeric and the other column is character, meaning when the code combines them later it won't work
-unpivot_data_global$`Q. Please select a local authority` <- as.character(unpivot_data_global$`Q. Please select a local authority`)
-unpivot_data_global$`Q. Please select the local authority that your response relates to` <- as.character(unpivot_data_global$`Q. Please select the local authority that your response relates to`)
+dwnld_table_dta$`Q. Please select a local authority` <- as.character(dwnld_table_dta$`Q. Please select a local authority`)
+dwnld_table_dta$`Q. Please select the local authority that your response relates to` <- as.character(dwnld_table_dta$`Q. Please select the local authority that your response relates to`)
 
 # Add in columns with Quarter Info and Financial Year info
-unpivot_data_global$`Tracking Link` <- as.yearqtr(unpivot_data_global$`Ended date`,
-                                                  format = "%Y-%m-%d") 
-unpivot_data_global$`Financial Year` <- unpivot_data_global$`Tracking Link` - 1/4
-unpivot_data_global$`Financial Year` <- gsub("\\ ",
-                                             "-", 
-                                             unpivot_data_global$`Financial Year`, 
-                                             perl = TRUE)
+dwnld_table_dta$`Tracking Link` <- as.yearqtr(dwnld_table_dta$`Ended date`,
+                                              format = "%Y-%m-%d") 
+dwnld_table_dta$`Financial Year` <- dwnld_table_dta$`Tracking Link` - 1/4
+dwnld_table_dta$`Financial Year` <- gsub("\\ ",
+                                         "-", 
+                                         dwnld_table_dta$`Financial Year`, 
+                                         perl = TRUE)
 
-unpivot_data_global$`Financial Year` <- unpivot_data_global %>% 
+dwnld_table_dta$`Financial Year` <- dwnld_table_dta %>% 
   select(contains("Financial Year")) %>% 
   apply(2, function(x) gsub("-Q[0-9]", "", x)) %>% 
   as.numeric(.) %>%
@@ -287,83 +287,83 @@ unpivot_data_global$`Financial Year` <- unpivot_data_global %>%
   mutate(fy = paste(., nxt, sep = "/")) %>%
   pull(fy)
 
-unpivot_data_global$`Tracking Link` <- unpivot_data_global$`Tracking Link`- 1/4
-unpivot_data_global$`Tracking Link` <- gsub("[0-9]*\\ Q", 
-                                            "Quarter ", 
-                                            unpivot_data_global$`Tracking Link`, 
-                                            perl = TRUE)
+dwnld_table_dta$`Tracking Link` <- dwnld_table_dta$`Tracking Link`- 1/4
+dwnld_table_dta$`Tracking Link` <- gsub("[0-9]*\\ Q", 
+                                        "Quarter ", 
+                                        dwnld_table_dta$`Tracking Link`, 
+                                        perl = TRUE)
 
 # Remove redundant columns and reorder
-unpivot_data_global <- unpivot_data_global[-c(1:8, 10)]
-unpivot_data_global <- unpivot_data_global[, c((ncol(unpivot_data_global) - 1),
-                                               ncol(unpivot_data_global),
-                                               2, 
-                                               11, 
-                                               12, 
-                                               3:10, 
-                                               13:(ncol(unpivot_data_global) - 2), 
-                                               1)]
+dwnld_table_dta <- dwnld_table_dta[-c(1:8, 10)]
+dwnld_table_dta <- dwnld_table_dta[, c((ncol(dwnld_table_dta) - 1),
+                                             ncol(dwnld_table_dta),
+                                             2, 
+                                             11, 
+                                             12, 
+                                             3:10, 
+                                             13:(ncol(dwnld_table_dta) - 2), 
+                                             1)]
 
 # Pivot to combine both LA columns, rename, then remove duplicates
-unpivot_data_global <- unpivot_data_global %>% 
+dwnld_table_dta <- dwnld_table_dta %>% 
   pivot_longer(cols = 4:5, names_to = "extra", values_to = "LA") %>%
   filter(LA != "-") %>% 
   select(-extra)
-unpivot_data_global <- unpivot_data_global[, c(1:3, 
-                                               ncol(unpivot_data_global),
-                                               4:(ncol(unpivot_data_global) - 1))]
+dwnld_table_dta <- dwnld_table_dta[, c(1:3, 
+                                       ncol(dwnld_table_dta),
+                                       4:(ncol(dwnld_table_dta) - 1))]
 
 # Code local authority name for councils completing survey without login
-unpivot_data_global <- merge(unpivot_data_global, LA_names_dta)
-unpivot_data_global$`Local Authority Name` <- unpivot_data_global$LA_names
-unpivot_data_global <- unpivot_data_global %>% select(-LA_names)
-unpivot_data_global <- unpivot_data_global[, c(2:4, 1, 5:ncol(unpivot_data_global))]
+dwnld_table_dta <- merge(dwnld_table_dta, LA_names_dta)
+dwnld_table_dta$`Local Authority Name` <- dwnld_table_dta$LA_names
+dwnld_table_dta <- dwnld_table_dta %>% select(-LA_names)
+dwnld_table_dta <- dwnld_table_dta[, c(2:4, 1, 5:ncol(dwnld_table_dta))]
 
 # Rename the columns containing the same questions so they match
 # Rename comments columns
 
 # Time Taken
-colnames(unpivot_data_global)[c(26, 47, 70)] <- colnames(unpivot_data_global)[13]
-colnames(unpivot_data_global)[14] <- "Time taken comments"
-colnames(unpivot_data_global)[c(27, 48, 71)] <- colnames(unpivot_data_global)[14]
+colnames(dwnld_table_dta)[c(26, 47, 70)] <- colnames(dwnld_table_dta)[13]
+colnames(dwnld_table_dta)[14] <- "Time taken comments"
+colnames(dwnld_table_dta)[c(27, 48, 71)] <- colnames(dwnld_table_dta)[14]
 
 # Communication
-colnames(unpivot_data_global)[c(28, 49, 72)] <- colnames(unpivot_data_global)[15]
-colnames(unpivot_data_global)[16] <- "Communication comments"
-colnames(unpivot_data_global)[c(29, 50, 73)] <- colnames(unpivot_data_global)[16]
+colnames(dwnld_table_dta)[c(28, 49, 72)] <- colnames(dwnld_table_dta)[15]
+colnames(dwnld_table_dta)[16] <- "Communication comments"
+colnames(dwnld_table_dta)[c(29, 50, 73)] <- colnames(dwnld_table_dta)[16]
 
 # The column name of the question ("Quality of the information provided") is the same for the additional question council
 # Therefore the column name is repeated and when it is read in it adds a number to the end
 # Need to remove the number of change the names of each of these columns
-colnames(unpivot_data_global)[17] <- gsub("\\...[1-9]*$", 
-                                          "", 
-                                          colnames(unpivot_data_global)[17],
-                                          perl = TRUE)
+colnames(dwnld_table_dta)[17] <- gsub("\\...[1-9]*$", 
+                                      "", 
+                                      colnames(dwnld_table_dta)[17],
+                                      perl = TRUE)
 
-colnames(unpivot_data_global)[c(30, 56, 74)] <- colnames(unpivot_data_global)[17]
+colnames(dwnld_table_dta)[c(30, 56, 74)] <- colnames(dwnld_table_dta)[17]
 
-colnames(unpivot_data_global)[18] <- gsub("\\...[1-9]*$", 
-                                          "", 
-                                          colnames(unpivot_data_global)[18],
-                                          perl = TRUE)
+colnames(dwnld_table_dta)[18] <- gsub("\\...[1-9]*$", 
+                                      "", 
+                                      colnames(dwnld_table_dta)[18],
+                                      perl = TRUE)
 
-colnames(unpivot_data_global)[c(34, 63, 75)] <- colnames(unpivot_data_global)[18]
+colnames(dwnld_table_dta)[c(34, 63, 75)] <- colnames(dwnld_table_dta)[18]
 
-colnames(unpivot_data_global)[c(35, 57, 76)] <- colnames(unpivot_data_global)[19]
+colnames(dwnld_table_dta)[c(35, 57, 76)] <- colnames(dwnld_table_dta)[19]
 
-colnames(unpivot_data_global)[20] <- "Information, staff, responsiveness comments"
-colnames(unpivot_data_global)[c(36, 58, 77)] <- colnames(unpivot_data_global)[20]
+colnames(dwnld_table_dta)[20] <- "Information, staff, responsiveness comments"
+colnames(dwnld_table_dta)[c(36, 58, 77)] <- colnames(dwnld_table_dta)[20]
 
 # Treated fairly
-colnames(unpivot_data_global)[c(37, 65, 78)] <- colnames(unpivot_data_global)[21]
-colnames(unpivot_data_global)[22] <- "Treated fairly comments"
-colnames(unpivot_data_global)[c(38, 66, 79)] <- colnames(unpivot_data_global)[22]
+colnames(dwnld_table_dta)[c(37, 65, 78)] <- colnames(dwnld_table_dta)[21]
+colnames(dwnld_table_dta)[22] <- "Treated fairly comments"
+colnames(dwnld_table_dta)[c(38, 66, 79)] <- colnames(dwnld_table_dta)[22]
 
 # Satisfaction
-colnames(unpivot_data_global)[c(39, 67, 80)] <- colnames(unpivot_data_global)[23]
-colnames(unpivot_data_global)[24] <- "Overall satisfaction comments"
-colnames(unpivot_data_global)[c(40, 68, 81)] <- colnames(unpivot_data_global)[24]
-colnames(unpivot_data_global)[c(41, 69,82)] <- colnames(unpivot_data_global)[25]
+colnames(dwnld_table_dta)[c(39, 67, 80)] <- colnames(dwnld_table_dta)[23]
+colnames(dwnld_table_dta)[24] <- "Overall satisfaction comments"
+colnames(dwnld_table_dta)[c(40, 68, 81)] <- colnames(dwnld_table_dta)[24]
+colnames(dwnld_table_dta)[c(41, 69,82)] <- colnames(dwnld_table_dta)[25]
 
 # Additional info ------------------------------------------------------------
 

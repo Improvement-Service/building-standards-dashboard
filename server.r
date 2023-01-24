@@ -265,14 +265,14 @@ output$LA_KPO4_Heading <- renderUI({
     
   # Select columns based on council (ensures duplicate columns and additional questions are filtered out)
   unpivot_data <- if(council_fltr == "City of Edinburgh")
-  {unpivot_data_global[,c(1:12,70:82,84)]} else
+  {dwnld_table_dta[,c(1:12,70:82,84)]} else
     if(council_fltr == "Orkney Islands")
-    {unpivot_data_global[,c(1:12,47:50,56:58,63,65:69,84)]}else
+    {dwnld_table_dta[,c(1:12,47:50,56:58,63,65:69,84)]}else
       if(council_fltr == "West Lothian")
-      {unpivot_data_global[,c(1:12,26:30,34:41,84)]}else
+      {dwnld_table_dta[,c(1:12,26:30,34:41,84)]}else
         if(council_fltr == "Angus")
-        {unpivot_data_global[,c(1:25,83,84)]}else
-         {unpivot_data_global[,c(1:25, 84)]}
+        {dwnld_table_dta[,c(1:25,83,84)]}else
+         {dwnld_table_dta[,c(1:25, 84)]}
   
   #tidy up question names
   unpivot_data <- unpivot_data %>% 
