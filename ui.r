@@ -3,7 +3,9 @@ ui <- dashboardPage(skin = "blue",
                     dashboardHeader(title = "National Customer Survey Dashboard",
                                     titleWidth = 400),
 # Dashboard Sidebar --------------------------------------------------------
+                                    # LA selection (IS & SG only)
                     dashboardSidebar(uiOutput("la_select"),
+                                     # KPO4 download button (IS & SG only)
                                      uiOutput("KPO_data_dl"),
                                      sidebarMenu(menuItem("Performance Overview", 
                                                           tabName = "PrfOvr", 
@@ -224,84 +226,84 @@ ui <- dashboardPage(skin = "blue",
                                              withSpinner()
                                            )
                                        ),
-                                      # Satisfaction with time graph
+                                      # Q1 - Satisfaction with time graph
                               fluidRow(box(width = 8, 
                                            plotlyOutput("question_time_report") %>%
                                              withSpinner()
                                            ),
-                                       # Satisfaction with time text
+                                       # Q1 - Satisfaction with time text
                                        box(width = 4, 
                                            style = "font-size:18px",
                                            textOutput("question_time_report_text") %>%
                                              withSpinner()
                                            )
                                        ),
-                                      # Standard of communication graph
+                                      # Q2 - Standard of communication graph
                               fluidRow(box(width = 8, 
                                            plotlyOutput("question_comms_report") %>%
                                              withSpinner()
                                            ),
-                                       # Standard of communication text
+                                       # Q2 - Standard of communication text
                                        box(width = 4, 
                                            style = "font-size:18px",
                                            textOutput("question_comms_report_text") %>%
                                              withSpinner()
                                            )
                                        ),
-                                       # Quality of information graph
+                                       # Q3 - Quality of information graph
                               fluidRow(box(width = 8, 
                                            plotlyOutput("question_info_report") %>%
                                              withSpinner()
                                            ),
-                                       # Quality of information text
+                                       # Q3 - Quality of information text
                                        box(width = 4, 
                                            style = "font-size:18px",
                                            textOutput("question_info_report_text") %>%
                                              withSpinner()
                                            )
                                        ),
-                                      # Service offered by staff graph
+                                      # Q4 - Service offered by staff graph
                               fluidRow(box(width = 8, 
                                            plotlyOutput("question_staff_report") %>%
                                              withSpinner()
                                            ),
-                                       # Service offered by staff text
+                                       # Q4 - Service offered by staff text
                                        box(width = 4, 
                                            style = "font-size:18px",
                                            textOutput("question_staff_report_text") %>%
                                              withSpinner()
                                            )
                                        ),
-                                      # Responsiveness to queries or issues graph
+                                      # Q5 - Responsiveness to queries or issues graph
                               fluidRow(box(width = 8, 
                                            plotlyOutput("question_responsiveness_report") %>%
                                              withSpinner()
                                            ),
-                                       # Responsiveness to queries or issues text
+                                       # Q5 - Responsiveness to queries or issues text
                                        box(width = 4, 
                                            style = "font-size:18px",
                                            textOutput("question_responsiveness_report_text") %>%
                                              withSpinner()
                                            )
                                        ),
-                                      # Treated fairly graph
+                                      # Q6 - Treated fairly graph
                               fluidRow(box(width = 8, 
                                            plotlyOutput("question_fair_report") %>%
                                              withSpinner()
                                            ),
-                                       # Treated fairly text
+                                       # Q6 - Treated fairly text
                                        box(width = 4, 
                                            style = "font-size:18px",
                                            textOutput("question_fair_report_text") %>%
                                              withSpinner()
                                            )
                                        ),
-                                      # Overall satisfaction graph
+                                      # Q7 - Overall satisfaction graph
                               fluidRow(box(width = 8, 
                                            plotlyOutput("question_overall_report") %>%
                                              withSpinner()
                                            ),
-                                       # Overall satisfaction text
+                                       # Q7 - Overall satisfaction text
                                        box(width = 4,  
                                            style = "font-size:18px", 
                                            textOutput("question_overall_report_text") %>%
