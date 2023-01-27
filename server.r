@@ -334,111 +334,118 @@ function(input, output, session) {
 # Finalise unpivot data ---------------------------------------------------
 # This is used in the data download table and the respondent no. value box
   unpivot_data <- reactive({
-  
     council_fltr <- local_authority()
-    
-  # Select columns based on council (ensures duplicate columns and additional questions are filtered out)
-  unpivot_data <- if(council_fltr == "City of Edinburgh")
-  {dwnld_table_dta[,c(1:12,70:82,84)]} else
-    if(council_fltr == "Orkney Islands")
-    {dwnld_table_dta[,c(1:12,47:50,56:58,63,65:69,84)]}else
-      if(council_fltr == "West Lothian")
-      {dwnld_table_dta[,c(1:12,26:30,34:41,84)]}else
-        if(council_fltr == "Angus")
-        {dwnld_table_dta[,c(1:25,83,84)]}else
-         {dwnld_table_dta[,c(1:25, 84)]}
+    # Select columns based on council (ensures duplicate columns and 
+    # additional questions are filtered out)
+    unpivot_data <- if (council_fltr == "City of Edinburgh") {
+      dwnld_table_dta[, c(1:12, 70:82, 84)]
+    } else
+      if (council_fltr == "Orkney Islands") {
+        dwnld_table_dta[, c(1:12, 47:50, 56:58, 63, 65:69, 84)] 
+      } else
+        if (council_fltr == "West Lothian") {
+          dwnld_table_dta[, c(1:12, 26:30, 34:41, 84)]
+        } else
+          if(council_fltr == "Angus") {
+            dwnld_table_dta[, c(1:25, 83, 84)]
+          } else {
+            dwnld_table_dta[, c(1:25, 84)]
+            }
   
-  #tidy up question names
-  unpivot_data <- unpivot_data %>% 
-    rename("Quarter" = "Tracking Link") %>%
-    rename("Q3. How satisfied were you with the time taken?" = "Q3. Thinking of your engagement with [question(16082428)][variable(la)] Building Standards from beginning to end, how satisfied were you that the time taken to deal with your application or enquiry met the timescales that you were promised?") %>%
-    rename("Q4. How would you rate the standard of communication?" = "Q4. How would you rate the standard of communication provided by [question(16082428)][variable(la)] Building Standards service following your initial contact or once your application had been submitted?") %>%
-    rename("Q.3. Responsiveness to any queries or issues raised" = "Q.3. Time taken to respond to any queries or issues raised") %>%
-    rename("Q5. To what extent would you agree that you were treated fairly" = "Q5. To what extent would you agree that you were treated fairly by [question(16082428)][variable(la)] Building Standards?") %>%
-    rename("Q6. How satisfied were you, overall?" = "Q6. Overall, how satisfied were you with the service provided by [question(16082428)][variable(la)] Building Standards?")%>%
-    rename("Q1.4. Other respondent" = "Q1.4. Other (please specify):") %>%
-    rename("Q2.4. Other reason" = "Q2.4. Other (please specify):") %>%
-    rename("Submission date" = "Ended date") %>%
-    mutate(across(contains(c("Q1.1. Agent/Designer", 
-                             "Q1.2. Applicant", 
-                             "Q1.3. Contractor",
-                             "Q1.4. Other respondent",
-                             "Q2.1. To discuss your proposal",
-                             "Q2.2. To make an application", 
-                             "Q2.3. During construction",
-                             "Q2.4. Other reason")),
-                  ~recode(., "1" = "Yes", 
-                          "0" = "No"))) %>%
-    select(-LA)
+   # Tidy up question names
+    unpivot_data <- unpivot_data %>% 
+      rename("Quarter" = "Tracking Link") %>%
+      rename("Q3. How satisfied were you with the time taken?" = "Q3. Thinking of your engagement with [question(16082428)][variable(la)] Building Standards from beginning to end, how satisfied were you that the time taken to deal with your application or enquiry met the timescales that you were promised?") %>%
+      rename("Q4. How would you rate the standard of communication?" = "Q4. How would you rate the standard of communication provided by [question(16082428)][variable(la)] Building Standards service following your initial contact or once your application had been submitted?") %>%
+      rename("Q.3. Responsiveness to any queries or issues raised" = "Q.3. Time taken to respond to any queries or issues raised") %>%
+      rename("Q5. To what extent would you agree that you were treated fairly" = "Q5. To what extent would you agree that you were treated fairly by [question(16082428)][variable(la)] Building Standards?") %>%
+      rename("Q6. How satisfied were you, overall?" = "Q6. Overall, how satisfied were you with the service provided by [question(16082428)][variable(la)] Building Standards?")%>%
+      rename("Q1.4. Other respondent" = "Q1.4. Other (please specify):") %>%
+      rename("Q2.4. Other reason" = "Q2.4. Other (please specify):") %>%
+      rename("Submission date" = "Ended date") %>%
+      mutate(across(contains(c("Q1.1. Agent/Designer", 
+                               "Q1.2. Applicant", 
+                               "Q1.3. Contractor",
+                               "Q1.4. Other respondent",
+                               "Q2.1. To discuss your proposal",
+                               "Q2.2. To make an application", 
+                               "Q2.3. During construction",
+                               "Q2.4. Other reason"
+                               )
+                             ),
+                    ~recode(., "1" = "Yes", "0" = "No")
+                    )
+             ) %>%
+      select(-LA)
   
-  #recode responses for download and to show in table
-  unpivot_data$`Q3. How satisfied were you with the time taken?` <-  dplyr::recode(
-    unpivot_data$`Q3. How satisfied were you with the time taken?`,
-    "1" = "very satisfied",
-    "2" ="satisfied",
-    "3" = "dissatisfied",
-    "4" = "very dissatisfied",
-    "5" = "NA"
-  )
+    # Recode responses for download and to show in table
+    unpivot_data$`Q3. How satisfied were you with the time taken?` <-  dplyr::recode(
+      unpivot_data$`Q3. How satisfied were you with the time taken?`,
+      "1" = "very satisfied",
+      "2" ="satisfied",
+      "3" = "dissatisfied",
+      "4" = "very dissatisfied",
+      "5" = "NA"
+    )
   
-  unpivot_data$`Q4. How would you rate the standard of communication?` <-  dplyr::recode(
-    unpivot_data$`Q4. How would you rate the standard of communication?`,
-    "1" = "very good",
-    "2" ="good",
-    "3" = "poor",
-    "4" = "very poor",
-    "5" = "NA"
-  )
+    unpivot_data$`Q4. How would you rate the standard of communication?` <-  dplyr::recode(
+      unpivot_data$`Q4. How would you rate the standard of communication?`,
+      "1" = "very good",
+      "2" ="good",
+      "3" = "poor",
+      "4" = "very poor",
+      "5" = "NA"
+    )
   
-  unpivot_data$`Q.1. Quality of the information provided` <-  dplyr::recode(
-    unpivot_data$`Q.1. Quality of the information provided`,
-    "1" = "very good",
-    "2" ="good",
-    "3" = "poor",
-    "4" = "very poor",
-    "5" = "NA"
-  )
+    unpivot_data$`Q.1. Quality of the information provided` <-  dplyr::recode(
+      unpivot_data$`Q.1. Quality of the information provided`,
+      "1" = "very good",
+      "2" ="good",
+      "3" = "poor",
+      "4" = "very poor",
+      "5" = "NA"
+    )
   
-  unpivot_data$`Q.2. Service offered by staff` <-  dplyr::recode(
-    unpivot_data$`Q.2. Service offered by staff`,
-    "1" = "very good",
-    "2" ="good",
-    "3" = "poor",
-    "4" = "very poor",
-    "5" = "NA"
-  )
+    unpivot_data$`Q.2. Service offered by staff` <-  dplyr::recode(
+      unpivot_data$`Q.2. Service offered by staff`,
+      "1" = "very good",
+      "2" ="good",
+      "3" = "poor",
+      "4" = "very poor",
+      "5" = "NA"
+    )
   
-  unpivot_data$`Q.3. Responsiveness to any queries or issues raised` <-  dplyr::recode(
-    unpivot_data$`Q.3. Responsiveness to any queries or issues raised`,
-    "1" = "very good",
-    "2" ="good",
-    "3" = "poor",
-    "4" = "very poor",
-    "5" = "NA"
-  )
+    unpivot_data$`Q.3. Responsiveness to any queries or issues raised` <-  dplyr::recode(
+      unpivot_data$`Q.3. Responsiveness to any queries or issues raised`,
+      "1" = "very good",
+      "2" ="good",
+      "3" = "poor",
+      "4" = "very poor",
+      "5" = "NA"
+    )
   
-  unpivot_data$`Q5. To what extent would you agree that you were treated fairly`<-  dplyr::recode(
-    unpivot_data$`Q5. To what extent would you agree that you were treated fairly`,
-    "1" = "very satisfied",
-    "2" ="satisfied",
-    "3" = "dissatisfied",
-    "4" = "very dissatisfied",
-    "5" = "NA"
-  )
+    unpivot_data$`Q5. To what extent would you agree that you were treated fairly`<-  dplyr::recode(
+      unpivot_data$`Q5. To what extent would you agree that you were treated fairly`,
+      "1" = "very satisfied",
+      "2" ="satisfied",
+      "3" = "dissatisfied",
+      "4" = "very dissatisfied",
+      "5" = "NA"
+    )
   
-  unpivot_data$`Q6. How satisfied were you, overall?`<-  dplyr::recode(
-    unpivot_data$`Q6. How satisfied were you, overall?`,
-    "1" = "very satisfied",
-    "2" ="satisfied",
-    "3" = "dissatisfied",
-    "4" = "very dissatisfied",
-    "5" = "NA"
-  )
+    unpivot_data$`Q6. How satisfied were you, overall?`<-  dplyr::recode(
+      unpivot_data$`Q6. How satisfied were you, overall?`,
+      "1" = "very satisfied",
+      "2" ="satisfied",
+      "3" = "dissatisfied",
+      "4" = "very dissatisfied",
+      "5" = "NA"
+    )
   
-  # Filter this data for selected council
-  unpivot_data <- unpivot_data %>% filter(`Local Authority Name` == council_fltr)
-  
-  unpivot_data
+    # Filter this data for selected council
+    unpivot_data <- unpivot_data %>% 
+      filter(`Local Authority Name` == council_fltr)
+    unpivot_data
   })
   
 # Create KPO4 Score Data ---------------------------------------------------
