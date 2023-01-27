@@ -1674,7 +1674,7 @@ text_multiple_kpo <- paste0("This indicator summarises performance across all qu
        mutate(Selection = council_fltr)
      
      #get all data for this question and count no. responses, bind LA count
-     qstnDta <- dta %>% filter(Indicator == "Service offered by staff") %>%
+     qstnDta <- pivot_dta %>% filter(Indicator == "Service offered by staff") %>%
        count(value, .drop =F) %>%
        mutate(Selection = "Scotland") %>%
        rbind(qstnDta_LA )
