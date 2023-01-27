@@ -288,43 +288,47 @@ function(input, output, session) {
 # Respondents & Reasons data ---------------------------------------------- 
   
   # Generate another dataframe with respondent types
-  
   resp_dta <- reactive({
-    
     dl_all_data <- dl_all_data()
-    ##remove the end date column
+    # remove the end date column
     dl_all_data <- dl_all_data[-26]
     council_fltr = local_authority()
     
-    # Recode "other" respondents and reasons so it doesn't show text value
+    # Recode "other" respondents and reasons so it doesn't show the text response
     dl_all_data$`Q1.4. Other (please specify):`[dl_all_data$`Q1.4. Other (please specify):` != "0"] <- "1"
     dl_all_data$`Q2.4. Other (please specify):`[dl_all_data$`Q2.4. Other (please specify):` != "0"] <- "1"
     # Change these columns to numeric so they can be combined with the other columns
     dl_all_data$`Q1.4. Other (please specify):` <- as.numeric(dl_all_data$`Q1.4. Other (please specify):`)
     dl_all_data$`Q2.4. Other (please specify):` <- as.numeric(dl_all_data$`Q2.4. Other (please specify):`)
 
-   
-    
- resp_dta <- dl_all_data %>% group_by(`Local Authority Name`) %>% select(1:12)%>%
-    pivot_longer(cols = 5:12, names_to = "Question", values_to = "value")%>% 
-    group_by(`Financial Year`,`Local Authority Name`,Question) %>%
-    count(value) %>%
-    mutate(perc = n/sum(n))
+    # Calculates within each LA, the number of respondents answering yes to 
+    # the different respondent options. Then calculates as a % of all responses
+    # within the financial year.
+    resp_dta <- dl_all_data %>% 
+     group_by(`Local Authority Name`) %>% 
+     select(1:12) %>%
+     pivot_longer(cols = 5:12, names_to = "Question", values_to = "value") %>% 
+     group_by(`Financial Year`,`Local Authority Name`, Question) %>%
+     count(value) %>%
+     mutate(perc = n/sum(n))
   
-  ##Tidy the respondent types and reasons
-  resp_dta$question_type <- ifelse(grepl("Q1", resp_dta$Question), "Type", "Reason")
-  
-  ##Remove question numbers
-  resp_dta$Question <- gsub("Q[\\.1-9]+\\s", "", resp_dta$Question,perl = T)
-  
-  ##Remove "(please specify):"
-  resp_dta$Question[resp_dta$Question == "Other (please specify):"] <- "Other"
-  
-  ##Filter to selected council & current financial year
-  resp_dta <- resp_dta%>%filter(`Financial Year` == fin_yr & `Local Authority Name` == council_fltr)
-
-  resp_dta
-  
+    # Differentiates questions by whether they ask about respondent types or reasons
+    resp_dta$question_type <- ifelse(grepl("Q1", resp_dta$Question), 
+                                     "Type", 
+                                     "Reason"
+                                     )
+    # Remove question numbers
+    resp_dta$Question <- gsub("Q[\\.1-9]+\\s", 
+                              "", 
+                              resp_dta$Question, 
+                              perl = TRUE
+                              )
+    # Remove "(please specify):" from "Other" question value
+    resp_dta$Question[resp_dta$Question == "Other (please specify):"] <- "Other"
+    # Filter to selected council & current financial year
+    resp_dta <- resp_dta %>% 
+      filter(`Financial Year` == fin_yr & `Local Authority Name` == council_fltr)
+    resp_dta
   })
   
 # Finalise unpivot data ---------------------------------------------------
