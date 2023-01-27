@@ -193,51 +193,95 @@ function(input, output, session) {
 # a wide un-pivoted format. It keeps the additional questions for applicable
 # councils. 
   
-  # Select columns based on council (ensures duplicate columns and questions from other councils are filtered out)
+  # Select columns based on council (ensures duplicate columns and 
+  # questions from other councils are filtered out)
   dl_all_data <- reactive({
+    council_fltr = local_authority()
+    dl_all_data <- if (council_fltr == "Angus") {
+      fresh_dta[ ,c(7:34,92)]
+    } else
+      if (council_fltr == "City of Edinburgh") {
+        fresh_dta[ ,c(7:21,79:91)]
+      } else
+        if (council_fltr == "North Lanarkshire") {
+          fresh_dta[ ,c(7:34,51:55)] 
+        } else
+          if (council_fltr == "Orkney Islands") {
+            fresh_dta[ ,c(7:21,56:78)]
+          } else
+            if (council_fltr == "West Lothian") {
+              fresh_dta[ ,c(7:21,35:50)]
+            } else {
+              fresh_dta[,c(7:34)]
+              }
   
-  council_fltr = local_authority()
-    
-  dl_all_data <- if(council_fltr == "Angus")
-  {fresh_dta[,c(7:34,92)]} else
-    if(council_fltr == "City of Edinburgh")
-      {fresh_dta[,c(7:21,79:91)]} else
-        if(council_fltr == "North Lanarkshire")
-          {fresh_dta[,c(7:34,51:55)]}else
-            if(council_fltr == "Orkney Islands")
-              {fresh_dta[,c(7:21,56:78)]}else
-                if(council_fltr == "West Lothian")
-                {fresh_dta[,c(7:21,35:50)]}else
-                    {fresh_dta[,c(7:34)]}
-  
-  # Add in columns with Quarter Info and Financial Year info
-  dl_all_data$`Tracking Link` <- as.yearqtr(dl_all_data$`Ended date`, format = "%Y-%m-%d") 
-  dl_all_data$`Financial Year` <- dl_all_data$`Tracking Link`- 1/4
-  dl_all_data$`Financial Year` <- gsub("\\ ", "-", dl_all_data$`Financial Year`, perl=T)
-  dl_all_data$`Financial Year` <- dl_all_data %>% select(contains("Financial Year")) %>% apply(2, function(x) gsub("-Q[0-9]","",x))%>% as.numeric(.) %>%
-    data.frame() %>% mutate(nxt = .+1) %>% mutate(nxt = substr(nxt,3,4)) %>% mutate(fy = paste(.,nxt, sep = "/")) %>%
-    pull(fy)
+    # Add in columns with Financial Year info
+    # Formats the ended date as a year and quarter value
+    dl_all_data$`Tracking Link` <- as.yearqtr(dl_all_data$`Ended date`, 
+                                              format = "%Y-%m-%d"
+                                              ) 
+    # This formatting uses calender year values rather than financial so need
+    # to reduce by a quarter to format as financial years
+    dl_all_data$`Financial Year` <- dl_all_data$`Tracking Link`- 1/4
+    dl_all_data$`Financial Year` <- gsub("\\ ", 
+                                         "-", 
+                                         dl_all_data$`Financial Year`, 
+                                         perl = TRUE
+                                         )
+    dl_all_data$`Financial Year` <- dl_all_data %>% 
+      select(contains("Financial Year")) %>% 
+      # extracts just the year value - 1st year in the financial year
+      apply(2, function(x) gsub("-Q[0-9]", "", x)) %>% 
+      as.numeric(.) %>%
+      data.frame() %>%
+      # gets the second year value - 2nd year in the financial year
+      mutate(nxt = .+ 1) %>% 
+      # extract just the last 2 digits of the 2nd financial year
+      mutate(nxt = substr(nxt, 3, 4)) %>% 
+      # adds a separator between the 2 years to format as a financial year
+      mutate(fy = paste(., nxt, sep = "/")) %>%
+      pull(fy)
 
+    # Adds in column with quarter info
+    # Original formatting uses calender year values rather than financial so need
+    # to reduce by a quarter to format as financial years
+    dl_all_data$`Tracking Link` <- dl_all_data$`Tracking Link`- 1/4
+    dl_all_data$`Tracking Link` <- gsub("[0-9]*\\ Q", 
+                                        "Quarter ", 
+                                        dl_all_data$`Tracking Link`, 
+                                        perl = TRUE
+                                        )
+    
+    # Remove redundant columns and reorder
+    dl_all_data <- dl_all_data[-c(1, 2, 4)]
+    dl_all_data <- dl_all_data[, c((ncol(dl_all_data) - 1),
+                                   ncol(dl_all_data),
+                                   2,
+                                   11,
+                                   12,
+                                   3:10,
+                                   13:(ncol(dl_all_data) - 2),
+                                   1
+                                   )
+                               ]
+    
+    # Pivot to combine both LA columns, rename, then remove duplicates
+    dl_all_data <- dl_all_data %>% 
+      pivot_longer(cols = 4:5, names_to = "extra", values_to = "LA") %>%
+      filter(LA != "-") %>% 
+      select(-extra)
+    dl_all_data <- dl_all_data[, c(1:3,
+                                   ncol(dl_all_data),
+                                   4:(ncol(dl_all_data) - 1)
+                                   )
+                               ]  
   
-  dl_all_data$`Tracking Link` <- dl_all_data$`Tracking Link`- 1/4
-  dl_all_data$`Tracking Link` <- gsub("[0-9]*\\ Q", "Quarter ", dl_all_data$`Tracking Link`, perl = T)
-  
-  # Remove redundant columns and reorder
-  dl_all_data <- dl_all_data[-c(1,2,4)]
-  dl_all_data <- dl_all_data[,c((ncol(dl_all_data)-1),ncol(dl_all_data),2,11,12,3:10,13:(ncol(dl_all_data)-2),1)]
-  
-  
-  # pivot to combine both LA columns, rename, then remove duplicates
-  dl_all_data <- dl_all_data %>% pivot_longer(cols = 4:5, names_to = "extra", values_to ="LA") %>%
-    filter(LA != "-") %>% select(-extra)
-  dl_all_data <- dl_all_data[,c(1:3,ncol(dl_all_data),4:(ncol(dl_all_data)-1))]  
-  
-  # Code local authority name for councils completing survey without login
-  dl_all_data <- merge(dl_all_data, LA_names_dta)
-  dl_all_data$`Local Authority Name` <- dl_all_data$LA_names
-  dl_all_data <- dl_all_data %>% select(-LA_names)
-  dl_all_data <- dl_all_data[,c(2:4,1,5:ncol(dl_all_data))]
-  dl_all_data
+    # Code local authority name for councils completing survey without login
+    dl_all_data <- merge(dl_all_data, LA_names_dta)
+    dl_all_data$`Local Authority Name` <- dl_all_data$LA_names
+    dl_all_data <- dl_all_data %>% select(-LA_names)
+    dl_all_data <- dl_all_data[,c(2:4, 1, 5:ncol(dl_all_data))]
+    dl_all_data
   })
   
 
