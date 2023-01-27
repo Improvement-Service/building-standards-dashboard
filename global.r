@@ -49,11 +49,18 @@ LA <- c(1:32)
 LA_names_dta <- data.frame(LA_names, LA)
 
 # Create a variable for storing the current financial year and quarter
+# Formats todays date as a year and quarter value
+# This formatting uses calender year values rather than financial so need
+# to reduce by a quarter to format as financial years
 crnt_date <- as.yearqtr(Sys.Date(), format = "%Y-%m-%d") -1/4
 crnt_fin_yr <- gsub("\\ ", "-", crnt_date, perl = TRUE)
+# extracts just the year value - 1st year in the financial year
 crnt_fin_yr <- gsub("-Q[0-9]","", crnt_fin_yr) %>% as.numeric(.) 
+# gets the second year value - 2nd year in the financial year
 crnt_fin_yr2 <-  crnt_fin_yr + 1
+# extract just the last 2 digits of the 2nd financial year
 crnt_fin_yr2 <- substr(crnt_fin_yr2, 3, 4) 
+# adds a separator between the 2 years to format as a financial year
 fin_yr <- paste(crnt_fin_yr, crnt_fin_yr2, sep = "/")
 rm(crnt_fin_yr2)
 crnt_qtr <- gsub("[0-9]*\\ Q", "Quarter ", crnt_date, perl = TRUE)
@@ -186,8 +193,11 @@ pivot_dta <- pivot_dta %>%
   filter(is.na(pivot_dta$value) | value %in% c("1","2","3","4","5"))
 
 # Add in columns with Quarter Info and Financial Year info
+# Formats the ended date as a year and quarter value
 pivot_dta$`Tracking Link` <- as.yearqtr(pivot_dta$`Ended date`, 
                                         format = "%Y-%m-%d") 
+# This formatting uses calender year values rather than financial so need
+# to reduce by a quarter to format as financial years
 pivot_dta$`Financial Year` <- pivot_dta$`Tracking Link` -1/4
 pivot_dta$`Financial Year` <- gsub("\\ ", 
                                    "-", 
@@ -195,14 +205,21 @@ pivot_dta$`Financial Year` <- gsub("\\ ",
                                    perl = TRUE)
 pivot_dta$`Financial Year` <- pivot_dta %>% 
   select(contains("Financial Year")) %>% 
+  # extracts just the year value - 1st year in the financial year
   apply(2, function(x) gsub("-Q[0-9]", "", x)) %>% 
   as.numeric(.) %>%
   data.frame() %>% 
+  # gets the second year value - 2nd year in the financial year
   mutate(nxt = .+ 1) %>% 
+  # extract just the last 2 digits of the 2nd financial year
   mutate(nxt = substr(nxt, 3, 4)) %>% 
+  # adds a separator between the 2 years to format as a financial year
   mutate(fy = paste(., nxt, sep = "/")) %>%
   pull(fy)
 
+# Adds in column with quarter info
+# Original formatting uses calender year values rather than financial so need
+# to reduce by a quarter to format as financial years
 pivot_dta$`Tracking Link` <- pivot_dta$`Tracking Link`- 1/4
 pivot_dta$`Tracking Link` <- gsub("[0-9]*\\ Q", 
                                   "Quarter ", 
@@ -269,8 +286,11 @@ dwnld_table_dta$`Q. Please select a local authority` <- as.character(dwnld_table
 dwnld_table_dta$`Q. Please select the local authority that your response relates to` <- as.character(dwnld_table_dta$`Q. Please select the local authority that your response relates to`)
 
 # Add in columns with Quarter Info and Financial Year info
+# Formats the ended date as a year and quarter value
 dwnld_table_dta$`Tracking Link` <- as.yearqtr(dwnld_table_dta$`Ended date`,
                                               format = "%Y-%m-%d") 
+# This formatting uses calender year values rather than financial so need
+# to reduce by a quarter to format as financial years
 dwnld_table_dta$`Financial Year` <- dwnld_table_dta$`Tracking Link` - 1/4
 dwnld_table_dta$`Financial Year` <- gsub("\\ ",
                                          "-", 
@@ -279,14 +299,21 @@ dwnld_table_dta$`Financial Year` <- gsub("\\ ",
 
 dwnld_table_dta$`Financial Year` <- dwnld_table_dta %>% 
   select(contains("Financial Year")) %>% 
+  # extracts just the year value - 1st year in the financial year
   apply(2, function(x) gsub("-Q[0-9]", "", x)) %>% 
   as.numeric(.) %>%
   data.frame() %>% 
+  # gets the second year value - 2nd year in the financial year
   mutate(nxt = .+ 1) %>% 
+  # extract just the last 2 digits of the 2nd financial year
   mutate(nxt = substr(nxt, 3, 4)) %>% 
+  # adds a separator between the 2 years to format as a financial year
   mutate(fy = paste(., nxt, sep = "/")) %>%
   pull(fy)
 
+# Adds in column with quarter info
+# Original formatting uses calender year values rather than financial so need
+# to reduce by a quarter to format as financial years
 dwnld_table_dta$`Tracking Link` <- dwnld_table_dta$`Tracking Link`- 1/4
 dwnld_table_dta$`Tracking Link` <- gsub("[0-9]*\\ Q", 
                                         "Quarter ", 
