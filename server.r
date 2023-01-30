@@ -752,8 +752,8 @@ function(input, output, session) {
   # This output is used twice, in the UI, but this is not allowed
   # therefore the output is assigned twice so that it can be called twice
   # using the different names. 
-  # resp_type_graph_report is used in the report download tab
-  # resp_type_graph_overview is used in the performance overview tab
+  # resp_reason_graph_report is used in the report download tab
+  # resp_reason_graph_overview is used in the performance overview tab
   
   output$resp_reason_graph_report <- output$resp_reason_graph_overview <- renderPlotly({
     report_reason_data <- report_reason_data()
@@ -785,47 +785,50 @@ function(input, output, session) {
     
 # Questions results tab (Data filtering)--------------------------------
   
-    # Create select button for financial year, dependent on number of years available
-    output$fin_yr <- renderUI({
-      council_fltr <- local_authority()
-      pivot_dta <- pivot_dta %>% filter(`Local Authority Name` == council_fltr) 
-      years <- unique(pivot_dta$`Financial Year`)
-      no_years <- length(unique(pivot_dta$`Financial Year`))
-      if(no_years > 1){
-        selectizeInput("fin_yr_selection", "Select financial year",
-                       choices = years, selected = fin_yr)
-      } else{
+  # Create select button for financial year if there is more than 1 year available
+  output$fin_yr <- renderUI({
+    council_fltr <- local_authority()
+    pivot_dta <- pivot_dta %>% filter(`Local Authority Name` == council_fltr) 
+    years <- unique(pivot_dta$`Financial Year`)
+    no_years <- length(unique(pivot_dta$`Financial Year`))
+    if (no_years > 1) {
+      selectizeInput(inputId = "fin_yr_selection", 
+                     label = "Select financial year",
+                     choices = years, 
+                     selected = fin_yr
+                     )
+      } else {
         return()
-      }
+        }
     })
-    
-    ##Create filtered dataset from checkboxes
-    qstn_dataset_filtered <- reactive({
-      council_fltr <- local_authority()
-      
-      names(pivot_dta) <- gsub("Q[1-9\\.]+\\s","",names(pivot_dta), perl = T)
-      pivot_dta$`Tracking Link` <- as.factor(pivot_dta$`Tracking Link`)
-      pivot_dta <- pivot_dta %>% filter(`Local Authority Name` == council_fltr)
-    ##select applicant type  
-      slctn_respondent <- input$Qs_resp_input
-    ##select applicant reason using partial match
-      slctn_reason <- names(select(pivot_dta, contains(input$Qs_reason_input)))
-      filter_data <- pivot_dta %>% filter(if_any(slctn_respondent, ~ . == 1)) %>%
-        filter(if_any(slctn_reason, ~.==1)) 
-        
-    #filter to correct financial year
-      no_years <- length(unique(pivot_dta$`Financial Year`))
-      
-      filter_data <- if(no_years > 1) {
-        filter(filter_data, `Financial Year` == input$fin_yr_selection)
-      } else
-      {
+  
+  # Create filtered dataset from checkboxes
+  qstn_dataset_filtered <- reactive({
+    council_fltr <- local_authority()
+    names(pivot_dta) <- gsub("Q[1-9\\.]+\\s", 
+                             "", 
+                             names(pivot_dta), 
+                             perl = TRUE
+                             )
+    pivot_dta$`Tracking Link` <- as.factor(pivot_dta$`Tracking Link`)
+    pivot_dta <- pivot_dta %>% filter(`Local Authority Name` == council_fltr)
+    # Selected respondent type  
+    slctn_respondent <- input$Qs_resp_input
+    # Selected applicant reason using partial match
+    slctn_reason <- names(select(pivot_dta, contains(input$Qs_reason_input)))
+    # Filter to match responses with the selected respondent type & reason
+    filter_data <- pivot_dta %>% 
+      filter(if_any(slctn_respondent, ~. == 1)) %>%
+      filter(if_any(slctn_reason, ~. ==1)) 
+    # Filter to correct financial year - either current year or selected year
+    no_years <- length(unique(pivot_dta$`Financial Year`))
+    filter_data <- if (no_years > 1) {
+      filter(filter_data, `Financial Year` == input$fin_yr_selection)
+      } else {
         filter(filter_data, `Financial Year` == fin_yr)
-      }
-        
-      filter_data
+        }
+    filter_data
     })
-    
     
 # Questions Results tab (YTD plot)---------------------------------------
     
