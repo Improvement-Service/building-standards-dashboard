@@ -907,91 +907,124 @@ function(input, output, session) {
    })
 
 # Questions Results tab (Summary by quarters plot)-------------------------
+
+  # Second summary of percentage responses by quarter
+  
+  output$qrtsQsplot <- renderPlotly({
+  # Filter dataset based on selected question & set responses as factors
+    qstn_dataset_filtered <- qstn_dataset_filtered()
+    qstn_dataset_filtered <- qstn_dataset_filtered %>% filter(value != "-")
+    if(input$Qstn_tab2 == "All Questions") {  
+      qstnDta <- qstn_dataset_filtered
+      } else {
+        qstnDta <- filter(qstn_dataset_filtered, Indicator == input$Qstn_tab2)
+        }
     
-  #Second summary of %age Good/v.good by quarter
-   output$qrtsQsplot <- renderPlotly({
-  ##filter dataset based on selected question   
-     qstn_dataset_filtered <- qstn_dataset_filtered()
-     qstn_dataset_filtered <- qstn_dataset_filtered %>% filter(value != "-")
-     if(input$Qstn_tab2 == "All Questions"){  
-       qstnDta <- qstn_dataset_filtered
-     }else{
-         qstnDta <-filter(qstn_dataset_filtered, Indicator == input$Qstn_tab2)
-       }
-     
-     qstnDta <- qstnDta %>%  count(`Tracking Link`,value, .drop =F)
-     qstnDta <- qstnDta %>% 
-       group_by(`Tracking Link`) %>%
-       mutate(total_responses = sum(n)) %>%
-       ungroup()%>%
-       mutate(`% of responses` = round((n/total_responses*100),1))
-     
-     # Remove NA for where there is no values for a quarter
-     qstnDta <- qstnDta %>% filter(!is.na(value))
-     
-     ##set labels for response groups
-     qstnDta$Response <- qstnDta$value
-     if(input$Qstn_tab2 == "All Questions"){
-       qstnDta$Response<- recode(qstnDta$Response, "1" = "Very good/very satisfied/strongly agree",
-                                     "2" ="good/satisfied/agree",
-                                     "3" = "poor/dissatisfied/disagree",
-                                     "4" = "Very poor/very dissatisfied/strongly disagree")
-       qstnDta$Response <- factor(qstnDta$Response, levels  = c(
-         "Very good/very satisfied/strongly agree",
-         "good/satisfied/agree", 
-         "poor/dissatisfied/disagree",
-         "Very poor/very dissatisfied/strongly disagree"))
-     } else if(input$Qstn_tab2 =="Overall, how satisfied were you with the service provided?"|input$Qstn_tab2 =="Thinking of your engagement, how satisfied were you with the time taken to complete the process?"){
-      qstnDta$Response <- recode(qstnDta$Response, "1" = "very satisfied",
-                                     "2" ="satisfied",
-                                     "3" = "dissatisfied",
-                                     "4" = "very dissatisfied")
-      qstnDta$Response <- factor(qstnDta$Response, levels  = c("very satisfied",
-                                                           "satisfied",
-                                                           "dissatisfied",
-                                                           "very dissatisfied"))
-     }else if(input$Qstn_tab2  =="To what extent would you agree that you were treated fairly?"){
-       qstnDta$Response <- recode(qstnDta$Response, "1" = "strongly agree",
-                                     "2" ="agree",
-                                     "3" = "disagree",
-                                     "4" = "strongly disagree")
-       qstnDta$Response <- factor(qstnDta$Response, levels  = c("strongly agree",
-                                                            "agree",
-                                                            "disagree",
-                                                            "strongly disagree"))
-     } else{
-       qstnDta$Response <- recode(qstnDta$Response, "1" = "very good",
-                                     "2" ="good",
-                                     "3" = "poor",
-                                     "4" = "very poor")
-       qstnDta$Response <- factor(qstnDta$Response, levels  = c("very good", "good", "poor", "very poor"))
-     }
-     
-     Labels <- levels(qstnDta$Response)
-     
-     #Change column titles in dataset to fix hover labels
-     qstnDta <- qstnDta %>% rename(Quarter = `Tracking Link`)
+    # Calculate count for each response
+    qstnDta <- qstnDta %>% count(`Tracking Link`, value, .drop = FALSE)
+    # Summarise the count per quarter
+    qstnDta <- qstnDta %>% 
+      group_by(`Tracking Link`) %>%
+      mutate(total_responses = sum(n)) %>%
+      ungroup() %>%
+      mutate(`% of responses` = round((n/total_responses * 100), 1))
     
-     # Create plot  
-     p <- ggplot(data = qstnDta ) +
-         geom_bar(aes(x = Quarter, y = `% of responses`, fill = Response), 
-                  stat= "identity", 
-                  position = "stack",
-                  width = 0.7, 
-                  colour = "black"
-                  ) +
-       scale_y_continuous(expand = expansion(mult = c(0, 0.1)))+
-       ggtitle(input$Qstn_tab2)+
-       xlab("")+
-     #  ylab("Percentage of responses")+
-         theme_classic() +
-        scale_fill_manual(breaks = Labels, 
-                         values = c("forestgreen", "lightgreen", "darkorange", "firebrick"),
-                         name = "Responses"
-                         )
-     
-       ggplotly(p)
-   })
+    # Remove NA for where there is no values for a quarter
+    qstnDta <- qstnDta %>% filter(!is.na(value))
+    
+    # Set labels for tickmarks to display on x axis
+    # Different responses for different questions so needs to be set accordingly
+    # Also need to set as factors to keep the responses in order within the bars
+    qstnDta$Response <- qstnDta$value
+    if (input$Qstn_tab2 == "All Questions") {
+      qstnDta$Response <- recode(qstnDta$Response, 
+                                 "1" = "Very Good/Very Satisfied/Strongly Agree",
+                                 "2" = "Good/Satisfied/Agree",
+                                 "3" = "Poor/Dissatisfied/Disagree",
+                                 "4" = "Very Poor/Very Dissatisfied/Strongly Disagree"
+                                 )
+      qstnDta$Response <- factor(qstnDta$Response, 
+                                 levels  = c("Very Good/Very Satisfied/Strongly Agree",
+                                             "Good/Satisfied/Agree", 
+                                             "Poor/Dissatisfied/Disagree",
+                                             "Very Poor/Very Dissatisfied/Strongly Disagree"
+                                             )
+                                 )
+      } else 
+        if(input$Qstn_tab2 == "Overall, how satisfied were you with the service provided?"| input$Qstn_tab2 == "Thinking of your engagement, how satisfied were you with the time taken to complete the process?") {
+          qstnDta$Response <- recode(qstnDta$Response, 
+                                     "1" = "Very Satisfied",
+                                     "2" = "Satisfied",
+                                     "3" = "Dissatisfied",
+                                     "4" = "Very Dissatisfied"
+                                     )
+          qstnDta$Response <- factor(qstnDta$Response, 
+                                     levels  = c("Very Satisfied",
+                                                 "Satisfied",
+                                                 "Dissatisfied",
+                                                 "Very Dissatisfied"
+                                                 )
+                                     )
+          } else 
+            if (input$Qstn_tab2 == "To what extent would you agree that you were treated fairly?") {
+              qstnDta$Response <- recode(qstnDta$Response, 
+                                         "1" = "Strongly Agree",
+                                         "2" = "Agree",
+                                         "3" = "Disagree",
+                                         "4" = "Strongly Disagree"
+                                         )
+              qstnDta$Response <- factor(qstnDta$Response, 
+                                         levels  = c("Strongly Agree",
+                                                     "Agree",
+                                                     "Disagree",
+                                                     "Strongly Disagree"
+                                                     )
+                                         )
+              } else {
+                qstnDta$Response <- recode(qstnDta$Response, 
+                                           "1" = "Very Good",
+                                           "2" = "Good",
+                                           "3" = "Poor",
+                                           "4" = "Very Poor"
+                                           )
+                qstnDta$Response <- factor(qstnDta$Response, 
+                                           levels = c("Very Good", 
+                                                      "Good", 
+                                                      "Poor", 
+                                                      "Very Poor"
+                                                      )
+                                           )
+                }
+    
+    Labels <- levels(qstnDta$Response)
+    # Rename in dataset to set what shows on hover labels
+    qstnDta <- qstnDta %>% rename(Quarter = `Tracking Link`)
+    
+    # Generate bar plot
+    plot <- ggplot(data = qstnDta ) +
+      geom_bar(aes(x = Quarter, 
+                   y = `% of responses`, 
+                   fill = Response
+                   ), 
+               stat = "identity", 
+               position = "stack",
+               width = 0.7, 
+               colour = "black"
+              ) +
+      scale_y_continuous(expand = expansion(mult = c(0, 0.1))) +
+      ggtitle(input$Qstn_tab2) +
+      xlab("") +
+      theme_classic() +
+      scale_fill_manual(breaks = Labels, 
+                        values = c("forestgreen", 
+                                   "lightgreen", 
+                                   "darkorange", 
+                                   "firebrick"
+                                   ),
+                        name = "Responses"
+                        )
+    ggplotly(plot)
+    })
    
 # Report Download Tab (KPO4 YTD)------------------------------------------
 
