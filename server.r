@@ -285,7 +285,7 @@ function(input, output, session) {
   })
   
 
-# Respondents & Reasons data ---------------------------------------------- 
+# Respondent type & Reasons data ---------------------------------------------- 
   
   # Generate another dataframe with respondent types
   resp_dta <- reactive({
@@ -310,8 +310,8 @@ function(input, output, session) {
      pivot_longer(cols = 5:12, names_to = "Question", values_to = "value") %>% 
      group_by(`Financial Year`,`Local Authority Name`, Question) %>%
      count(value) %>%
-     mutate(perc = n/sum(n))
-  
+     mutate(perc = round((n/sum(n)) * 100, 1))
+    
     # Differentiates questions by whether they ask about respondent types or reasons
     resp_dta$question_type <- ifelse(grepl("Q1", resp_dta$Question), 
                                      "Type", 
@@ -695,86 +695,92 @@ function(input, output, session) {
     })
     
 # Performance Overview tab (respondent type & reason plots)------------------
-    
-  ##n.b. I am using the same output twice, in the UI, but this is not allowed, so this
-    #is the suggested workaround i.e. assign the output twice
-    
-    #Create data for response type
-    report_type_data <- reactive({
-      
-      resp_dta <- resp_dta()
-      
-      
-      pc_resp_data <- resp_dta %>% filter(., question_type == "Type" & value == 1)
-      pc_resp_data$perc <- round(pc_resp_data$perc * 100, 1)
-      pc_resp_data
-    })
-    
-    output$resp_type_graph_report <- output$respDoughnut <- renderPlotly({
-  ##select data    
-      report_type_data <- report_type_data()
-      
-      pfig <- ggplot(data = report_type_data) +
-        geom_col(aes(x = Question, y = perc,
-                 text = paste(
-                   paste("Respondent Type:", report_type_data$Question),
-                   paste("% of responses:", report_type_data$perc),
-                   sep = "\n"
-                 )
-                 ),
-                 fill = "cadetblue3", 
-                 colour = "black"
-                 )+
-        coord_flip() +
-        theme_classic()+
-        scale_y_continuous( expand = expansion(mult = c(0, 0.1)))+
-        ggtitle("Respondent Type: YTD")+
-        xlab("Respondent Type")+
-        ylab("Percentage of Responses")+
-        theme(plot.title = element_text(size = 12))
-        
-      ggplotly(pfig, tooltip = "text")
-      
-    })
-    
-## Create data for response reason
-    report_reason_data <- reactive({
-      
-      resp_dta <- resp_dta()
-      
-      pc_resp_data <- resp_dta %>% filter(., question_type == "Reason" & value == 1)
-      pc_resp_data[pc_resp_data$Question == "During construction, including submission of a completion certificate", "Question"] <-"During construction" 
-      pc_resp_data[pc_resp_data$Question == "To discuss your proposal before applying for a building warrant", "Question"] <-"Discuss proposal" 
-      pc_resp_data[pc_resp_data$Question == "To make an application for a building warrant", "Question"] <-"Make application" 
-      
-      pc_resp_data$perc <- round(pc_resp_data$perc * 100, 1)
-      pc_resp_data
-    })
-    
-    ##Create plot for respondent reason for contacting
-    output$resp_reason_graph_report <- output$plotly_pie <- renderPlotly({
-      ##select data   
 
-      report_reason_data <- report_reason_data()
-      
-       pfig <- ggplot(data = report_reason_data()) +
-        geom_col(aes(
-          x = Question, 
-          y = perc,
-          text = paste(
-            paste("Reason:", report_reason_data$Question),
-            paste("% of responses:", report_reason_data$perc),
-            sep = "\n"
-          )
-          ),fill = "cadetblue3", colour = "black")+
-        coord_flip() +
-        theme_classic()+
-        scale_y_continuous( expand = expansion(mult = c(0, 0.1)))+
-         ggtitle("Response Reason:YTD")+
-         xlab("Reason")+
-         ylab("Percentage of Responses")+
-         theme(plot.title = element_text(size = 12))
-      ggplotly(pfig, tooltip = "text")
+  # Extract data for response type
+  report_type_data <- reactive({
+    resp_dta <- resp_dta()
+    pc_resp_data <- resp_dta %>% 
+      filter(., question_type == "Type" & value == 1)
+    pc_resp_data
+    })
+  
+  # This output is used twice, in the UI, but this is not allowed
+  # therefore the output is assigned twice so that it can be called twice
+  # using the different names. 
+  # resp_type_graph_report is used in the report download tab
+  # resp_type_graph_overview is used in the performance overview tab
+  
+  output$resp_type_graph_report <- output$resp_type_graph_overview <- renderPlotly({
+    report_type_data <- report_type_data()
+    plot <- ggplot(data = report_type_data) +
+      geom_col(aes(x = Question, 
+                   y = perc,
+                   text = paste(paste("Respondent Type:", 
+                                      report_type_data$Question
+                                      ),
+                                paste("% of responses:", 
+                                      report_type_data$perc
+                                      ),
+                                sep = "\n"
+                                )
+                   ),
+               fill = "cadetblue3", 
+               colour = "black"
+              ) +
+      coord_flip() +
+      theme_classic() +
+      scale_y_continuous(expand = expansion(mult = c(0, 0.1))) +
+      ggtitle("Respondent Type: YTD") +
+      xlab("Respondent Type") +
+      ylab("Percentage of Responses") +
+      theme(plot.title = element_text(size = 12))
+    
+    ggplotly(plot, tooltip = "text")
+    })
+  
+  # Extract data for response reason and shorten question labels
+  report_reason_data <- reactive({
+    resp_dta <- resp_dta()
+    pc_resp_data <- resp_dta %>% 
+      filter(., question_type == "Reason" & value == 1)
+    pc_resp_data[pc_resp_data$Question == "During construction, including submission of a completion certificate", "Question"] <- "During construction" 
+    pc_resp_data[pc_resp_data$Question == "To discuss your proposal before applying for a building warrant", "Question"] <- "Discuss proposal" 
+    pc_resp_data[pc_resp_data$Question == "To make an application for a building warrant", "Question"] <- "Make application" 
+    pc_resp_data
+    })
+  
+  # This output is used twice, in the UI, but this is not allowed
+  # therefore the output is assigned twice so that it can be called twice
+  # using the different names. 
+  # resp_type_graph_report is used in the report download tab
+  # resp_type_graph_overview is used in the performance overview tab
+  
+  output$resp_reason_graph_report <- output$resp_reason_graph_overview <- renderPlotly({
+    report_reason_data <- report_reason_data()
+    plot <- ggplot(data = report_reason_data()) +
+      geom_col(aes(x = Question, 
+                   y = perc,
+                   text = paste(paste("Reason:", 
+                                      report_reason_data$Question
+                                      ),
+                                paste("% of responses:", 
+                                      report_reason_data$perc
+                                      ),
+                                sep = "\n"
+                                )
+                   ),
+               fill = "cadetblue3", 
+               colour = "black"
+              ) +
+      coord_flip() +
+      theme_classic() +
+      scale_y_continuous(expand = expansion(mult = c(0, 0.1))) +
+      ggtitle("Response Reason:YTD") +
+      xlab("Reason") +
+      ylab("Percentage of Responses") +
+      theme(plot.title = element_text(size = 12))
+    
+    ggplotly(plot, tooltip = "text")
     })
     
 # Questions results tab (Data filtering)--------------------------------
@@ -1079,10 +1085,10 @@ text_multiple_kpo <- paste0("This indicator summarises performance across all qu
      resp_number <- resp_dta_filter %>% ungroup() %>% filter(Question == "Agent/Designer") %>% summarise_at(vars(`n`), sum) %>%
        select(`n`)
      #create variables for percentages for different groups
-     agent_perc <- round(resp_dta_filter[resp_dta_filter$Question == "Agent/Designer" & resp_dta_filter$value == 1 ,"perc"] *100, 1) %>% pull(perc)
-     appli_perc <- round(resp_dta_filter[resp_dta_filter$Question == "Applicant" & resp_dta_filter$value == 1 ,"perc"] *100, 1) %>% pull(perc)
-     contr_perc <- round(resp_dta_filter[resp_dta_filter$Question == "Contractor" & resp_dta_filter$value == 1 ,"perc"] *100, 1) %>% pull(perc)
-     other_perc <- round(resp_dta_filter[resp_dta_filter$Question == "Other" & resp_dta_filter$value == 1 ,"perc"] *100, 1) %>% pull(perc)
+     agent_perc <- resp_dta_filter[resp_dta_filter$Question == "Agent/Designer" & resp_dta_filter$value == 1 ,"perc"] %>% pull(perc)
+     appli_perc <- resp_dta_filter[resp_dta_filter$Question == "Applicant" & resp_dta_filter$value == 1 ,"perc"]  %>% pull(perc)
+     contr_perc <- resp_dta_filter[resp_dta_filter$Question == "Contractor" & resp_dta_filter$value == 1 ,"perc"]  %>% pull(perc)
+     other_perc <- resp_dta_filter[resp_dta_filter$Question == "Other" & resp_dta_filter$value == 1 ,"perc"]  %>% pull(perc)
      #if any are 0 then replace with "none"
      agent_perc <-ifelse(isEmpty(agent_perc), "none", paste0(agent_perc,"%"))
      appli_perc <-ifelse(isEmpty(appli_perc), "none", paste0(appli_perc,"%"))
@@ -1107,10 +1113,10 @@ text_multiple_kpo <- paste0("This indicator summarises performance across all qu
      resp_number <- resp_dta_filter %>% ungroup() %>% filter(Question == "To make an application for a building warrant") %>% summarise_at(vars(`n`), sum) %>%
        select(`n`)
      #Calculate percentages for each response type
-     discuss_perc <- round(resp_dta_filter[resp_dta_filter$Question == "To discuss your proposal before applying for a building warrant" & resp_dta_filter$value == 1 ,"perc"] *100, 1) %>% pull(perc)
-     appli_perc <- round(resp_dta_filter[resp_dta_filter$Question == "To make an application for a building warrant" & resp_dta_filter$value == 1 ,"perc"] *100, 1) %>% pull(perc)
-     constr_perc <- round(resp_dta_filter[resp_dta_filter$Question == "During construction, including submission of a completion certificate" & resp_dta_filter$value == 1 ,"perc"] *100, 1) %>% pull(perc)
-     other_perc <- round(resp_dta_filter[resp_dta_filter$Question == "Other" & resp_dta_filter$value == 1 ,"perc"] *100, 1) %>% pull(perc)
+     discuss_perc <- resp_dta_filter[resp_dta_filter$Question == "To discuss your proposal before applying for a building warrant" & resp_dta_filter$value == 1 ,"perc"]  %>% pull(perc)
+     appli_perc <- resp_dta_filter[resp_dta_filter$Question == "To make an application for a building warrant" & resp_dta_filter$value == 1 ,"perc"]  %>% pull(perc)
+     constr_perc <- resp_dta_filter[resp_dta_filter$Question == "During construction, including submission of a completion certificate" & resp_dta_filter$value == 1 ,"perc"]  %>% pull(perc)
+     other_perc <- resp_dta_filter[resp_dta_filter$Question == "Other" & resp_dta_filter$value == 1 ,"perc"]  %>% pull(perc)
      
      #if any are 0 then replace with "none"
      discuss_perc <-ifelse(isEmpty(discuss_perc), "none", paste0(discuss_perc,"%"))

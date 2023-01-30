@@ -37,7 +37,7 @@ ui <- dashboardPage(skin = "blue",
                                      ),
 # Dashboard body ----------------------------------------------------------
                     dashboardBody(tabItems(
-# Performance Over Time Tab ----------------------------------------------- 
+# Performance Overview Tab ----------------------------------------------- 
                       tabItem(tabName = "PrfOvr",
                               uiOutput("LA_KPO4_Heading"),
                                       # KPO4 Performance for council
@@ -69,14 +69,14 @@ ui <- dashboardPage(skin = "blue",
                                               id = "RespOverViewTabs",
                                               # Respondents type graph
                                               tabPanel("Type",
-                                                       plotlyOutput("respDoughnut",
+                                                       plotlyOutput("resp_type_graph_overview",
                                                                     height = "60vh"
                                                                     ) %>%
                                                          withSpinner()
                                                        ),
                                               # Respondents reason graph
                                               tabPanel("Reason", 
-                                                       plotlyOutput("plotly_pie",
+                                                       plotlyOutput("resp_reason_graph_overview",
                                                                     height = "60vh"
                                                                     )
                                                        )
