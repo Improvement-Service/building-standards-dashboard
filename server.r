@@ -567,50 +567,66 @@ function(input, output, session) {
   
 # Performance Overview Tab (Performance boxes) ------------------------------
   
-#Create performance box for selected Council  
+ # Create performance box for selected Council  
   output$performanceBox <- renderValueBox({
     la_max_sum <- la_max_sum()
+    # Sets traffic light colours based on KPO4 score
     kpo_colr <- ifelse(
-      la_max_sum[la_max_sum$`Tracking Link` =="Total" & la_max_sum$`Financial Year` == fin_yr, "KPO_score"] > 7.5, 
+      la_max_sum[la_max_sum$`Tracking Link` =="Total" & la_max_sum$`Financial Year` == fin_yr, 
+                 "KPO_score"
+                 ] > 7.5, 
       "green", 
-      ifelse(la_max_sum[la_max_sum$`Tracking Link` =="Total" & la_max_sum$`Financial Year` == fin_yr, "KPO_score"] < 6.5, 
+      ifelse(la_max_sum[la_max_sum$`Tracking Link` =="Total" & la_max_sum$`Financial Year` == fin_yr, 
+                        "KPO_score"
+                        ] < 6.5, 
              "red", 
              "orange"
              )
       )
-    valueBox(
-      value = round(la_max_sum[la_max_sum$`Tracking Link` =="Total" & la_max_sum$`Financial Year` == fin_yr, "KPO_score"],1), 
-      paste("Council KPO4 YTD",fin_yr),
-      icon = icon("chart-bar"), 
-      color = kpo_colr
-    )
-  })
-#Create performance box for Scotland
+    
+    valueBox(value = round(la_max_sum[la_max_sum$`Tracking Link` =="Total" & la_max_sum$`Financial Year` == fin_yr, 
+                                      "KPO_score"
+                                      ],
+                           1
+                           ), 
+             paste("Council KPO4 YTD", fin_yr),
+             icon = icon("chart-bar"), 
+             color = kpo_colr
+             )
+    })
+  
+  # Create performance box for Scotland
   output$scotPerfBox<- renderValueBox({
-   valueBox(
-      value = round(scot_max_sum[scot_max_sum$`Tracking Link` =="Total" & scot_max_sum$`Financial Year` == fin_yr, "KPO_score"],1), 
-      paste("Scotland Average KPO4 YTD", fin_yr), 
-      icon = icon("times"), 
-      color = "navy"
-    )
-  })
-#Create responses valuebox
-    output$respBox <- renderValueBox({
-      unpivot_data <- unpivot_data()
-      valueBox(
-        value = paste(nrow(
-          filter(unpivot_data, Quarter == crnt_qtr & `Financial Year` == fin_yr)
-          ), 
-          paste("Responses", gsub("Quarter\\ ","Q",crnt_qtr, perl = T))
-          ),
-        paste(nrow(
-          filter(unpivot_data, `Financial Year` == fin_yr)
-          ),
-          paste("Year to Date", fin_yr)
-          ), 
-        icon = icon("user-friends"), 
-        color = "light-blue"
-      )
+    valueBox(value = round(scot_max_sum[scot_max_sum$`Tracking Link` =="Total" & scot_max_sum$`Financial Year` == fin_yr, 
+                                        "KPO_score"],
+                           1
+                           ), 
+             paste("Scotland Average KPO4 YTD", fin_yr), 
+             icon = icon("times"), 
+             color = "navy"
+               )
+    })
+  
+  # Create valuebox for number of responses 
+  output$respBox <- renderValueBox({
+    unpivot_data <- unpivot_data()
+    # Counts the number of rows (responses) in the given quarter & financial year
+    # data is already filtered to selected council
+    valueBox(value = paste(nrow(filter(unpivot_data, 
+                                       Quarter == crnt_qtr & `Financial Year` == fin_yr
+                                       )
+                                ), 
+                           paste("Responses", 
+                                 gsub("Quarter\\ ","Q",crnt_qtr, perl = TRUE)
+                                 )
+                           ),
+             # Counts the rows (responses) for the full year
+             subtitle = paste(nrow(filter(unpivot_data, `Financial Year` == fin_yr)),
+                              paste("Year to Date", fin_yr)
+                              ), 
+             icon = icon("user-friends"), 
+             color = "light-blue"
+             )
     })
     
 # Performance Overview tab (KPO4 bar plot) -----------------------------------
