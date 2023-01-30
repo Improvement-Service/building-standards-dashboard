@@ -450,82 +450,120 @@ function(input, output, session) {
   
 # Create KPO4 Score Data ---------------------------------------------------
   
-##calculated the KPO4 score based on weighted responses
-  KPOdta <- pivot_dta %>% mutate(value = as.numeric(value)) %>% mutate(KPO_weight = value-1)
-  KPOweights_multiplier <- outer(pivot_dta$Indicator == "Thinking of your engagement, how satisfied were you with the time taken to complete the process?",2)+
-    outer(pivot_dta$Indicator == "How would you rate the standard of communication provided?",2) +
-    outer(pivot_dta$Indicator == "Overall, how satisfied were you with the service provided?",8)
-  KPOweights_multiplier <- replace(KPOweights_multiplier, KPOweights_multiplier==0, 1)
-  
+  # Calculated the KPO4 score for each response based on weighted responses
+  KPOdta <- pivot_dta %>% 
+    mutate(value = as.numeric(value)) %>% 
+    mutate(KPO_weight = value - 1)
+  # Sets multipliers for the different questions as they are weighted differently
+  # Overall satisfaction makes up 50%
+  # Communications and time taken each make up 12.5%
+  # Staff, information, responsiveness and fairness each make up 6.25%
+  KPOweights_multiplier <- outer(pivot_dta$Indicator == "Thinking of your engagement, how satisfied were you with the time taken to complete the process?", 2)+
+    outer(pivot_dta$Indicator == "How would you rate the standard of communication provided?", 2) +
+    outer(pivot_dta$Indicator == "Overall, how satisfied were you with the service provided?", 8)
+  KPOweights_multiplier <- replace(KPOweights_multiplier, 
+                                   KPOweights_multiplier == 0, 
+                                   1
+                                   )
+  # This calculates the weighted score
   KPOdta$KPO_weight <- KPOdta$KPO_weight * KPOweights_multiplier  
   
-  ##get total and max values for Scotland and Selected LA by quarter
-  scot_max <- pivot_dta %>% mutate(maxAvailable = 4) %>% mutate(value = as.numeric(value))
-  scot_max$maxAvailable <- (scot_max$maxAvailable-1) * KPOweights_multiplier 
+  # Get total and max values for Scotland by quarter and financial year
+   
+  # This calculates the highest possible weighted score available for each
+  # response by multiplying the highest score by the weighting for that question
+  scot_max <- pivot_dta %>% 
+    mutate(maxAvailable = 4) %>% 
+    mutate(value = as.numeric(value))
+  scot_max$maxAvailable <- (scot_max$maxAvailable - 1) * KPOweights_multiplier 
   scot_max[is.na(scot_max$value), "maxAvailable"] <- NA
-  scot_max$KPO4_weighted <- (scot_max$value-1) * KPOweights_multiplier
-  ##calculate KPO4 for quarter for all results   
-  scot_max_sum <- scot_max %>% group_by(`Tracking Link`, `Financial Year`) %>%
-    summarise(across(c(maxAvailable,KPO4_weighted),sum, na.rm = T)) %>% 
-    group_by(`Financial Year`) %>%
-    bind_rows(summarise(.,across(where(is.numeric), sum),
-                        across(where(is.character), ~"Total")))  %>%
-    ##generate the KPO score (out of 10)    
-    mutate(KPO_score = round((1-KPO4_weighted/maxAvailable)*10,1))
+  # This calculates the actual weighted score
+  scot_max$KPO4_weighted <- (scot_max$value - 1) * KPOweights_multiplier
   
-  
-  ##calculate KPO4 for quarter for selected local authority    
-  la_max_sum <- reactive({
-    
-    council_fltr <- local_authority()
-    
-    la_max_sum <- scot_max %>% filter(`Local Authority Name` == council_fltr) %>%     
+  # Calculate KPO4 for quarter for all results   
+  scot_max_sum <- scot_max %>% 
     group_by(`Tracking Link`, `Financial Year`) %>%
-    summarise(across(c(maxAvailable,KPO4_weighted),sum, na.rm = T)) %>% 
+    summarise(across(c(maxAvailable, KPO4_weighted), sum, na.rm = TRUE)) %>% 
     group_by(`Financial Year`) %>%
     bind_rows(summarise(.,across(where(is.numeric), sum),
-                        across(where(is.character), ~"Total")))  %>%
-  ##generate the KPO score (out of 10)    
-    mutate(KPO_score = round((1-KPO4_weighted/maxAvailable)*10,1))
-  })
+                        across(where(is.character), ~"Total")
+                        )
+              ) %>%
+    # Generate the KPO score (out of 10)    
+    mutate(KPO_score = round((1 - KPO4_weighted/maxAvailable) * 10, 1))
+  
+  # Calculate KPO4 for quarter and financial year for selected local authority    
+  la_max_sum <- reactive({
+    council_fltr <- local_authority()
+    la_max_sum <- scot_max %>% 
+      filter(`Local Authority Name` == council_fltr) %>%     
+      group_by(`Tracking Link`, `Financial Year`) %>%
+      summarise(across(c(maxAvailable, KPO4_weighted), sum, na.rm = TRUE)) %>% 
+      group_by(`Financial Year`) %>%
+      bind_rows(summarise(., across(where(is.numeric), sum),
+                          across(where(is.character), ~"Total")
+                          )
+                ) %>%
+      # Generate the KPO score (out of 10)    
+      mutate(KPO_score = round((1 - KPO4_weighted/maxAvailable) * 10, 1))
+    })
   
   
-  ##Create KPO4 download for all LA's
   
+  
+# Create KPO4 download ---------------------------------------------------
+  
+  # Create data frame with KPO4 scores for all LA's 
+  # (this is available for SG and IS to download)
   total_la_max_sum <- scot_max %>%      
     group_by(`Local Authority Name`,`Tracking Link`, `Financial Year`) %>%
-    summarise(across(c(maxAvailable,KPO4_weighted),sum, na.rm = T)) %>% 
-    ##generate the KPO score (out of 10)    
-    mutate(KPO_score = round((1-KPO4_weighted/maxAvailable)*10,1)) %>%
+    summarise(across(c(maxAvailable, KPO4_weighted),sum, na.rm = TRUE)) %>%
+    group_by(`Local Authority Name`, `Financial Year`) %>%
+    bind_rows(summarise(., across(where(is.numeric), sum),
+                        across(where(is.character), ~"Total")
+                        )
+              ) %>%
+    # Generate the KPO score (out of 10)    
+    mutate(KPO_score = round((1 - KPO4_weighted/maxAvailable) * 10, 1)) %>%
     rbind(scot_max_sum) %>%
     select(-maxAvailable, -KPO4_weighted) %>%
     rename(Area = `Local Authority Name`) %>%
     rename(Quarter = `Tracking Link`) %>%
     rename(`KPO4 Score` = KPO_score)
   
-  total_la_max_sum$Quarter <- recode(total_la_max_sum$Quarter, "Total" = "Year to Date")
-  
+  total_la_max_sum$Quarter <- recode(total_la_max_sum$Quarter, 
+                                     "Total" = "Year to Date"
+                                     )
   total_la_max_sum$Area[is.na(total_la_max_sum$Area)] <- "Scotland"
-  
   total_la_max_sum <- total_la_max_sum %>% arrange(`Financial Year`, Quarter)
   
-# Create KPO4 download ---------------------------------------------------
-  output$KPO_data_file <- downloadHandler(
-    filename = paste("KPO4_Data", ".csv", sep = ""),
-    content = function(file) {
-      write.csv(total_la_max_sum, file)
-    }
-  )
+  # Create downloadable file
+  output$KPO_data_file <- downloadHandler(filename = paste("KPO4_Data", 
+                                                           ".csv", 
+                                                           sep = ""
+                                                           ),
+                                          content = function(file) {
+                                            write.csv(total_la_max_sum, file)
+                                            }
+                                          )
   
   # Create conditionality to only show download button if IS or SG
   output$KPO_data_dl <- renderUI({
     user <- user()
-    if(grepl("improvementservice.org.uk|gov.scot", user, ignore.case = T)) {
-      downloadBttn("KPO_data_file", label = "Download KPO4 Data", style = "jelly", size = "sm")
-    }else{
-      return()
-    }
-  })
+    if(grepl("improvementservice.org.uk|gov.scot", 
+             user, 
+             ignore.case = TRUE
+             )
+       ) {
+      downloadBttn("KPO_data_file", 
+                   label = "Download KPO4 Data", 
+                   style = "jelly", 
+                   size = "sm"
+                   )
+      } else {
+        return()
+        }
+    })
   
 # Performance Overview Tab (Performance boxes) ------------------------------
   
