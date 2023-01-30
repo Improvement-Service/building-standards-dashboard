@@ -831,62 +831,79 @@ function(input, output, session) {
     })
     
 # Questions Results tab (YTD plot)---------------------------------------
-    
-    #First graph for full breakdown of responses in year to date  
-   output$YTDqstsPlot <- renderPlotly({
-     
-     filt_data <- qstn_dataset_filtered()
-     
-    ##if a question is selected filter the dataset
-   if(input$Qstn_tab2 == "All Questions"){
-       qstnDta <- filt_data %>% filter(value != "-")
-       qstnDta$value <- factor(qstnDta$value,levels = c(1,2,3,4))
-     }else{
-       qstnDta <-filter(filt_data, Indicator == input$Qstn_tab2) %>% filter(value != "-")
-       qstnDta$value <- factor(qstnDta$value,levels = c(1,2,3,4))
-            }
-     qstnDta <- qstnDta %>% count(value, .drop = F)
-     
-     ##set  tickmarks to display on x axis
-     if(input$Qstn_tab2 == "All Questions"){
-     qstnDta$named_value <- recode(qstnDta$value, "1" = "Very good/very satisfied/strongly agree",
-                                   "2" ="good/satisfied/agree",
-                                   "3" = "poor/dissatisfied/disagree",
-                                   "4" = "Very poor/very dissatisfied/strongly disagree")
-     } else if(input$Qstn_tab2 =="Overall, how satisfied were you with the service provided?"|input$Qstn_tab2 =="Thinking of your engagement, how satisfied were you with the time taken to complete the process?"){
-       qstnDta$named_value <- recode(qstnDta$value, "1" = "very satisfied",
-                                     "2" ="satisfied",
-                                     "3" = "dissatisfied",
-                                     "4" = "very dissatisfied")
-     }else if(input$Qstn_tab2  =="To what extent would you agree that you were treated fairly?"){
-       qstnDta$named_value <- recode(qstnDta$value, "1" = "strongly agree",
-                                     "2" ="agree",
-                                     "3" = "disagree",
-                                     "4" = "strongly disagree")
-     } else{
-       qstnDta$named_value <- recode(qstnDta$value, "1" = "very good",
-                                     "2" ="good",
-                                     "3" = "poor",
-                                     "4" = "very poor")
-       qstnDta$named_value <- factor(qstnDta$named_value, levels  = c("very good", "good", "poor", "very poor"))
+  
+  # First graph for full breakdown of responses in year to date  
+  
+  output$YTDqstsPlot <- renderPlotly({
+    filt_data <- qstn_dataset_filtered()
+    # Filter data based on question selected & set responses as factors
+   if (input$Qstn_tab2 == "All Questions") {
+     qstnDta <- filt_data %>% filter(value != "-")
+     qstnDta$value <- factor(qstnDta$value, levels = c(1, 2, 3, 4))
+     } else {
+       qstnDta <- filt_data %>% 
+         filter(Indicator == input$Qstn_tab2) %>% 
+         filter(value != "-")
+       qstnDta$value <- factor(qstnDta$value, levels = c(1, 2, 3, 4))
      }
-  #generate barplot
-     p <- ggplot(data = qstnDta) +
-      geom_bar(aes(
-        x = reorder(named_value, as.numeric(value)), 
-        y = n, 
-        text = paste(paste0("Response: ", named_value), paste0("Number of Responses:", n),sep = "\n")),
+    # Calculate count for each response
+    qstnDta <- qstnDta %>% count(value, .drop = FALSE)
+    
+    # Set labels for tickmarks to display on x axis
+    # Different responses for different questions so needs to be set accordingly
+    if (input$Qstn_tab2 == "All Questions") {
+      qstnDta$named_value <- recode(qstnDta$value, 
+                                    "1" = "Very Good/Very Satisfied/Strongly Agree",
+                                    "2" = "Good/Satisfied/Agree",
+                                    "3" = "Poor/Dissatisfied/Disagree",
+                                    "4" = "Very Poor/Very Dissatisfied/Strongly Disagree"
+                                    )
+      } else 
+        if (input$Qstn_tab2 == "Overall, how satisfied were you with the service provided?"|input$Qstn_tab2 =="Thinking of your engagement, how satisfied were you with the time taken to complete the process?") {
+          qstnDta$named_value <- recode(qstnDta$value, 
+                                        "1" = "Very Satisfied",
+                                        "2" =" Satisfied",
+                                        "3" = "Dissatisfied",
+                                        "4" = "Very Dissatisfied"
+                                        )
+          } else 
+            if (input$Qstn_tab2 == "To what extent would you agree that you were treated fairly?") {
+              qstnDta$named_value <- recode(qstnDta$value, 
+                                            "1" = "Strongly Agree",
+                                            "2" = "Agree",
+                                            "3" = "Disagree",
+                                            "4" = "Strongly Disagree"
+                                            )
+              } else {
+                qstnDta$named_value <- recode(qstnDta$value, 
+                                              "1" = "Very Good",
+                                              "2" = "Good",
+                                              "3" = "Poor",
+                                              "4" = "Very Poor"
+                                              )
+                }
+    
+    # Generate barplot
+    plot <- ggplot(data = qstnDta) +
+      geom_bar(aes(x = reorder(named_value, as.numeric(value)), 
+                   y = n, 
+                   text = paste(paste0("Response: ", named_value), 
+                                paste0("Number of Responses:", n),
+                                sep = "\n"
+                                )
+                   ),
                stat= "identity",
                fill = "cadetblue3", 
                width = 0.7, 
                colour = "black"
-               )+
-       ggtitle(input$Qstn_tab2)+
-       xlab("Response")+
-       ylab("Number of responses")+
-       scale_y_continuous(expand = expansion(mult = c(0, 0.1)))+
-       theme_classic()
-    ggplotly(p, tooltip = "text")
+               ) +
+      ggtitle(input$Qstn_tab2) +
+      xlab("Response") +
+      ylab("Number of responses") +
+      scale_y_continuous(expand = expansion(mult = c(0, 0.1))) +
+      theme_classic()
+    
+    ggplotly(plot, tooltip = "text")
    })
 
 # Questions Results tab (Summary by quarters plot)-------------------------
