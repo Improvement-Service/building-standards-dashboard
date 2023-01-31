@@ -1651,6 +1651,32 @@ function(input, output, session) {
     qstnDta
   } 
   
+  # Create a function for generating plot for individual questions
+  create_qstn_plot <- function(data, title) {
+    plot <- ggplot(data = data) +
+      geom_bar(aes(x = named_value,
+                   y = perc_resp,
+                   fill = Selection,
+                   text = paste(Selection, 
+                                paste("Response:", named_value), 
+                                paste("% of Responses:", perc_resp),
+                                sep = "\n"
+                   )
+      ), 
+      stat = "identity", 
+      position = "dodge",
+      width = 0.7, 
+      colour = "black"
+      ) +
+      scale_y_continuous(expand = expansion(mult = c(0, 0.1))) +
+      scale_fill_manual(values = c("cadetblue3", "dimgrey"), name = "") +
+      ggtitle(title) +
+      xlab("Responses") +
+      ylab("Percentage of Responses") +
+      theme_classic()
+    ggplotly(plot, tooltip = "text")
+  }
+  
 # Report Download tab (Q1 - Time taken)--------------------------------------
   # Note - data has to be created in a reactive function, seperate from the 
   # plot function, so the data can be used in the markdown document
@@ -1665,38 +1691,14 @@ function(input, output, session) {
                     )
     })
   
-  output$question_time_report <- renderPlotly({ 
-    
-    qstnDta <- question_time_data_report() 
-  #create a graph 
-
-  p <- ggplot(data = qstnDta ) +
+  # Render plot 
+  output$question_time_report <- renderPlotly({
+    # Call function to create plot
+    create_qstn_plot(data = question_time_data_report(),
+                     title = "Satisfaction with time taken - Year to Date"
+                     )
+    })
   
-  geom_bar(aes(
-    #  x = reorder(named_value, as.numeric(value)), 
-    x = named_value,
-    y = perc_resp,
-    fill = Selection,
-    text = paste(
-      Selection, 
-      paste("Response:", named_value), 
-      paste("% of Responses:", perc_resp),
-      sep = "\n")
-  ), 
-  stat= "identity", 
-  position = "dodge",
-  width = 0.7, 
-  colour = "black")+
-  scale_y_continuous(expand = expansion(mult = c(0, 0.1)))+
-  scale_fill_manual(values = c("cadetblue3", "dimgrey"), name = "")+
-  ggtitle("Satisfaction with time taken - Year to Date")+
-  xlab("Responses")+
-  ylab("Percentage of Responses")+
-  theme_classic()
-  ggplotly(p, tooltip = "text")
-  
-})
-
    # satisfaction with time taken text
    output$question_time_report_text <- renderText({
      #load data and split into Scotland and LA datasets
@@ -1782,35 +1784,15 @@ function(input, output, session) {
                      named_value_4 = "very poor"
      )
    })
-
-     #create a graph
-     output$question_comms_report <- renderPlotly({
-       qstnDta <- question_comms_data_report()
-     p <- ggplot(data = qstnDta ) +
-       geom_bar(aes(
-         x = reorder(named_value, as.numeric(value)), 
-         y = perc_resp, 
-         fill = Selection,
-         text = paste(
-           Selection, 
-           paste("Response:", named_value), 
-           paste("% of Responses:", perc_resp),
-           sep = "\n")
-         ), 
-         stat= "identity", 
-         position = "dodge",
-         width = 0.7, 
-         colour = "black") +
-       scale_fill_manual( 
-         values = c("cadetblue3", "dimgrey"), name = "")+
-       ggtitle("Standard of communication - Year to Date")+
-       xlab("Responses")+
-       ylab("Percentage of Responses")+
-       scale_y_continuous(expand = expansion(mult = c(0, 0.1)))+
-       theme_classic()
-     ggplotly(p, tooltip = "text")
+   
+   # Render plot 
+   output$question_comms_report <- renderPlotly({
+     # Call function to create plot
+     create_qstn_plot(data = question_comms_data_report(),
+                      title = "Standard of communication - Year to Date"
+     )
    })
-     
+
      # satisfaction with comms taken text
      output$question_comms_report_text <- renderText({
        council_fltr <- local_authority()
@@ -1896,37 +1878,14 @@ function(input, output, session) {
        )
      })
      
-     
+     # Render plot 
      output$question_info_report <- renderPlotly({
-       qstnDta <- question_info_data_report()
-     #create a graph
-     p <- ggplot(data = qstnDta ) +
-       geom_bar(aes(
-         x = reorder(named_value, as.numeric(value)), 
-         y = perc_resp, 
-         fill = Selection,
-         text = paste(
-           Selection, 
-           paste("Response:", named_value), 
-           paste("% of Responses:", perc_resp),
-           sep = "\n")
-         ), 
-         stat= "identity", 
-         position = "dodge",
-         width = 0.7, 
-         colour = "black"
-         ) +
-       scale_y_continuous(expand = expansion(mult = c(0, 0.1)))+
-       scale_fill_manual( 
-         values = c("cadetblue3","dimgrey"), name = "")+
-       ggtitle("Quality of information - Year to Date")+
-       xlab("Responses")+
-       ylab("Percentage of Responses")+
-       theme_classic()
-     ggplotly(p, tooltip = "text")
-     
-   })
-     
+       # Call function to create plot
+       create_qstn_plot(data = question_info_data_report(),
+                        title = "Quality of information - Year to Date"
+       )
+     })
+
      # satisfaction with info text
      output$question_info_report_text <- renderText({
        council_fltr <- local_authority()
@@ -2012,37 +1971,13 @@ function(input, output, session) {
        )
      })
      
-         
-     
-     #create a graph
+     # Render plot 
      output$question_staff_report <- renderPlotly({
-       qstnDta <- question_staff_data_report() 
-     p <- ggplot(data = qstnDta ) +
-       geom_bar(aes(
-         x = reorder(named_value, as.numeric(value)), 
-         y = perc_resp, 
-         fill = Selection,
-         text = paste(
-           Selection, 
-           paste("Response:", named_value), 
-           paste("% of Responses:", perc_resp),
-           sep = "\n")
-         ), 
-         stat= "identity", 
-         position = "dodge",
-         width = 0.7, 
-         colour = "black"
-         ) +
-       scale_y_continuous(expand = expansion(mult = c(0, 0.1)))+
-       scale_fill_manual( 
-         values = c("cadetblue3", "dimgrey"), name = "")+
-       ggtitle("Service offered by staff - Year to Date")+
-       xlab("Responses")+
-       ylab("Percentage of Responses")+
-       theme_classic()
-     ggplotly(p, tooltip = "text")
-
-   })
+       # Call function to create plot
+       create_qstn_plot(data = question_staff_data_report(),
+                        title = "Service offered by staff - Year to Date"
+       )
+     })
      
      # satisfaction with staff text
      output$question_staff_report_text <- renderText({
@@ -2130,36 +2065,13 @@ function(input, output, session) {
        )
      })
      
-     
-     #create a graph
+     # Render plot 
      output$question_responsiveness_report <- renderPlotly({
-       qstnDta <-  question_responsiveness_data_report() 
-     p <- ggplot(data = qstnDta ) +
-       geom_bar(aes(
-         x = reorder(named_value, as.numeric(value)), 
-         y = perc_resp, 
-         fill = Selection,
-         text = paste(
-           Selection, 
-           paste("Response:", named_value), 
-           paste("% of Responses:", perc_resp),
-           sep = "\n")
-         ), 
-         stat= "identity", 
-         position = "dodge",
-         width = 0.7, 
-         colour = "black"
-         ) +
-       scale_y_continuous(expand = expansion(mult = c(0, 0.1)))+
-       scale_fill_manual( 
-         values = c("cadetblue3", "dimgrey"), name = "")+
-       ggtitle("Responsiveness to queries or issues - Year to Date")+
-       xlab("Responses")+
-       ylab("Percentage of Responses")+
-       theme_classic()
-     ggplotly(p, tooltip = "text")
-
-      })
+       # Call function to create plot
+       create_qstn_plot(data = question_responsiveness_data_report(),
+                        title = "Responsiveness to queries or issues - Year to Date"
+       )
+     })
      
      # satisfaction with responsiveness text
      output$question_responsiveness_report_text <- renderText({
@@ -2246,36 +2158,13 @@ function(input, output, session) {
        )
      })
      
-     
-       
-     #create a graph
+     # Render plot 
      output$question_fair_report <- renderPlotly({
-       qstnDta <- question_fairly_data_report()
-     p <- ggplot(data = qstnDta ) +
-       geom_bar(aes(
-         x = reorder(named_value, as.numeric(value)), 
-         y = perc_resp, 
-         fill = Selection,
-         text = paste(
-           Selection, 
-           paste("Response:", named_value), 
-           paste("% of Responses:", perc_resp),
-           sep = "\n")
-         ), 
-         stat= "identity", 
-         position = "dodge",
-         width = 0.7, 
-         colour = "black"
-         )+
-       scale_fill_manual( 
-         values = c("cadetblue3", "dimgrey"), name = "")+
-       scale_y_continuous(expand = expansion(mult = c(0, 0.1)))+
-        ggtitle("Would you agree you were treated fairly - Year to Date")+
-       xlab("Responses")+
-       ylab("Percentage of Responses")+
-       theme_classic()
-     ggplotly(p, tooltip = "text")
-        })
+       # Call function to create plot
+       create_qstn_plot(data = question_fairly_data_report(),
+                        title = "Would you agree you were treated fairly - Year to Date"
+       )
+     })
      
      # satisfaction with responsiveness text
      output$question_fair_report_text <- renderText({
@@ -2363,38 +2252,15 @@ function(input, output, session) {
        )
      })
      
-         
-     
-     #create a graph
+     # Render plot 
      output$question_overall_report <- renderPlotly({
-       qstnDta <- question_overall_data_report() 
-     p <- ggplot(data = qstnDta ) +
-       geom_bar(aes(
-         x = reorder(named_value, as.numeric(value)), 
-         y = perc_resp, 
-         fill = Selection,
-         text = paste(
-           Selection, 
-           paste("Response:", named_value), 
-           paste("% of Responses:", perc_resp),
-           sep = "\n")
-         ), 
-         stat= "identity", 
-         position = "dodge",
-         width = 0.7, 
-         colour = "black"
-         ) +
-       scale_y_continuous(expand = expansion(mult = c(0, 0.1)))+
-       scale_fill_manual( 
-         values = c("cadetblue3", "dimgrey"), name = "")+
-       ggtitle("Overall satisfaction - Year to Date")+
-       xlab("Responses")+
-       ylab("Percentage of Responses")+
-       theme_classic()
-     ggplotly(p, tooltip = "text")
-      })
+       # Call function to create plot
+       create_qstn_plot(data = question_overall_data_report(),
+                        title = "Overall satisfaction - Year to Date"
+       )
+     })    
      
-     # satisfaction with responsiveness text
+     # overall statisfaction text
      output$question_overall_report_text <- renderText({
        council_fltr <- local_authority()
        #load data and split into Scotland and LA datasets
