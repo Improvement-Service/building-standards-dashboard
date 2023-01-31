@@ -1602,77 +1602,101 @@ function(input, output, session) {
      final_text
      })
    
-# Report Download tab (Q1 - Time taken)--------------------------------------
-   # Note - data has to be created in a reactive function, seperate from the 
-   # plot function, so the data can be used in the markdown document
-   
-   ##generate data to be used in graph and text
-   question_time_data_report <- reactive({
-     council_fltr <- local_authority()
-     #filter to current financial year
-     pivot_dta <- pivot_dta %>% filter(`Financial Year` == fin_yr)
-     ##filter dataset based on selected question   
-     pivot_dta <- pivot_dta %>% filter(value != "-")
-     pivot_dta$`value` <- factor(pivot_dta$`value`, levels = c(1,2,3,4))
-     #filter by local authority and question and count no. responses
-     qstnDta_LA <- pivot_dta %>% filter(Indicator == "Thinking of your engagement, how satisfied were you with the time taken to complete the process?") %>%
-       filter(`Local Authority Name` == council_fltr) %>% count(value, .drop =F) %>%
-       mutate(Selection = council_fltr)
-
-     
-     #get all data for this question and count no. responses, bind LA count
-     qstnDta <- pivot_dta %>% filter(Indicator == "Thinking of your engagement, how satisfied were you with the time taken to complete the process?") %>%
-       count(value, .drop =F) %>%
-       mutate(Selection = "Scotland") %>%
-       rbind(qstnDta_LA )
-     #Get percentage of responses for LA and Scotland 
-     qstnDta <- qstnDta %>% group_by(Selection) %>% mutate(perc_resp = round((n/sum(n))*100,1))
-     #Recode the values for this question to be shown on tickmarks in x axis 
-     qstnDta$named_value <- recode(qstnDta$value, "1" = "very satisfied",
-                                   "2" ="satisfied",
-                                   "3" = "dissatisfied",
-                                   "4" = "very dissatisfied")
-     
-     # Set the council values as a factor so the data can be arranged to have the council first regardless of alphabetical order
-      qstnDta$Selection <- factor(qstnDta$Selection, levels = c(council_fltr, "Scotland"))
-
-    # arrange the data so the colours will be in order
-      qstnDta <- arrange(qstnDta, value, Selection) 
-     qstnDta
-     
-   })
-   
-   output$question_time_report <- renderPlotly({
-     qstnDta <- question_time_data_report() 
-     
-    #create a graph
-     p <- ggplot(data = qstnDta ) +
-       geom_bar(aes(
-       #  x = reorder(named_value, as.numeric(value)), 
-         x = named_value,
-         y = perc_resp,
-         fill = Selection,
-         text = paste(
-           Selection, 
-           paste("Response:", named_value), 
-           paste("% of Responses:", perc_resp),
-           sep = "\n")
-       ), 
-       stat= "identity", 
-       position = "dodge",
-       width = 0.7, 
-       colour = "black")+
-       scale_y_continuous(expand = expansion(mult = c(0, 0.1)))+
-       scale_fill_manual(values = c("cadetblue3", "dimgrey"), name = "")+
-       ggtitle("Satisfaction with time taken - Year to Date")+
-       xlab("Responses")+
-       ylab("Percentage of Responses")+
-       theme_classic()
-     ggplotly(p, tooltip = "text")
-     
-   })
-   
+# Report Download tab (functions for individual questions)-------------------
   
+  # Create a function for generating formatted data for individual questions
+  format_qstn_dta <- function(question, 
+                              named_value_1, 
+                              named_value_2,
+                              named_value_3, 
+                              named_value_4
+                              ) {
+    council_fltr <- local_authority()
+    # Filter pivot_dta to current financial year and remove missing values
+    pivot_dta <- pivot_dta %>% filter(`Financial Year` == fin_yr) %>%
+      filter(value != "-")
+    # Set values as factor to keep in order
+    pivot_dta$`value` <- factor(pivot_dta$`value`, levels = c(1, 2, 3, 4))
+    # Calculate count for question and selected LA
+    qstnDta_LA <- pivot_dta %>% 
+      filter(Indicator == question) %>%
+      filter(`Local Authority Name` == council_fltr) %>% 
+      count(value, .drop = FALSE) %>%
+      mutate(Selection = council_fltr)
+    # Calculate count for question for all responses (Scotland) - bind LA count
+    qstnDta <- pivot_dta %>% 
+      filter(Indicator == question) %>%
+      count(value, .drop = FALSE) %>%
+      mutate(Selection = "Scotland") %>%
+      rbind(qstnDta_LA )
+    # Get response percentages for LA and Scotland 
+    qstnDta <- qstnDta %>% 
+      group_by(Selection) %>% 
+      mutate(perc_resp = round((n / sum(n)) * 100, 1))
+    # Set labels for tickmarks to display on x axis
+    # Different responses for different questions so needs to be set accordingly
+    qstnDta$named_value <- recode(qstnDta$value, 
+                                  "1" = named_value_1,
+                                  "2" = named_value_2,
+                                  "3" = named_value_3,
+                                  "4" = named_value_4
+                                  )
+    # Set the council values as a factor so the data can be arranged to 
+    # have the council first regardless of alphabetical order
+    qstnDta$Selection <- factor(qstnDta$Selection, 
+                                levels = c(council_fltr, "Scotland")
+                                )
+    # Arrange the data so the colours will be in order
+    qstnDta <- arrange(qstnDta, value, Selection) 
+    qstnDta
+  } 
+  
+# Report Download tab (Q1 - Time taken)--------------------------------------
+  # Note - data has to be created in a reactive function, seperate from the 
+  # plot function, so the data can be used in the markdown document
+  
+  # Call function to generate data to be used in graph and text
+  question_time_data_report <- reactive({
+    format_qstn_dta(question = "Thinking of your engagement, how satisfied were you with the time taken to complete the process?",
+                    named_value_1 = "very satisfied",
+                    named_value_2 = "satisfied",
+                    named_value_3 = "dissatisfied",
+                    named_value_4 = "very dissatisfied"
+                    )
+    })
+  
+  output$question_time_report <- renderPlotly({ 
+    
+    qstnDta <- question_time_data_report() 
+  #create a graph 
+
+  p <- ggplot(data = qstnDta ) +
+  
+  geom_bar(aes(
+    #  x = reorder(named_value, as.numeric(value)), 
+    x = named_value,
+    y = perc_resp,
+    fill = Selection,
+    text = paste(
+      Selection, 
+      paste("Response:", named_value), 
+      paste("% of Responses:", perc_resp),
+      sep = "\n")
+  ), 
+  stat= "identity", 
+  position = "dodge",
+  width = 0.7, 
+  colour = "black")+
+  scale_y_continuous(expand = expansion(mult = c(0, 0.1)))+
+  scale_fill_manual(values = c("cadetblue3", "dimgrey"), name = "")+
+  ggtitle("Satisfaction with time taken - Year to Date")+
+  xlab("Responses")+
+  ylab("Percentage of Responses")+
+  theme_classic()
+  ggplotly(p, tooltip = "text")
+  
+})
+
    # satisfaction with time taken text
    output$question_time_report_text <- renderText({
      #load data and split into Scotland and LA datasets
@@ -1749,41 +1773,16 @@ function(input, output, session) {
    # Note - data has to be created in a reactive function, seperate from the 
    # plot function, so the data can be used in the markdown document
    
-    ##generate data to be used in graph and text
+   # Call function to generate data to be used in graph and text
    question_comms_data_report <- reactive({
-     council_fltr <- local_authority()
-     #filter to current financial year
-     pivot_dta <- pivot_dta %>% filter(`Financial Year` == fin_yr)
-     ##filter dataset based on selected question   
-     pivot_dta <- pivot_dta %>% filter(value != "-")
-     ##filter dataset based on selected question   
-     pivot_dta$`value` <- factor(pivot_dta$`value`, levels = c(1,2,3,4))
-     #filter by local authority and question and count no. responses
-     qstnDta_LA <- pivot_dta %>% filter(Indicator == "How would you rate the standard of communication provided?") %>%
-       filter(`Local Authority Name` == council_fltr) %>% count(value, .drop =F) %>%
-       mutate(Selection = council_fltr)
-     
-     #get all data for this question and count no. responses, bind LA count
-     qstnDta <- pivot_dta %>% filter(Indicator == "How would you rate the standard of communication provided?") %>%
-       count(value, .drop =F) %>%
-       mutate(Selection = "Scotland") %>%
-       rbind(qstnDta_LA )
-     #Get percentage of responses for LA and Scotland 
-     qstnDta <- qstnDta %>% group_by(Selection) %>% mutate(perc_resp = round((n/sum(n))*100,1))
-     #Recode the values for this question to be shown on tickmarks in x axis 
-     qstnDta$named_value <- as.character(recode(qstnDta$value, "1" = "very good",
-                                   "2" ="good",
-                                   "3" = "poor",
-                                   "4" = "very poor"))
-     # Set the council values as a factor so the data can be arranged to have the council first regardless of alphabetical order
-     qstnDta$Selection <- factor(qstnDta$Selection, levels = c(council_fltr, "Scotland"))
-     
-     # arrange the data so the colours will be in order
-     qstnDta <- arrange(qstnDta, value, Selection) 
-     qstnDta
-
+     format_qstn_dta(question = "How would you rate the standard of communication provided?",
+                     named_value_1 = "very good",
+                     named_value_2 = "good",
+                     named_value_3 = "poor",
+                     named_value_4 = "very poor"
+     )
    })
-   
+
      #create a graph
      output$question_comms_report <- renderPlotly({
        qstnDta <- question_comms_data_report()
@@ -1887,40 +1886,17 @@ function(input, output, session) {
 # Report download tab (Q3 - Quality of info)---------------------------------
      # Note - data has to be created in a reactive function, seperate from the 
      # plot function, so the data can be used in the markdown document
-     
-     ##generate data to be used in graph and text
+     # Call function to generate data to be used in graph and text
      question_info_data_report <- reactive({
-       council_fltr <- local_authority()
-       #filter to current financial year
-       pivot_dta <- pivot_dta %>% filter(`Financial Year` == fin_yr)
-       pivot_dta <- pivot_dta %>% filter(value != "-")
-     ##filter dataset based on selected question   
-     pivot_dta$`value` <- factor(pivot_dta$`value`, levels = c(1,2,3,4))
-     #filter by local authority and question and count no. responses
-     qstnDta_LA <- pivot_dta %>% filter(Indicator == "Quality of the information provided") %>%
-       filter(`Local Authority Name` == council_fltr) %>% count(value, .drop =F) %>%
-       mutate(Selection = council_fltr)
+       format_qstn_dta(question = "Quality of the information provided",
+                       named_value_1 = "very good",
+                       named_value_2 = "good",
+                       named_value_3 = "poor",
+                       named_value_4 = "very poor"
+       )
+     })
      
-     #get all data for this question and count no. responses, bind LA count
-     qstnDta <- pivot_dta %>% filter(Indicator == "Quality of the information provided") %>%
-       count(value, .drop =F) %>%
-       mutate(Selection = "Scotland") %>%
-       rbind(qstnDta_LA )
-     #Get percentage of responses for LA and Scotland 
-     qstnDta <- qstnDta %>% group_by(Selection) %>% mutate(perc_resp = round((n/sum(n))*100,1))
-     #Recode the values for this question to be shown on tickmarks in x axis 
-     qstnDta$named_value <- recode(qstnDta$value, "1" = "very good",
-                                   "2" ="good",
-                                   "3" = "poor",
-                                   "4" = "very poor")
      
-     # Set the council values as a factor so the data can be arranged to have the council first regardless of alphabetical order
-     qstnDta$Selection <- factor(qstnDta$Selection, levels = c(council_fltr, "Scotland"))
-     
-     # arrange the data so the colours will be in order
-     qstnDta <- arrange(qstnDta, value, Selection) 
-     qstnDta
-    })
      output$question_info_report <- renderPlotly({
        qstnDta <- question_info_data_report()
      #create a graph
@@ -2026,39 +2002,17 @@ function(input, output, session) {
 # Report download tab (Q4 - Service offered by staff) --------------------
      # Note - data has to be created in a reactive function, seperate from the 
      # plot function, so the data can be used in the markdown document
+     # Call function to generate data to be used in graph and text
+     question_staff_data_report <- reactive({
+       format_qstn_dta(question = "Service offered by staff",
+                       named_value_1 = "very good",
+                       named_value_2 = "good",
+                       named_value_3 = "poor",
+                       named_value_4 = "very poor"
+       )
+     })
      
-          question_staff_data_report <- reactive({
-       council_fltr <- local_authority()
-       #filter to current financial year
-       pivot_dta <- pivot_dta %>% filter(`Financial Year` == fin_yr)
-       pivot_dta <- pivot_dta %>% filter(value != "-")
-     ##filter dataset based on selected question   
-     pivot_dta$`value` <- factor(pivot_dta$`value`, levels = c(1,2,3,4))
-     #filter by local authority and question and count no. responses
-     qstnDta_LA <- pivot_dta %>% filter(Indicator == "Service offered by staff") %>%
-       filter(`Local Authority Name` == council_fltr) %>% count(value, .drop =F) %>%
-       mutate(Selection = council_fltr)
-     
-     #get all data for this question and count no. responses, bind LA count
-     qstnDta <- pivot_dta %>% filter(Indicator == "Service offered by staff") %>%
-       count(value, .drop =F) %>%
-       mutate(Selection = "Scotland") %>%
-       rbind(qstnDta_LA )
-     #Get percentage of responses for LA and Scotland 
-     qstnDta <- qstnDta %>% group_by(Selection) %>% mutate(perc_resp = round((n/sum(n))*100,1))
-     #Recode the values for this question to be shown on tickmarks in x axis 
-     qstnDta$named_value <- recode(qstnDta$value, "1" = "very good",
-                                   "2" ="good",
-                                   "3" = "poor",
-                                   "4" = "very poor")
-     
-     # Set the council values as a factor so the data can be arranged to have the council first regardless of alphabetical order
-     qstnDta$Selection <- factor(qstnDta$Selection, levels = c(council_fltr, "Scotland"))
-     
-     # arrange the data so the colours will be in order
-     qstnDta <- arrange(qstnDta, value, Selection) 
-     qstnDta
-      })
+         
      
      #create a graph
      output$question_staff_report <- renderPlotly({
@@ -2166,38 +2120,16 @@ function(input, output, session) {
      # Note - data has to be created in a reactive function, seperate from the 
      # plot function, so the data can be used in the markdown document
      
+     # Call function to generate data to be used in graph and text
      question_responsiveness_data_report <- reactive({
-       council_fltr <- local_authority()
-       #filter to current financial year
-       pivot_dta <- pivot_dta %>% filter(`Financial Year` == fin_yr)
-       pivot_dta <- pivot_dta %>% filter(value != "-")
-      ##filter dataset based on selected question   
-     pivot_dta$`value` <- factor(pivot_dta$`value`, levels = c(1,2,3,4))
-     #filter by local authority and question and count no. responses
-     qstnDta_LA <- pivot_dta %>% filter(Indicator == "Responsiveness to any queries or issues raised") %>%
-       filter(`Local Authority Name` == council_fltr) %>% count(value, .drop =F) %>%
-       mutate(Selection = council_fltr)
+       format_qstn_dta(question = "Responsiveness to any queries or issues raised",
+                       named_value_1 = "very good",
+                       named_value_2 = "good",
+                       named_value_3 = "poor",
+                       named_value_4 = "very poor"
+       )
+     })
      
-     #get all data for this question and count no. responses, bind LA count
-     qstnDta <- pivot_dta %>% filter(Indicator == "Responsiveness to any queries or issues raised") %>%
-       count(value, .drop =F) %>%
-       mutate(Selection = "Scotland") %>%
-       rbind(qstnDta_LA )
-     #Get percentage of responses for LA and Scotland 
-     qstnDta <- qstnDta %>% group_by(Selection) %>% mutate(perc_resp = round((n/sum(n))*100),1)
-     #Recode the values for this question to be shown on tickmarks in x axis 
-     qstnDta$named_value <- recode(qstnDta$value, "1" = "very good",
-                                   "2" ="good",
-                                   "3" = "poor",
-                                   "4" = "very poor")
-     
-     # Set the council values as a factor so the data can be arranged to have the council first regardless of alphabetical order
-     qstnDta$Selection <- factor(qstnDta$Selection, levels = c(council_fltr, "Scotland"))
-     
-     # arrange the data so the colours will be in order
-     qstnDta <- arrange(qstnDta, value, Selection) 
-     qstnDta
-      })
      
      #create a graph
      output$question_responsiveness_report <- renderPlotly({
@@ -2304,40 +2236,18 @@ function(input, output, session) {
 # Report download tab (Q6 - Treated fairly)-----------------------------
      # Note - data has to be created in a reactive function, seperate from the 
      # plot function, so the data can be used in the markdown document
-     
-       question_fairly_data_report <- reactive({
-       council_fltr <- local_authority()
-       #filter to current financial year
-       pivot_dta <- pivot_dta %>% filter(`Financial Year` == fin_yr)
-       pivot_dta <- pivot_dta %>% filter(value != "-")
-     ##filter dataset based on selected question   
-     pivot_dta$`value` <- factor(pivot_dta$`value`, levels = c(1,2,3,4))
-     #filter by local authority and question and count no. responses
-     qstnDta_LA <- pivot_dta %>% filter(Indicator == "To what extent would you agree that you were treated fairly?"   ) %>%
-       filter(`Local Authority Name` == council_fltr) %>% count(value, .drop =F) %>%
-       mutate(Selection = council_fltr)
-     
-     #get all data for this question and count no. responses, bind LA count
-     qstnDta <- pivot_dta %>% filter(Indicator == "To what extent would you agree that you were treated fairly?"   ) %>%
-       count(value, .drop =F) %>%
-       mutate(Selection = "Scotland") %>%
-       rbind(qstnDta_LA )
-     #Get percentage of responses for LA and Scotland 
-     qstnDta <- qstnDta %>% group_by(Selection) %>% mutate(perc_resp = round((n/sum(n))*100),1)
-     #Recode the values for this question to be shown on tickmarks in x axis 
-     qstnDta$named_value <- recode(qstnDta$value, "1" = "strongly agree",
-                                   "2" ="agree",
-                                   "3" = "disagree",
-                                   "4" = "strongly disagree")
-    
-     # Set the council values as a factor so the data can be arranged to have the council first regardless of alphabetical order
-     qstnDta$Selection <- factor(qstnDta$Selection, levels = c(council_fltr, "Scotland"))
-     
-     # arrange the data so the colours will be in order
-     qstnDta <- arrange(qstnDta, value, Selection) 
-     qstnDta
-     
+     # Call function to generate data to be used in graph and text
+     question_fairly_data_report <- reactive({
+       format_qstn_dta(question = "To what extent would you agree that you were treated fairly?",
+                       named_value_1 = "strongly agree",
+                       named_value_2 = "agree",
+                       named_value_3 = "disagree",
+                       named_value_4 = "strongly disagree"
+       )
      })
+     
+     
+       
      #create a graph
      output$question_fair_report <- renderPlotly({
        qstnDta <- question_fairly_data_report()
@@ -2443,39 +2353,17 @@ function(input, output, session) {
      # Note - data has to be created in a reactive function, seperate from the 
      # plot function, so the data can be used in the markdown document
      
-         question_overall_data_report <- reactive({
-       council_fltr <- local_authority()
-       #filter to current financial year
-       pivot_dta <- pivot_dta %>% filter(`Financial Year` == fin_yr)
-     ##filter dataset based on selected question   
-     pivot_dta <- pivot_dta %>% filter(value != "-")
-     pivot_dta$`value` <- factor(pivot_dta$`value`, levels = c(1,2,3,4))
-     #filter by local authority and question and count no. responses
-     qstnDta_LA <- pivot_dta %>% filter(Indicator == "Overall, how satisfied were you with the service provided?") %>%
-       filter(`Local Authority Name` == council_fltr) %>% count(value, .drop =F) %>%
-       mutate(Selection = council_fltr)
-     
-     #get all data for this question and count no. responses, bind LA count
-     qstnDta <- pivot_dta %>% filter(Indicator == "Overall, how satisfied were you with the service provided?") %>%
-       count(value, .drop =F) %>%
-       mutate(Selection = "Scotland") %>%
-       rbind(qstnDta_LA )
-     #Get percentage of responses for LA and Scotland 
-     qstnDta <- qstnDta %>% group_by(Selection) %>% mutate(perc_resp = round((n/sum(n))*100),1)
-     #Recode the values for this question to be shown on tickmarks in x axis 
-     qstnDta$named_value <- recode(qstnDta$value, "1" = "very satisfied",
-                                   "2" ="satisfied",
-                                   "3" = "dissatisfied",
-                                   "4" = "very dissatisfied")
-     
-     # Set the council values as a factor so the data can be arranged to have the council first regardless of alphabetical order
-     qstnDta$Selection <- factor(qstnDta$Selection, levels = c(council_fltr, "Scotland"))
-     
-     # arrange the data so the colours will be in order
-     qstnDta <- arrange(qstnDta, value, Selection) 
-     qstnDta
-     
+     # Call function to generate data to be used in graph and text
+     question_overall_data_report <- reactive({
+       format_qstn_dta(question = "Overall, how satisfied were you with the service provided?",
+                       named_value_1 = "very satisfied",
+                       named_value_2 = "satisfed",
+                       named_value_3 = "dissatisfied",
+                       named_value_4 = "very dissatisfied"
+       )
      })
+     
+         
      
      #create a graph
      output$question_overall_report <- renderPlotly({
