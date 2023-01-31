@@ -1178,65 +1178,90 @@ function(input, output, session) {
     })
    
 # Report download tab (respondent reason & type)----------------------------
-   
-  ##Text for respondent types 
-   output$respondent_type_text_report <- renderText({
-     resp_dta <- resp_dta()
-     council_fltr <- local_authority()
-     
-    # resp_dta_filter <- resp_dta %>% filter(`Local Authority Name` == council_fltr & question_type == "Type") 
-     resp_dta_filter <- resp_dta %>% filter(question_type == "Type")
-     #get total responses for using as percentage denominator
-     resp_number <- resp_dta_filter %>% ungroup() %>% filter(Question == "Agent/Designer") %>% summarise_at(vars(`n`), sum) %>%
-       select(`n`)
-     #create variables for percentages for different groups
-     agent_perc <- resp_dta_filter[resp_dta_filter$Question == "Agent/Designer" & resp_dta_filter$value == 1 ,"perc"] %>% pull(perc)
-     appli_perc <- resp_dta_filter[resp_dta_filter$Question == "Applicant" & resp_dta_filter$value == 1 ,"perc"]  %>% pull(perc)
-     contr_perc <- resp_dta_filter[resp_dta_filter$Question == "Contractor" & resp_dta_filter$value == 1 ,"perc"]  %>% pull(perc)
-     other_perc <- resp_dta_filter[resp_dta_filter$Question == "Other" & resp_dta_filter$value == 1 ,"perc"]  %>% pull(perc)
-     #if any are 0 then replace with "none"
-     agent_perc <-ifelse(isEmpty(agent_perc), "none", paste0(agent_perc,"%"))
-     appli_perc <-ifelse(isEmpty(appli_perc), "none", paste0(appli_perc,"%"))
-     contr_perc <-ifelse(isEmpty(contr_perc), "none", paste0(contr_perc,"%"))
-     other_perc <- ifelse(isEmpty(other_perc), "No respondents", paste0(other_perc, "%"))
-      #paste all text together
-     txt_respondents <- paste0("Respondents were asked to provide details on the type of respondent they were, 
-     as well as their reason for contacting the Building Standards Service in ", council_fltr,". ",
-     "Of the ", resp_number, " respondents ", agent_perc, " were agents or designers, ", appli_perc, "
-     were applicants and ", contr_perc, " were contractors. ", other_perc, " said they were an other respondent type.")
-     txt_respondents
-   })
-   
-   ##Text for respondent reason
-   output$respondent_reason_text_report <- renderText({
-     resp_dta <- resp_dta()
-     council_fltr <- local_authority()
+  
+  # Text for respondent types 
+  output$respondent_type_text_report <- renderText({
+    resp_dta <- resp_dta()
+    unpivot_data <- unpivot_data()
+    council_fltr <- local_authority()
     
-     #resp_dta_filter <- resp_dta %>% filter(`Local Authority Name` == council_fltr & question_type == "Reason") 
-     resp_dta_filter <- resp_dta %>% filter(question_type == "Reason") ##filter by LA
-     ##Get a total no. of respondents for working out percentages
-     resp_number <- resp_dta_filter %>% ungroup() %>% filter(Question == "To make an application for a building warrant") %>% summarise_at(vars(`n`), sum) %>%
-       select(`n`)
-     #Calculate percentages for each response type
-     discuss_perc <- resp_dta_filter[resp_dta_filter$Question == "To discuss your proposal before applying for a building warrant" & resp_dta_filter$value == 1 ,"perc"]  %>% pull(perc)
-     appli_perc <- resp_dta_filter[resp_dta_filter$Question == "To make an application for a building warrant" & resp_dta_filter$value == 1 ,"perc"]  %>% pull(perc)
-     constr_perc <- resp_dta_filter[resp_dta_filter$Question == "During construction, including submission of a completion certificate" & resp_dta_filter$value == 1 ,"perc"]  %>% pull(perc)
-     other_perc <- resp_dta_filter[resp_dta_filter$Question == "Other" & resp_dta_filter$value == 1 ,"perc"]  %>% pull(perc)
-     
-     #if any are 0 then replace with "none"
-     discuss_perc <-ifelse(isEmpty(discuss_perc), "none", paste0(discuss_perc,"%"))
-     appli_perc <-ifelse(isEmpty(appli_perc), "none", paste0(appli_perc,"%"))
-     constr_perc <-ifelse(isEmpty(constr_perc), "none", paste0(constr_perc,"%"))
-     other_perc <- ifelse(isEmpty(other_perc), "No respondents", paste0(other_perc, "%"))
-     
-     #paste all text together
-     txt_respondents <- paste0("Respondents were asked to provide details on the type of respondent they were, 
-     as well as their reason for contacting the Building Standards Service in ", council_fltr,". ",
-     "Of the ", resp_number, " respondents ", discuss_perc, " contacted the local authority to discuss their proposal before applying for a building warrant, ",
-      appli_perc, " were making an application for a warrant and ", constr_perc, " contacted the service during construction. ",
-     other_perc, " contacted the service for some other reason.")
-     txt_respondents
-   })
+    # Filter data to respondent type
+    resp_dta_filter <- resp_dta %>% filter(question_type == "Type")
+    # Get total responses for referencing the percentage denominator
+    resp_number <- nrow(filter(unpivot_data, `Financial Year` == fin_yr))
+    # Create variables for percentages for different groups
+    agent_perc <- resp_dta_filter[resp_dta_filter$Question == "Agent/Designer" & resp_dta_filter$value == 1, "perc"] %>% 
+      pull(perc)
+    appli_perc <- resp_dta_filter[resp_dta_filter$Question == "Applicant" & resp_dta_filter$value == 1, "perc"] %>% 
+      pull(perc)
+    contr_perc <- resp_dta_filter[resp_dta_filter$Question == "Contractor" & resp_dta_filter$value == 1, "perc"] %>% 
+      pull(perc)
+    other_perc <- resp_dta_filter[resp_dta_filter$Question == "Other" & resp_dta_filter$value == 1, "perc"] %>% 
+      pull(perc)
+    # If any are 0 then replace with "none"
+    agent_perc <- ifelse(isEmpty(agent_perc), "none", paste0(agent_perc, "%"))
+    appli_perc <- ifelse(isEmpty(appli_perc), "none", paste0(appli_perc, "%"))
+    contr_perc <- ifelse(isEmpty(contr_perc), "none", paste0(contr_perc, "%"))
+    other_perc <- ifelse(isEmpty(other_perc), "No respondents", paste0(other_perc, "%"))
+    # Paste all text together
+    txt_respondents <- paste0("Respondents were asked to provide details on the type of respondent they were, as well as their reason for contacting the Building Standards Service in ", 
+                              council_fltr,
+                              ". Of the ", 
+                              resp_number, 
+                              " respondents ", 
+                              agent_perc, 
+                              " were agents or designers, ", 
+                              appli_perc, 
+                              "were applicants and ", 
+                              contr_perc, 
+                              " were contractors. ", 
+                              other_perc, 
+                              " said they were an other respondent type."
+                              )
+    txt_respondents
+    })
+  
+  # Text for respondent reason
+  output$respondent_reason_text_report <- renderText({
+    resp_dta <- resp_dta()
+    unpivot_data <- unpivot_data()
+    council_fltr <- local_authority()
+    
+    # Filter data to respondent reason
+    resp_dta_filter <- resp_dta %>% filter(question_type == "Reason") 
+    # Get total responses for referencing the percentage denominator
+    resp_number <- nrow(filter(unpivot_data, `Financial Year` == fin_yr))
+    # Calculate percentages for each response type
+    discuss_perc <- resp_dta_filter[resp_dta_filter$Question == "To discuss your proposal before applying for a building warrant" & resp_dta_filter$value == 1 ,"perc"] %>% 
+      pull(perc)
+    appli_perc <- resp_dta_filter[resp_dta_filter$Question == "To make an application for a building warrant" & resp_dta_filter$value == 1, "perc"] %>% 
+      pull(perc)
+    constr_perc <- resp_dta_filter[resp_dta_filter$Question == "During construction, including submission of a completion certificate" & resp_dta_filter$value == 1, "perc"] %>% 
+      pull(perc)
+    other_perc <- resp_dta_filter[resp_dta_filter$Question == "Other" & resp_dta_filter$value == 1, "perc"] %>% 
+      pull(perc)
+    # If any are 0 then replace with "none"
+    discuss_perc <- ifelse(isEmpty(discuss_perc), "none", paste0(discuss_perc, "%"))
+    appli_perc <- ifelse(isEmpty(appli_perc), "none", paste0(appli_perc,"%"))
+    constr_perc <- ifelse(isEmpty(constr_perc), "none", paste0(constr_perc,"%"))
+    other_perc <- ifelse(isEmpty(other_perc), "No respondents", paste0(other_perc, "%"))
+    # Paste all text together
+    txt_respondents <- paste0("Respondents were asked to provide details on the type of respondent they were, as well as their reason for contacting the Building Standards Service in ", 
+                              council_fltr,
+                              ". Of the ", 
+                              resp_number, 
+                              " respondents ", 
+                              discuss_perc, 
+                              " contacted the local authority to discuss their proposal before applying for a building warrant, ",
+                              appli_perc, 
+                              " were making an application for a warrant and ", 
+                              constr_perc, 
+                              " contacted the service during construction. ",
+                              other_perc, 
+                              " contacted the service for some other reason."
+                              )
+    txt_respondents
+    })
    
 # Report download tab (KPO4 over time)-------------------------------------
 #Create data for performance over time graph
