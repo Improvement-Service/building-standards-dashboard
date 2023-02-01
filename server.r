@@ -1605,6 +1605,7 @@ function(input, output, session) {
 # Report Download tab (functions for individual questions)-------------------
   
   # Create a function for generating formatted data for individual questions
+  
   format_qstn_dta <- function(question, 
                               named_value_1, 
                               named_value_2,
@@ -1652,6 +1653,7 @@ function(input, output, session) {
   } 
   
   # Create a function for generating plot for individual questions
+  
   create_qstn_plot <- function(data, title) {
     plot <- ggplot(data = data) +
       geom_bar(aes(x = named_value,
@@ -1677,6 +1679,135 @@ function(input, output, session) {
     ggplotly(plot, tooltip = "text")
   }
   
+  # Create a function for generating text for individual questions
+ 
+  create_qstn_text <- function(data, 
+                               question, 
+                               named_value_1, 
+                               named_value_2,
+                               extra_text
+                               ) {
+    # Call data and split into Scotland and LA datasets
+    council_fltr <- local_authority()
+    qstnDta <- data
+    qstnDta_LA <- qstnDta %>% filter(Selection == council_fltr)
+    qstnDta_scot<- qstnDta %>% filter(Selection == "Scotland")
+    # Get total percentage positive 
+    total_good <- filter(qstnDta_LA, 
+                         value %in% c(1,2) & Selection == council_fltr
+                         ) %>% 
+      pull(perc_resp) %>%
+      sum()
+    # If this is above 55% then overall is positive, 
+    # If less than 45% negative, otherwise balanced
+    pos_or_neg <- ifelse(total_good > 55, 
+                         "mainly positive,", 
+                         ifelse(total_good < 45, 
+                                "mainly negative,", 
+                                "balanced,"
+                                )
+                         )
+    # Add "only" to the % positive if this is below 45
+    if (total_good < 45) {
+      total_good <- paste("only", total_good)
+    } else {
+      total_good <- total_good
+    }
+    
+    # Get the name for the maximum value in LA dataset. If more than one 
+    # paste these together
+    max_name <- as.character(qstnDta_LA %>% 
+                               filter(n == max(n)) %>% 
+                               pull(named_value)
+                             )
+    if (length(max_name > 1)) {
+      max_name <- paste(max_name, collapse = " & ")
+    }
+    # Get the percentage for the highest response and paste together if multiple
+    max_perc <- qstnDta_LA %>% 
+      filter(n == max(n)) %>% 
+      pull(perc_resp)
+    if (length(max_perc) > 1) {
+      max_perc <- paste(paste(max_perc, collapse = " & "), 
+                        "percent respectively."
+                        )
+      } else {
+        max_perc <- paste0(max_perc, " percent.")
+      }
+    
+    # Get second highest value
+    sec_val <- sort(qstnDta_LA$n, partial = 3)[3]
+    # Filter for second highest value's name
+    sec_name <- qstnDta_LA %>%
+      filter(n == sec_val) %>% 
+      pull(named_value)
+    if (length(sec_name) > 1) {
+      sec_name <- paste(sec_name, collapse = " & ")
+    }
+    # Filter for second highest value's percentage
+    sec_perc <- qstnDta_LA %>% 
+      filter(n == sec_val) %>% 
+      pull(perc_resp)
+    if (length(sec_perc) > 1) {
+      sec_perc <- paste(paste(sec_perc, collapse = " & "), 
+                        "percent respectively."
+                        )
+      } else {
+        sec_perc <- paste0(sec_perc, " percent.")
+      }
+    
+    # Get most frequent response for Scotland
+    scot_max_name <- as.character(qstnDta_scot %>% 
+                                    filter(n == max(n)) %>% 
+                                    pull(named_value)
+                                  )
+    if (length(scot_max_name) > 1) {
+      scot_max_name <- paste(scot_max_name, collapse = " & ")
+    }
+    # Get percentage for most frequent Scotland level response
+    scot_max_perc <- qstnDta_scot %>% 
+      filter(n == max(n)) %>% 
+      pull(perc_resp)
+    if (length(scot_max_perc) > 1) {
+      scot_max_perc <- paste(paste(scot_max_perc, collapse = " & "), 
+                             "percent respectively."
+                             )
+      } else {  
+        scot_max_perc <- paste0(scot_max_perc, " percent.")
+        }
+    
+    # Paste the text together
+    paste0("In this year to date for the question \"",
+           question,
+           "\" responses have been ",
+           pos_or_neg, 
+           " with ",
+           total_good,
+           " percent saying that ",
+           extra_text,
+           " ",
+           named_value_1,
+           " or ",
+           named_value_2,
+           ". The greatest proportion of respondents said ",
+           extra_text,
+           " ",
+           max_name,
+           " at ", 
+           max_perc, 
+           " This was followed by ", 
+           sec_name, 
+           " at ", 
+           sec_perc,
+           " For Scotland overall, most respondents said that ",
+           extra_text,
+           " ",
+           scot_max_name,
+           " at ", 
+           scot_max_perc
+     )
+     }
+  
 # Report Download tab (Q1 - Time taken)--------------------------------------
   # Note - data has to be created in a reactive function, seperate from the 
   # plot function, so the data can be used in the markdown document
@@ -1699,77 +1830,16 @@ function(input, output, session) {
                      )
     })
   
-   # satisfaction with time taken text
-   output$question_time_report_text <- renderText({
-     #load data and split into Scotland and LA datasets
-     council_fltr <- local_authority()
-     qstnDta <- question_time_data_report() 
-     qstnDta_LA <- qstnDta %>% filter(Selection == council_fltr)
-     qstnDta_scot<- qstnDta %>% filter(Selection == "Scotland")
-     #get total percentage good or very good 
-     total_good <- filter(qstnDta_LA, value %in% c(1,2) & Selection == council_fltr) %>% pull(perc_resp) %>%
-       sum()
-     #if this is above 55% then overall is positive, otherwise negative/balances
-     pos_or_neg <- ifelse(total_good > 55, "mainly positive,", ifelse(total_good < 45, "mainly negative,", "balanced,"))
-     
-     # add "only" to the % positive if this is below 45
-     if(total_good < 45) {
-       total_good <- paste("only", total_good)
-     } else{
-       total_good <- total_good
-     }
-     
-      #get the name for the maximum value in LA dataset. If more than one paste these together
-     max_name <- as.character(qstnDta_LA %>% filter(n == max(n)) %>% pull(named_value))
-     if(length(max_name >1)){
-       max_name <- paste(max_name, collapse = " & ")
-     }
-     #Get the pecentage for the highest response and paste together if multiple
-     max_perc <- qstnDta_LA %>% filter(n == max(n)) %>% pull(perc_resp)
-     if(length(max_perc) >1){
-       max_perc <- paste(paste(max_perc, collapse = " & "), "percent respectively.")
-     } else{
-       max_perc <- paste0(max_perc, " percent.")
-     }
-     
-     #Gte second highest value
-     sec_val <- sort(qstnDta_LA$n, partial= 3)[3]
-     #Filter for second highest value's name
-     sec_name <- qstnDta_LA %>% filter(n == sec_val) %>% pull(named_value)
-     if(length(sec_name) >1){
-       sec_name <- paste(sec_name, collapse = " & ")
-     }
-     
-     #Filter for second highest value's value
-     sec_perc <- qstnDta_LA %>% filter(n == sec_val) %>% pull(perc_resp)
-     if(length(sec_perc) >1){
-       sec_perc <- paste(paste(sec_perc, collapse = " & "), "percent respectively.")
-     }else{
-       sec_perc <- paste0(sec_perc, " percent.")
-     }
-     
-     #get most frequent response for Scotland
-     scot_max_name <- as.character(qstnDta_scot %>% filter(n == max(n)) %>% pull(named_value))
-     
-     if(length(scot_max_name) >1){
-       scot_max_name <- paste(scot_max_name, collapse = " & ")
-     }
-     #get percentage for most frequent Scotland level response
-     scot_max_perc <- qstnDta_scot %>% filter(n == max(n)) %>% pull(perc_resp)
-     if(length(scot_max_perc) >1){
-       scot_max_perc <- paste(paste(scot_max_perc, collapse = " & "), "percent respectively.")
-     } else{
-       scot_max_perc <- paste0(scot_max_perc, " percent.")
-     }
-     
-     #Paste it all together!
-     
-     paste("In this year to date for the question \"Thinking of your engagement, how satisfied were you with the time taken to complete the process?\" responses have been",
-           pos_or_neg, "with",total_good,"percent saying that they were very satisfied or satisfied. The greatest proportion of respondents said they were", max_name,
-           "at", max_perc, "This was followed by", sec_name, "at", sec_perc,
-           "For Scotland overall, most respondents said that they were",scot_max_name,
-           "at", scot_max_perc)
-   })
+  # Render text
+  output$question_time_report_text <- renderText({
+    # Call function to create text
+    create_qstn_text(data = question_time_data_report(),
+                     question = "Thinking of your engagement, how satisfied were you with the time taken to complete the process?",
+                     named_value_1 = "very satisfied",
+                     named_value_2 = "satisfied",
+                     extra_text = "they were"
+                     )
+    })
    
 # Report download tab (Q2 - Standard of communication)-----------------------
    # Note - data has to be created in a reactive function, seperate from the 
@@ -1792,79 +1862,18 @@ function(input, output, session) {
                       title = "Standard of communication - Year to Date"
      )
    })
+   
+   # Render text
+   output$question_comms_report_text <- renderText({
+     # Call function to create text
+     create_qstn_text(data = question_comms_data_report(),
+                      question = "How would you rate the standard of communication provided?",
+                      named_value_1 = "very good",
+                      named_value_2 = "good",
+                      extra_text = "it was"
+     )
+   })
 
-     # satisfaction with comms taken text
-     output$question_comms_report_text <- renderText({
-       council_fltr <- local_authority()
-       #load data and split into Scotland and LA datasets
-       qstnDta <- question_comms_data_report() 
-       qstnDta_LA <- qstnDta %>% filter(Selection == council_fltr)
-       qstnDta_scot<- qstnDta %>% filter(Selection == "Scotland")
-       #get total percentage good or very good 
-       total_good <- filter(qstnDta_LA, value %in% c(1,2) & Selection == council_fltr) %>% pull(perc_resp) %>%
-         sum()
-       #if this is above 55% then overall is positive, otherwise negative/balances
-       pos_or_neg <- ifelse(total_good > 55, "mainly positive,", ifelse(total_good < 45, "mainly negative,", "balanced,"))
-       
-       # add "only" to the % positive if this is below 45
-       if(total_good < 45) {
-         total_good <- paste("only", total_good)
-       } else{
-         total_good <- total_good
-       }
-       
-       #get the name for the maximum value in LA dataset. If more than one paste these together
-       max_name <- as.character(qstnDta_LA %>% filter(n == max(n)) %>% pull(named_value))
-       if(length(max_name >1)){
-         max_name <- paste(max_name, collapse = " & ")
-       }
-       #Get the pecentage for the highest response and paste together if multiple
-       max_perc <- qstnDta_LA %>% filter(n == max(n)) %>% pull(perc_resp)
-       if(length(max_perc) >1){
-         max_perc <- paste(paste(max_perc, collapse = " & "), "percent respectively.")
-       } else{
-         max_perc <- paste0(max_perc, " percent.")
-       }
-       
-       #Gte second highest value
-       sec_val <- sort(qstnDta_LA$n, partial= 3)[3]
-       #Filter for second highest value's name
-       sec_name <- qstnDta_LA %>% filter(n == sec_val) %>% pull(named_value)
-       if(length(sec_name) >1){
-         sec_name <- paste(sec_name, collapse = " & ")
-       }
-       
-       #Filter for second highest value's value
-       sec_perc <- qstnDta_LA %>% filter(n == sec_val) %>% pull(perc_resp)
-       if(length(sec_perc) >1){
-         sec_perc <- paste(paste(sec_perc, collapse = " & "), "percent respectively.")
-       }else{
-         sec_perc <- paste0(sec_perc, " percent.")
-       }
-       
-       #get most frequent response for Scotland
-       scot_max_name <- as.character(qstnDta_scot %>% filter(n == max(n)) %>% pull(named_value))
-       
-       if(length(scot_max_name) >1){
-         scot_max_name <- paste(scot_max_name, collapse = " & ")
-       }
-       #get percentage for most frequent Scotland level response
-       scot_max_perc <- qstnDta_scot %>% filter(n == max(n)) %>% pull(perc_resp)
-       if(length(scot_max_perc) >1){
-         scot_max_perc <- paste(paste(scot_max_perc, collapse = " & "), "percent respectively.")
-       } else{
-         scot_max_perc <- paste0(scot_max_perc, " percent.")
-       }
-       
-       #Paste it all together!
-       
-       paste("In this year to date for the question \"How would you rate the standard of communication provided?\" responses have been",
-             pos_or_neg, "with",total_good,"percent saying that it was good or very good. The greatest proportion of respondents said they felt it was", max_name,
-             "at", max_perc, "This was followed by", sec_name, "at", sec_perc,
-             "For Scotland overall, most respondents said that communication was",scot_max_name,
-             "at", scot_max_perc)
-     })
-  
 # Report download tab (Q3 - Quality of info)---------------------------------
      # Note - data has to be created in a reactive function, seperate from the 
      # plot function, so the data can be used in the markdown document
@@ -1885,77 +1894,16 @@ function(input, output, session) {
                         title = "Quality of information - Year to Date"
        )
      })
-
-     # satisfaction with info text
+     
+     # Render text
      output$question_info_report_text <- renderText({
-       council_fltr <- local_authority()
-       #load data and split into Scotland and LA datasets
-       qstnDta <- question_info_data_report() 
-       qstnDta_LA <- qstnDta %>% filter(Selection == council_fltr)
-       qstnDta_scot<- qstnDta %>% filter(Selection == "Scotland")
-       #get total percentage good or very good 
-       total_good <- filter(qstnDta_LA, value %in% c(1,2) & Selection == council_fltr) %>% pull(perc_resp) %>%
-         sum()
-       #if this is above 55% then overall is positive, otherwise negative/balances
-       pos_or_neg <- ifelse(total_good > 55, "mainly positive,", ifelse(total_good < 45, "mainly negative,", "balanced,"))
-       
-       # add "only" to the % positive if this is below 45
-       if(total_good < 45) {
-         total_good <- paste("only", total_good)
-       } else{
-         total_good <- total_good
-       }
-       
-       #get the name for the maximum value in LA dataset. If more than one paste these together
-       max_name <- as.character(qstnDta_LA %>% filter(n == max(n)) %>% pull(named_value))
-       if(length(max_name >1)){
-         max_name <- paste(max_name, collapse = " & ")
-       }
-       #Get the pecentage for the highest response and paste together if multiple
-       max_perc <- qstnDta_LA %>% filter(n == max(n)) %>% pull(perc_resp)
-       if(length(max_perc) >1){
-         max_perc <- paste(paste(max_perc, collapse = " & "), "percent respectively.")
-       } else{
-         max_perc <- paste0(max_perc, " percent.")
-       }
-       
-       #Gte second highest value
-       sec_val <- sort(qstnDta_LA$n, partial= 3)[3]
-       #Filter for second highest value's name
-       sec_name <- qstnDta_LA %>% filter(n == sec_val) %>% pull(named_value)
-       if(length(sec_name) >1){
-         sec_name <- paste(sec_name, collapse = " & ")
-       }
-       
-       #Filter for second highest value's value
-       sec_perc <- qstnDta_LA %>% filter(n == sec_val) %>% pull(perc_resp)
-       if(length(sec_perc) >1){
-         sec_perc <- paste(paste(sec_perc, collapse = " & "), "percent respectively.")
-       }else{
-         sec_perc <- paste0(sec_perc, " percent.")
-       }
-       
-       #get most frequent response for Scotland
-       scot_max_name <- as.character(qstnDta_scot %>% filter(n == max(n)) %>% pull(named_value))
-       
-       if(length(scot_max_name) >1){
-         scot_max_name <- paste(scot_max_name, collapse = " & ")
-       }
-       #get percentage for most frequent Scotland level response
-       scot_max_perc <- qstnDta_scot %>% filter(n == max(n)) %>% pull(perc_resp)
-       if(length(scot_max_perc) >1){
-         scot_max_perc <- paste(paste(scot_max_perc, collapse = " & "), "percent respectively.")
-       } else{
-         scot_max_perc <- paste0(scot_max_perc, " percent.")
-       }
-       
-       #Paste it all together!
-       
-       paste("In this year to date for the question \"Quality of the information provided\" responses have been",
-             pos_or_neg, "with",total_good,"percent saying that it was good or very good. The greatest proportion of respondents said they felt it was", max_name,
-             "at", max_perc, "This was followed by", sec_name, "at", sec_perc,
-             "For Scotland overall, most respondents said that the information they received was",scot_max_name,
-             "at", scot_max_perc)
+       # Call function to create text
+       create_qstn_text(data = question_info_data_report(),
+                        question = "How would you rate the quality of information provided?",
+                        named_value_1 = "very good",
+                        named_value_2 = "good",
+                        extra_text = "it was"
+       )
      })
      
 # Report download tab (Q4 - Service offered by staff) --------------------
@@ -1979,77 +1927,17 @@ function(input, output, session) {
        )
      })
      
-     # satisfaction with staff text
+     # Render text
      output$question_staff_report_text <- renderText({
-       council_fltr <- local_authority()
-       #load data and split into Scotland and LA datasets
-       qstnDta <- question_staff_data_report() 
-       qstnDta_LA <- qstnDta %>% filter(Selection == council_fltr)
-       qstnDta_scot<- qstnDta %>% filter(Selection == "Scotland")
-       #get total percentage good or very good 
-       total_good <- filter(qstnDta_LA, value %in% c(1,2) & Selection == council_fltr) %>% pull(perc_resp) %>%
-         sum()
-       #if this is above 55% then overall is positive, otherwise negative/balances
-       pos_or_neg <- ifelse(total_good > 55, "mainly positive,", ifelse(total_good < 45, "mainly negative,", "balanced,"))
-       
-       # add "only" to the % positive if this is below 45
-       if(total_good < 45) {
-         total_good <- paste("only", total_good)
-       } else{
-         total_good <- total_good
-       }
-       
-       #get the name for the maximum value in LA dataset. If more than one paste these together
-       max_name <- as.character(qstnDta_LA %>% filter(n == max(n)) %>% pull(named_value))
-       if(length(max_name >1)){
-         max_name <- paste(max_name, collapse = " & ")
-       }
-       #Get the pecentage for the highest response and paste together if multiple
-       max_perc <- qstnDta_LA %>% filter(n == max(n)) %>% pull(perc_resp)
-       if(length(max_perc) >1){
-         max_perc <- paste(paste(max_perc, collapse = " & "), "percent respectively.")
-       } else{
-         max_perc <- paste0(max_perc, " percent.")
-       }
-       
-       #Gte second highest value
-       sec_val <- sort(qstnDta_LA$n, partial= 3)[3]
-       #Filter for second highest value's name
-       sec_name <- qstnDta_LA %>% filter(n == sec_val) %>% pull(named_value)
-       if(length(sec_name) >1){
-         sec_name <- paste(sec_name, collapse = " & ")
-       }
-       
-       #Filter for second highest value's value
-       sec_perc <- qstnDta_LA %>% filter(n == sec_val) %>% pull(perc_resp)
-       if(length(sec_perc) >1){
-         sec_perc <- paste(paste(sec_perc, collapse = " & "), "percent respectively.")
-       }else{
-         sec_perc <- paste0(sec_perc, " percent.")
-       }
-       
-       #get most frequent response for Scotland
-       scot_max_name <- as.character(qstnDta_scot %>% filter(n == max(n)) %>% pull(named_value))
-       
-       if(length(scot_max_name) >1){
-         scot_max_name <- paste(scot_max_name, collapse = " & ")
-       }
-       #get percentage for most frequent Scotland level response
-       scot_max_perc <- qstnDta_scot %>% filter(n == max(n)) %>% pull(perc_resp)
-       if(length(scot_max_perc) >1){
-         scot_max_perc <- paste(paste(scot_max_perc, collapse = " & "), "percent respectively.")
-       } else{
-         scot_max_perc <- paste0(scot_max_perc, " percent.")
-       }
-       
-       #Paste it all together!
-       
-       paste("In this year to date for the question for how they would rate the \"Service offered by staff\" responses have been",
-             pos_or_neg, "with",total_good,"percent saying that it was good or very good. The greatest proportion of respondents said they felt it was", max_name,
-             "at", max_perc, "This was followed by", sec_name, "at", sec_perc,
-             "For Scotland overall, most respondents said that the service received was",scot_max_name,
-             "at", scot_max_perc)
+       # Call function to create text
+       create_qstn_text(data = question_staff_data_report(),
+                        question = "How would you rate the service offered by staff",
+                        named_value_1 = "very good",
+                        named_value_2 = "good",
+                        extra_text = "it was"
+       )
      })
+
      
 # Report download tab (Q5 - Responsiveness to queries/issues)---------------
      # Note - data has to be created in a reactive function, seperate from the 
@@ -2073,77 +1961,19 @@ function(input, output, session) {
        )
      })
      
-     # satisfaction with responsiveness text
+     # Render text
      output$question_responsiveness_report_text <- renderText({
-       council_fltr <- local_authority()
-       #load data and split into Scotland and LA datasets
-       qstnDta <-  question_responsiveness_data_report() 
-       qstnDta_LA <- qstnDta %>% filter(Selection == council_fltr)
-       qstnDta_scot<- qstnDta %>% filter(Selection == "Scotland")
-       #get total percentage good or very good 
-       total_good <- filter(qstnDta_LA, value %in% c(1,2) & Selection == council_fltr) %>% pull(perc_resp) %>%
-         sum()
-       #if this is above 55% then overall is positive, otherwise negative/balances
-       pos_or_neg <- ifelse(total_good > 55, "mainly positive,", ifelse(total_good < 45, "mainly negative,", "balanced,"))
-       
-       # add "only" to the % positive if this is below 45
-       if(total_good < 45) {
-         total_good <- paste("only", total_good)
-       } else{
-         total_good <- total_good
-       }
-       
-       #get the name for the maximum value in LA dataset. If more than one paste these together
-       max_name <- as.character(qstnDta_LA %>% filter(n == max(n)) %>% pull(named_value))
-       if(length(max_name >1)){
-         max_name <- paste(max_name, collapse = " & ")
-       }
-       #Get the pecentage for the highest response and paste together if multiple
-       max_perc <- qstnDta_LA %>% filter(n == max(n)) %>% pull(perc_resp)
-       if(length(max_perc) >1){
-         max_perc <- paste(paste(max_perc, collapse = " & "), "percent respectively.")
-       } else{
-         max_perc <- paste0(max_perc, " percent.")
-       }
-       
-       #Gte second highest value
-       sec_val <- sort(qstnDta_LA$n, partial= 3)[3]
-       #Filter for second highest value's name
-       sec_name <- qstnDta_LA %>% filter(n == sec_val) %>% pull(named_value)
-       if(length(sec_name) >1){
-         sec_name <- paste(sec_name, collapse = " & ")
-       }
-       
-       #Filter for second highest value's value
-       sec_perc <- qstnDta_LA %>% filter(n == sec_val) %>% pull(perc_resp)
-       if(length(sec_perc) >1){
-         sec_perc <- paste(paste(sec_perc, collapse = " & "), "percent respectively.")
-       }else{
-         sec_perc <- paste0(sec_perc, " percent.")
-       }
-       
-       #get most frequent response for Scotland
-       scot_max_name <- as.character(qstnDta_scot %>% filter(n == max(n)) %>% pull(named_value))
-       
-       if(length(scot_max_name) >1){
-         scot_max_name <- paste(scot_max_name, collapse = " & ")
-       }
-       #get percentage for most frequent Scotland level response
-       scot_max_perc <- qstnDta_scot %>% filter(n == max(n)) %>% pull(perc_resp)
-       if(length(scot_max_perc) >1){
-         scot_max_perc <- paste(paste(scot_max_perc, collapse = " & "), "percent respectively.")
-       } else{
-         scot_max_perc <- paste0(scot_max_perc, " percent.")
-       }
-       
-       #Paste it all together!
-       
-       paste("In this year to date for the question on how they would rate the \"Time taken to respond to any queries or issues raised\" responses have been",
-             pos_or_neg, "with",total_good,"percent saying that it was good or very good. The greatest proportion of respondents said they felt it was", max_name,
-             "at", max_perc, "This was followed by", sec_name, "at", sec_perc,
-             "For Scotland overall, most respondents said that responsiveness was",scot_max_name,
-             "at", scot_max_perc)
+       # Call function to create text
+       create_qstn_text(data = question_responsiveness_data_report(),
+                        question = "How would you rate the time taken to respond to any queries or issues raised?",
+                        named_value_1 = "very good",
+                        named_value_2 = "good",
+                        extra_text = "it was"
+       )
      })
+     
+     
+     
      
 # Report download tab (Q6 - Treated fairly)-----------------------------
      # Note - data has to be created in a reactive function, seperate from the 
@@ -2166,77 +1996,17 @@ function(input, output, session) {
        )
      })
      
-     # satisfaction with responsiveness text
+     # Render text
      output$question_fair_report_text <- renderText({
-       council_fltr <- local_authority()
-       #load data and split into Scotland and LA datasets
-       qstnDta <-  question_fairly_data_report() 
-       qstnDta_LA <- qstnDta %>% filter(Selection == council_fltr)
-       qstnDta_scot<- qstnDta %>% filter(Selection == "Scotland")
-       #get total percentage good or very good 
-       total_good <- filter(qstnDta_LA, value %in% c(1,2) & Selection == council_fltr) %>% pull(perc_resp) %>%
-         sum()
-       #if this is above 55% then overall is positive, otherwise negative/balances
-       pos_or_neg <- ifelse(total_good > 55, "mainly positive,", ifelse(total_good < 45, "mainly negative,", "balanced,"))
-       
-       # add "only" to the % positive if this is below 45
-       if(total_good < 45) {
-         total_good <- paste("only", total_good)
-       } else{
-         total_good <- total_good
-       }
-       
-       #get the name for the maximum value in LA dataset. If more than one paste these together
-       max_name <- as.character(qstnDta_LA %>% filter(n == max(n)) %>% pull(named_value))
-       if(length(max_name >1)){
-         max_name <- paste(max_name, collapse = " & ")
-       }
-       #Get the pecentage for the highest response and paste together if multiple
-       max_perc <- qstnDta_LA %>% filter(n == max(n)) %>% pull(perc_resp)
-       if(length(max_perc) >1){
-         max_perc <- paste(paste(max_perc, collapse = " & "), "percent respectively.")
-       } else{
-         max_perc <- paste0(max_perc, " percent.")
-       }
-       
-       #Gte second highest value
-       sec_val <- sort(qstnDta_LA$n, partial= 3)[3]
-       #Filter for second highest value's name
-       sec_name <- qstnDta_LA %>% filter(n == sec_val) %>% pull(named_value)
-       if(length(sec_name) >1){
-         sec_name <- paste(sec_name, collapse = " & ")
-       }
-       
-       #Filter for second highest value's value
-       sec_perc <- qstnDta_LA %>% filter(n == sec_val) %>% pull(perc_resp)
-       if(length(sec_perc) >1){
-         sec_perc <- paste(paste(sec_perc, collapse = " & "), "percent respectively.")
-       }else{
-         sec_perc <- paste0(sec_perc, " percent.")
-       }
-       
-       #get most frequent response for Scotland
-       scot_max_name <- as.character(qstnDta_scot %>% filter(n == max(n)) %>% pull(named_value))
-       
-       if(length(scot_max_name) >1){
-         scot_max_name <- paste(scot_max_name, collapse = " & ")
-       }
-       #get percentage for most frequent Scotland level response
-       scot_max_perc <- qstnDta_scot %>% filter(n == max(n)) %>% pull(perc_resp)
-       if(length(scot_max_perc) >1){
-         scot_max_perc <- paste(paste(scot_max_perc, collapse = " & "), "percent respectively.")
-       } else{
-         scot_max_perc <- paste0(scot_max_perc, " percent.")
-       }
-       
-       #Paste it all together!
-       
-       paste("In this year to date for the question \"To what extent would you agree that you were treated fairly?\" responses have been",
-             pos_or_neg, "with",total_good,"percent saying that they agree or strongly agree. The greatest proportion of respondents said they", max_name,
-             "with the statement at", max_perc, "This was followed by", sec_name, "at", sec_perc,
-             "For Scotland overall, most respondents said that they",scot_max_name,
-             "at", scot_max_perc)
+       # Call function to create text
+       create_qstn_text(data = question_fairly_data_report(),
+                        question = "To what extent would you agree that you were treated fairly?",
+                        named_value_1 = "strongly agree",
+                        named_value_2 = "agree",
+                        extra_text = "they"
+       )
      })
+     
      
 # Report download tab (Q7 - Overall satisfaction)---------------------------
      # Note - data has to be created in a reactive function, seperate from the 
@@ -2260,77 +2030,17 @@ function(input, output, session) {
        )
      })    
      
-     # overall statisfaction text
+     # Render text
      output$question_overall_report_text <- renderText({
-       council_fltr <- local_authority()
-       #load data and split into Scotland and LA datasets
-       qstnDta <-  question_overall_data_report() 
-       qstnDta_LA <- qstnDta %>% filter(Selection == council_fltr)
-       qstnDta_scot<- qstnDta %>% filter(Selection == "Scotland")
-       #get total percentage good or very good 
-       total_good <- filter(qstnDta_LA, value %in% c(1,2) & Selection == council_fltr) %>% pull(perc_resp) %>%
-         sum()
-       #if this is above 55% then overall is positive, otherwise negative/balances
-       pos_or_neg <- ifelse(total_good > 55, "mainly positive,", ifelse(total_good < 45, "mainly negative,", "balanced,"))
-       
-       # add "only" to the % positive if this is below 45
-       if(total_good < 45) {
-         total_good <- paste("only", total_good)
-       } else{
-         total_good <- total_good
-       }
-       
-       #get the name for the maximum value in LA dataset. If more than one paste these together
-       max_name <- as.character(qstnDta_LA %>% filter(n == max(n)) %>% pull(named_value))
-       if(length(max_name >1)){
-         max_name <- paste(max_name, collapse = " & ")
-       }
-       #Get the pecentage for the highest response and paste together if multiple
-       max_perc <- qstnDta_LA %>% filter(n == max(n)) %>% pull(perc_resp)
-       if(length(max_perc) >1){
-         max_perc <- paste(paste(max_perc, collapse = " & "), "percent respectively.")
-       } else{
-         max_perc <- paste0(max_perc, " percent.")
-       }
-       
-       #Gte second highest value
-       sec_val <- sort(qstnDta_LA$n, partial= 3)[3]
-       #Filter for second highest value's name
-       sec_name <- qstnDta_LA %>% filter(n == sec_val) %>% pull(named_value)
-       if(length(sec_name) >1){
-         sec_name <- paste(sec_name, collapse = " & ")
-       }
-       
-       #Filter for second highest value's value
-       sec_perc <- qstnDta_LA %>% filter(n == sec_val) %>% pull(perc_resp)
-       if(length(sec_perc) >1){
-         sec_perc <- paste(paste(sec_perc, collapse = " & "), "percent respectively.")
-       }else{
-         sec_perc <- paste0(sec_perc, " percent.")
-       }
-       
-       #get most frequent response for Scotland
-       scot_max_name <- as.character(qstnDta_scot %>% filter(n == max(n)) %>% pull(named_value))
-       
-       if(length(scot_max_name) >1){
-         scot_max_name <- paste(scot_max_name, collapse = " & ")
-       }
-       #get percentage for most frequent Scotland level response
-       scot_max_perc <- qstnDta_scot %>% filter(n == max(n)) %>% pull(perc_resp)
-       if(length(scot_max_perc) >1){
-         scot_max_perc <- paste(paste(scot_max_perc, collapse = " & "), "percent respectively.")
-       } else{
-         scot_max_perc <- paste0(scot_max_perc, " percent.")
-       }
-       
-       #Paste it all together!
-       
-       paste("In this year to date for the question \"Overall, how satisfied were you with the service provided?\" responses have been",
-             pos_or_neg, "with",total_good,"percent saying that they were very satisfied or satisfied. The greatest proportion of respondents said they felt ", max_name,
-             "at", max_perc, "This was followed by", sec_name, "at", sec_perc,
-             "For Scotland overall, most respondents said that they were",scot_max_name,
-             "at", scot_max_perc)
+       # Call function to create text
+       create_qstn_text(data = question_overall_data_report(),
+                        question = "Overall, how satisfied were you with the service provided?",
+                        named_value_1 = "very satisfied",
+                        named_value_2 = "satisfied",
+                        extra_text = "they were"
+       )
      })
+    
      
 # Report download tab (Report download)-----------------------------------
      output$report <- downloadHandler(
