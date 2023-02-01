@@ -2227,26 +2227,39 @@ function(input, output, session) {
     })
 
 # Open Text tab-------------------------------------------------------------
-     
-     ##create table to show comments for selected question 
-     output$cmnt_table <- DT::renderDataTable({
-       unpivot_data <- unpivot_data()
-       ##need to filter the data based on selections and recode answers
-       names(unpivot_data)[3:ncol(unpivot_data)] <- gsub("Q[1-9\\.]+\\s","",names(unpivot_data)[3:ncol(unpivot_data)], perl = T)
-       unpivot_data$Quarter <- as.factor(unpivot_data$Quarter)
-       ##select applicant type  
-       slctn_respondent <- input$cmnts_resp_input
-       ##select applicant reason using partial match
-       slctn_reason <- names(select(unpivot_data, contains(input$cmnts_reason_input)))
-       
-     #  slct_qstns <- ifelse(input$cmnts_slct == "Information, staff, and responsiveness", c("information", "staff", "responsiveness"), input$cmnts_slct)
-       
-       filter_data <- unpivot_data %>% filter(if_any(slctn_respondent, ~ . == "Yes")) %>%
-         filter(if_any(slctn_reason, ~.== "Yes")) %>%
-         select(Quarter, `Financial Year`,contains(input$cmnts_slct))
-       datatable(filter_data, filter = "top",rownames = FALSE, class = "row-border",escape = F,extensions = c("Scroller", "FixedColumns"))
-       
-     })
-     
-
- }
+  
+  # Create table to show comments for selected question 
+  output$cmnt_table <- DT::renderDataTable({
+    unpivot_data <- unpivot_data()
+    # Need to filter the data based on selections and recode answers
+    names(unpivot_data)[3:ncol(unpivot_data)] <- gsub("Q[1-9\\.]+\\s",
+                                                      "",
+                                                      names(unpivot_data)[3:ncol(unpivot_data)], 
+                                                      perl = TRUE
+                                                      )
+    unpivot_data$Quarter <- as.factor(unpivot_data$Quarter)
+    # store selected respondent type  
+    slctn_respondent <- input$cmnts_resp_input
+    # Select selected respondent reason using partial match
+    slctn_reason <- names(select(unpivot_data, 
+                                 contains(input$cmnts_reason_input)
+                                 )
+                          )
+    # Filter data to show comments for selected question, and respondents
+    filter_data <- unpivot_data %>% 
+      filter(if_any(slctn_respondent, ~ . == "Yes")) %>%
+      filter(if_any(slctn_reason, ~.== "Yes")) %>%
+      select(Quarter, `Financial Year`, contains(input$cmnts_slct))
+    
+    # Create datatable
+    datatable(filter_data, 
+              filter = "top",
+              rownames = FALSE, 
+              class = "row-border",
+              escape = FALSE,
+              extensions = c("Scroller", "FixedColumns")
+              )
+    })
+  
+# Closing bracket for opening function ---------------------------------------  
+  }
