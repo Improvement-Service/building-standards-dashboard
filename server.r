@@ -1842,206 +1842,203 @@ function(input, output, session) {
     })
    
 # Report download tab (Q2 - Standard of communication)-----------------------
-   # Note - data has to be created in a reactive function, seperate from the 
-   # plot function, so the data can be used in the markdown document
+  # Note - data has to be created in a reactive function, seperate from the 
+  # plot function, so the data can be used in the markdown document
    
-   # Call function to generate data to be used in graph and text
-   question_comms_data_report <- reactive({
-     format_qstn_dta(question = "How would you rate the standard of communication provided?",
-                     named_value_1 = "very good",
-                     named_value_2 = "good",
-                     named_value_3 = "poor",
-                     named_value_4 = "very poor"
-     )
-   })
+  # Call function to generate data to be used in graph and text
+  question_comms_data_report <- reactive({
+   format_qstn_dta(question = "How would you rate the standard of communication provided?",
+                   named_value_1 = "very good",
+                   named_value_2 = "good",
+                   named_value_3 = "poor",
+                   named_value_4 = "very poor"
+                   )
+    })
+  
+  # Render plot 
+  output$question_comms_report <- renderPlotly({
+   # Call function to create plot
+   create_qstn_plot(data = question_comms_data_report(),
+                    title = "Standard of communication - Year to Date"
+                    )
+    })
    
-   # Render plot 
-   output$question_comms_report <- renderPlotly({
-     # Call function to create plot
-     create_qstn_plot(data = question_comms_data_report(),
-                      title = "Standard of communication - Year to Date"
-     )
-   })
-   
-   # Render text
-   output$question_comms_report_text <- renderText({
-     # Call function to create text
-     create_qstn_text(data = question_comms_data_report(),
-                      question = "How would you rate the standard of communication provided?",
-                      named_value_1 = "very good",
-                      named_value_2 = "good",
-                      extra_text = "it was"
-     )
-   })
+  # Render text
+  output$question_comms_report_text <- renderText({
+   # Call function to create text
+   create_qstn_text(data = question_comms_data_report(),
+                    question = "How would you rate the standard of communication provided?",
+                    named_value_1 = "very good",
+                    named_value_2 = "good",
+                    extra_text = "it was"
+                    )
+    })
 
 # Report download tab (Q3 - Quality of info)---------------------------------
-     # Note - data has to be created in a reactive function, seperate from the 
-     # plot function, so the data can be used in the markdown document
-     # Call function to generate data to be used in graph and text
-     question_info_data_report <- reactive({
-       format_qstn_dta(question = "Quality of the information provided",
-                       named_value_1 = "very good",
-                       named_value_2 = "good",
-                       named_value_3 = "poor",
-                       named_value_4 = "very poor"
-       )
-     })
-     
-     # Render plot 
-     output$question_info_report <- renderPlotly({
-       # Call function to create plot
-       create_qstn_plot(data = question_info_data_report(),
-                        title = "Quality of information - Year to Date"
-       )
-     })
-     
-     # Render text
-     output$question_info_report_text <- renderText({
-       # Call function to create text
-       create_qstn_text(data = question_info_data_report(),
-                        question = "How would you rate the quality of information provided?",
-                        named_value_1 = "very good",
-                        named_value_2 = "good",
-                        extra_text = "it was"
-       )
-     })
+  # Note - data has to be created in a reactive function, seperate from the 
+  # plot function, so the data can be used in the markdown document
+  
+  # Call function to generate data to be used in graph and text
+  question_info_data_report <- reactive({
+    format_qstn_dta(question = "Quality of the information provided",
+                    named_value_1 = "very good",
+                    named_value_2 = "good",
+                    named_value_3 = "poor",
+                    named_value_4 = "very poor"
+                    )
+    })
+  
+  # Render plot 
+  output$question_info_report <- renderPlotly({
+    # Call function to create plot
+    create_qstn_plot(data = question_info_data_report(),
+                     title = "Quality of information - Year to Date"
+                     )
+    })
+  
+  # Render text
+  output$question_info_report_text <- renderText({
+    # Call function to create text
+    create_qstn_text(data = question_info_data_report(),
+                     question = "How would you rate the quality of information provided?",
+                     named_value_1 = "very good",
+                     named_value_2 = "good",
+                     extra_text = "it was"
+                     )
+    })
      
 # Report download tab (Q4 - Service offered by staff) --------------------
-     # Note - data has to be created in a reactive function, seperate from the 
-     # plot function, so the data can be used in the markdown document
-     # Call function to generate data to be used in graph and text
-     question_staff_data_report <- reactive({
-       format_qstn_dta(question = "Service offered by staff",
-                       named_value_1 = "very good",
-                       named_value_2 = "good",
-                       named_value_3 = "poor",
-                       named_value_4 = "very poor"
-       )
-     })
+  # Note - data has to be created in a reactive function, seperate from the 
+  # plot function, so the data can be used in the markdown document
+  
+  # Call function to generate data to be used in graph and text
+  question_staff_data_report <- reactive({
+    format_qstn_dta(question = "Service offered by staff",
+                    named_value_1 = "very good",
+                    named_value_2 = "good",
+                    named_value_3 = "poor",
+                    named_value_4 = "very poor"
+                    )
+    })
+  
+  # Render plot 
+  output$question_staff_report <- renderPlotly({
+    # Call function to create plot
+    create_qstn_plot(data = question_staff_data_report(),
+                    title = "Service offered by staff - Year to Date"
+                    )
+    })
      
-     # Render plot 
-     output$question_staff_report <- renderPlotly({
-       # Call function to create plot
-       create_qstn_plot(data = question_staff_data_report(),
-                        title = "Service offered by staff - Year to Date"
-       )
-     })
-     
-     # Render text
-     output$question_staff_report_text <- renderText({
-       # Call function to create text
-       create_qstn_text(data = question_staff_data_report(),
-                        question = "How would you rate the service offered by staff",
-                        named_value_1 = "very good",
-                        named_value_2 = "good",
-                        extra_text = "it was"
-       )
-     })
-
-     
+  # Render text
+  output$question_staff_report_text <- renderText({
+    # Call function to create text
+    create_qstn_text(data = question_staff_data_report(),
+                     question = "How would you rate the service offered by staff",
+                     named_value_1 = "very good",
+                     named_value_2 = "good",
+                     extra_text = "it was"
+                     )
+    })
+  
 # Report download tab (Q5 - Responsiveness to queries/issues)---------------
-     # Note - data has to be created in a reactive function, seperate from the 
-     # plot function, so the data can be used in the markdown document
+  # Note - data has to be created in a reactive function, seperate from the 
+  # plot function, so the data can be used in the markdown document
      
-     # Call function to generate data to be used in graph and text
-     question_responsiveness_data_report <- reactive({
-       format_qstn_dta(question = "Responsiveness to any queries or issues raised",
-                       named_value_1 = "very good",
-                       named_value_2 = "good",
-                       named_value_3 = "poor",
-                       named_value_4 = "very poor"
-       )
-     })
-     
-     # Render plot 
-     output$question_responsiveness_report <- renderPlotly({
-       # Call function to create plot
-       create_qstn_plot(data = question_responsiveness_data_report(),
-                        title = "Responsiveness to queries or issues - Year to Date"
-       )
-     })
-     
-     # Render text
-     output$question_responsiveness_report_text <- renderText({
-       # Call function to create text
-       create_qstn_text(data = question_responsiveness_data_report(),
-                        question = "How would you rate the time taken to respond to any queries or issues raised?",
-                        named_value_1 = "very good",
-                        named_value_2 = "good",
-                        extra_text = "it was"
-       )
-     })
-     
-     
-     
+  # Call function to generate data to be used in graph and text
+  question_responsiveness_data_report <- reactive({
+    format_qstn_dta(question = "Responsiveness to any queries or issues raised",
+                    named_value_1 = "very good",
+                    named_value_2 = "good",
+                    named_value_3 = "poor",
+                    named_value_4 = "very poor"
+                    )
+    })
+  
+  # Render plot 
+  output$question_responsiveness_report <- renderPlotly({
+    # Call function to create plot
+    create_qstn_plot(data = question_responsiveness_data_report(),
+                     title = "Responsiveness to queries or issues - Year to Date"
+                     )
+    })
+  
+  # Render text
+  output$question_responsiveness_report_text <- renderText({
+    # Call function to create text
+    create_qstn_text(data = question_responsiveness_data_report(),
+                     question = "How would you rate the time taken to respond to any queries or issues raised?",
+                     named_value_1 = "very good",
+                     named_value_2 = "good",
+                     extra_text = "it was"
+                     )
+    })
      
 # Report download tab (Q6 - Treated fairly)-----------------------------
-     # Note - data has to be created in a reactive function, seperate from the 
-     # plot function, so the data can be used in the markdown document
-     # Call function to generate data to be used in graph and text
-     question_fairly_data_report <- reactive({
-       format_qstn_dta(question = "To what extent would you agree that you were treated fairly?",
-                       named_value_1 = "strongly agree",
-                       named_value_2 = "agree",
-                       named_value_3 = "disagree",
-                       named_value_4 = "strongly disagree"
-       )
-     })
-     
-     # Render plot 
-     output$question_fair_report <- renderPlotly({
-       # Call function to create plot
-       create_qstn_plot(data = question_fairly_data_report(),
-                        title = "Would you agree you were treated fairly - Year to Date"
-       )
-     })
-     
-     # Render text
-     output$question_fair_report_text <- renderText({
-       # Call function to create text
-       create_qstn_text(data = question_fairly_data_report(),
-                        question = "To what extent would you agree that you were treated fairly?",
-                        named_value_1 = "strongly agree",
-                        named_value_2 = "agree",
-                        extra_text = "they"
-       )
-     })
-     
+  # Note - data has to be created in a reactive function, seperate from the 
+  # plot function, so the data can be used in the markdown document
+  
+  # Call function to generate data to be used in graph and text
+  question_fairly_data_report <- reactive({
+    format_qstn_dta(question = "To what extent would you agree that you were treated fairly?",
+                    named_value_1 = "strongly agree",
+                    named_value_2 = "agree",
+                    named_value_3 = "disagree",
+                    named_value_4 = "strongly disagree"
+                    )
+    })
+  
+  # Render plot 
+  output$question_fair_report <- renderPlotly({
+    # Call function to create plot
+    create_qstn_plot(data = question_fairly_data_report(),
+                     title = "Would you agree you were treated fairly - Year to Date"
+                     )
+    })
+  
+  # Render text
+  output$question_fair_report_text <- renderText({
+    # Call function to create text
+    create_qstn_text(data = question_fairly_data_report(),
+                     question = "To what extent would you agree that you were treated fairly?",
+                     named_value_1 = "strongly agree",
+                     named_value_2 = "agree",
+                     extra_text = "they"
+                     )
+    })
      
 # Report download tab (Q7 - Overall satisfaction)---------------------------
-     # Note - data has to be created in a reactive function, seperate from the 
-     # plot function, so the data can be used in the markdown document
+  # Note - data has to be created in a reactive function, seperate from the 
+  # plot function, so the data can be used in the markdown document
      
-     # Call function to generate data to be used in graph and text
-     question_overall_data_report <- reactive({
-       format_qstn_dta(question = "Overall, how satisfied were you with the service provided?",
-                       named_value_1 = "very satisfied",
-                       named_value_2 = "satisfed",
-                       named_value_3 = "dissatisfied",
-                       named_value_4 = "very dissatisfied"
-       )
-     })
+  # Call function to generate data to be used in graph and text
+  question_overall_data_report <- reactive({
+   format_qstn_dta(question = "Overall, how satisfied were you with the service provided?",
+                   named_value_1 = "very satisfied",
+                   named_value_2 = "satisfed",
+                   named_value_3 = "dissatisfied",
+                   named_value_4 = "very dissatisfied"
+                   )
+    })
+  
+  # Render plot 
+  output$question_overall_report <- renderPlotly({
+   # Call function to create plot
+   create_qstn_plot(data = question_overall_data_report(),
+                    title = "Overall satisfaction - Year to Date"
+                    )
+    })    
      
-     # Render plot 
-     output$question_overall_report <- renderPlotly({
-       # Call function to create plot
-       create_qstn_plot(data = question_overall_data_report(),
-                        title = "Overall satisfaction - Year to Date"
-       )
-     })    
-     
-     # Render text
-     output$question_overall_report_text <- renderText({
-       # Call function to create text
-       create_qstn_text(data = question_overall_data_report(),
-                        question = "Overall, how satisfied were you with the service provided?",
-                        named_value_1 = "very satisfied",
-                        named_value_2 = "satisfied",
-                        extra_text = "they were"
-       )
-     })
+  # Render text
+  output$question_overall_report_text <- renderText({
+    # Call function to create text
+    create_qstn_text(data = question_overall_data_report(),
+                     question = "Overall, how satisfied were you with the service provided?",
+                     named_value_1 = "very satisfied",
+                     named_value_2 = "satisfied",
+                     extra_text = "they were"
+                     )
+    })
     
-     
 # Report download tab (Report download)-----------------------------------
      output$report <- downloadHandler(
        filename = "report.pdf",
