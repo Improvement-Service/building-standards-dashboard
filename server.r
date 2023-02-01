@@ -2079,57 +2079,118 @@ function(input, output, session) {
     )
      
 # Data download tab (Data download button)-----------------------------------
-     output$all_data_dl <- downloadHandler(
-       filename = paste("All_Data", ".csv", sep = ""),
-       content = function(file) {
-         dl_all_data <- dl_all_data()
-         council_fltr <- local_authority()
-         ##Reorder columns so that submission date moves to start
-         dl_all_data <- dl_all_data %>% rename("Submission date" = "Ended date")
-         dl_all_data <- dl_all_data[c(ncol(dl_all_data), 1:(ncol(dl_all_data)-1))]
-         ##recode all responses for the download from a number to text, remove LA column
-         dl_all_data <- dl_all_data %>% filter(`Local Authority Name` == council_fltr) %>%
-           mutate(across(contains("how satisfied"), 
-                         ~recode(.,"1" = "Very satisfied", "2"="Satisfied", "3" = "Dissatisfied",
-                                 "4" = "Very dissatisfied",  "5" = "NA"))) %>%
-           mutate(across(contains("would you rate"),
-                         ~recode(.,"1" = "Very good", "2"="Good", "3" = "Poor",
-                                 "4" = "Very poor",  "5" = "NA"))) %>%
-           mutate(across(contains(c("quality of the information","accuracy of the information", "respond to", "by staff", "our staff")),
-                         ~recode(.,"1" = "Very good", "2"="Good", "3" = "Poor",
-                                 "4" = "Very poor",  "5" = "NA"))) %>%
-           mutate(across(contains(c("Staff were","Easy to find", "Understandable")),
-                         ~recode(.,"1" = "Strongly agree", "2"="Agree", "3" = "Neither agree nor disagree",
-                                 "4" = "Disagree",  "5" = "Strongly disagree", "6" = "NA"))) %>%
-           mutate(across(contains("would you agree"),
-                         ~recode(.,"1" = "Strongly agree", "2"="Agree",
-                                 "3" = "Disagree",  "4" = "Strongly disagree", "5"="NA"))) %>%
-           mutate(across(contains("Did you find it easy to contact"),
-                         ~recode(., "1" = "Yes, contact made straight away", 
-                                 "2" = "Yes, but took slightly longer than expected",
-                                 "3" = "No it wasn’t easy, but managed to contact the officer/inspector/administrator eventually"))) %>%
-           mutate(across(contains("Finally"),
-                         ~recode(., "1" = "Yes", 
-                                 "2" = "No",
-                                 "3" = "NA"))) %>%
-           dplyr::rename("Quarter" = "Tracking Link") %>%
-           mutate(across(contains(c("Q1.1. Agent/Designer", 
-                                    "Q1.2. Applicant", 
-                                    "Q1.3. Contractor", 
-                                    "Other (please specify):",
-                                   "Q2.1. To discuss your proposal",
-                                    "Q2.2. To make an application", 
-                                   "Q2.3. During construction")),
-                         ~recode(., "1" = "Yes", 
-                                 "0" = "No"))) %>%
-           select(-LA)
-         
-         #final tidy up of column names by removing SmartSurvey variable
-         colnames(dl_all_data) <- gsub(" \\[question\\(16082428\\)\\]\\[variable\\(la\\)\\]", "", colnames(dl_all_data))
-         colnames(dl_all_data) <- gsub("\\...[1-9]*$", "",colnames(dl_all_data))
-         write.csv(dl_all_data, file)
-       }
-     )
+  
+  # Create excel download
+  output$all_data_dl <- downloadHandler(
+    filename = paste("All_Data", ".csv", sep = ""),
+    content = function(file) {
+      dl_all_data <- dl_all_data()
+      council_fltr <- local_authority()
+      # Reorder columns so that submission date moves to start
+      dl_all_data <- dl_all_data %>% rename("Submission date" = "Ended date")
+      dl_all_data <- dl_all_data[c(ncol(dl_all_data), 1:(ncol(dl_all_data) - 1))]
+      
+      # Recode all responses for the download from a number to text, remove LA column
+      dl_all_data <- dl_all_data %>% 
+        filter(`Local Authority Name` == council_fltr) %>%
+        mutate(across(contains("how satisfied"),
+                      ~recode(., 
+                              "1" = "Very satisfied", 
+                              "2"="Satisfied", 
+                              "3" = "Dissatisfied",
+                              "4" = "Very dissatisfied",  
+                              "5" = "NA"
+                              )
+                      )
+               ) %>%
+        mutate(across(contains("would you rate"),
+                      ~recode(.,
+                              "1" = "Very good", 
+                              "2"="Good", 
+                              "3" = "Poor",
+                              "4" = "Very poor",  
+                              "5" = "NA"
+                              )
+                      )
+               ) %>%
+        mutate(across(contains(c("quality of the information",
+                                 "accuracy of the information", 
+                                 "respond to", 
+                                 "by staff", 
+                                 "our staff"
+                                 )
+                               ),
+                      ~recode(.,
+                              "1" = "Very good", 
+                              "2"="Good", 
+                              "3" = "Poor",
+                              "4" = "Very poor",  
+                              "5" = "NA"
+                              )
+                      )
+               ) %>%
+        mutate(across(contains(c("Staff were",
+                                 "Easy to find", 
+                                 "Understandable"
+                                 )
+                               ),
+                      ~recode(.,
+                              "1" = "Strongly agree", 
+                              "2"="Agree", 
+                              "3" = "Neither agree nor disagree",
+                              "4" = "Disagree",  
+                              "5" = "Strongly disagree", 
+                              "6" = "NA"
+                              )
+                      )
+               ) %>%
+        mutate(across(contains("would you agree"),
+                      ~recode(.,
+                              "1" = "Strongly agree", 
+                              "2"="Agree",
+                              "3" = "Disagree",  
+                              "4" = "Strongly disagree", 
+                              "5"="NA"
+                              )
+                      )
+               ) %>%
+        mutate(across(contains("Did you find it easy to contact"),
+                      ~recode(., 
+                              "1" = "Yes, contact made straight away", 
+                              "2" = "Yes, but took slightly longer than expected",
+                              "3" = "No it wasn’t easy, but managed to contact the officer/inspector/administrator eventually"
+                              )
+                      )
+               ) %>%
+        mutate(across(contains("Finally"),
+                      ~recode(., "1" = "Yes", "2" = "No","3" = "NA")
+                      )
+               ) %>%
+        dplyr::rename("Quarter" = "Tracking Link") %>%
+        mutate(across(contains(c("Q1.1. Agent/Designer", 
+                                 "Q1.2. Applicant", 
+                                 "Q1.3. Contractor", 
+                                 "Other (please specify):",
+                                 "Q2.1. To discuss your proposal",
+                                 "Q2.2. To make an application", 
+                                 "Q2.3. During construction"
+                                 )
+                               ),
+                      ~recode(., "1" = "Yes", "0" = "No")
+                      )
+               ) %>%
+        select(-LA)
+      
+      # Final tidy up of column names by removing SmartSurvey variable
+      colnames(dl_all_data) <- gsub(" \\[question\\(16082428\\)\\]\\[variable\\(la\\)\\]",
+                                    "", 
+                                    colnames(dl_all_data)
+                                    )
+      colnames(dl_all_data) <- gsub("\\...[1-9]*$", "",colnames(dl_all_data))
+      write.csv(dl_all_data, file)
+      }
+    )
+  
 # Data download tab (Data table)--------------------------------------------    
      output$tableDisp <- DT::renderDataTable({
        unpivot_data <- unpivot_data()
