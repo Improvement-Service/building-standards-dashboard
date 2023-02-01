@@ -2192,21 +2192,39 @@ function(input, output, session) {
     )
   
 # Data download tab (Data table)--------------------------------------------    
-     output$tableDisp <- DT::renderDataTable({
-       unpivot_data <- unpivot_data()
-       ##move the date to the front
-       unpivot_data <- unpivot_data[c((ncol(unpivot_data)),1:(ncol(unpivot_data)-1))]
-       names(unpivot_data)[3:ncol(unpivot_data)] <- gsub("Q[1-9\\.]+\\s","",names(unpivot_data)[3:ncol(unpivot_data)], perl = T)
-       tbl <- datatable(unpivot_data, rownames = FALSE, class = "row-border",escape = F,extensions = c("Scroller", "FixedColumns"), 
-                        options = list(pageLength = 32, scrollY = 250, dom = "t", 
-                                       scrollX = TRUE, 
-                                       #fixedColumns = list(leftColumns = 1),
-                                       fnDrawCallback  = htmlwidgets::JS(
-                                         "function(){
-                                         HTMLWidgets.staticRender();
-     }"
-                  ), columnDefs = list(list(className = "dt-center", targets = "_all"))))
-     })
+  
+  # Create data table for full dataset
+  output$tableDisp <- DT::renderDataTable({
+    unpivot_data <- unpivot_data()
+    # Reorder columns so that submission date moves to start
+    unpivot_data <- unpivot_data[c((ncol(unpivot_data)),
+                                   1:(ncol(unpivot_data) - 1)
+                                   )
+                                 ]
+    names(unpivot_data)[3:ncol(unpivot_data)] <- gsub("Q[1-9\\.]+\\s",
+                                                      "",
+                                                      names(unpivot_data)[3:ncol(unpivot_data)], 
+                                                      perl = TRUE
+                                                      )
+    
+    tbl <- datatable(unpivot_data, 
+                     rownames = FALSE, 
+                     class = "row-border",
+                     escape = FALSE,
+                     extensions = c("Scroller", "FixedColumns"), 
+                     options = list(pageLength = 32, 
+                                    scrollY = 250, 
+                                    # Used to just show table
+                                    dom = "t", 
+                                    scrollX = TRUE, 
+                                    fnDrawCallback = htmlwidgets::JS("function(){HTMLWidgets.staticRender();}"), 
+                                    columnDefs = list(list(className = "dt-center", 
+                                                           targets = "_all"
+                                                           )
+                                                      )
+                                    )
+                     )
+    })
 
 # Open Text tab-------------------------------------------------------------
      
