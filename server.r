@@ -1192,7 +1192,10 @@ function(input, output, session) {
     # Filter data to respondent type
     resp_dta_filter <- resp_dta %>% filter(question_type == "Type")
     # Get total responses for referencing the percentage denominator
-    resp_number <- nrow(filter(unpivot_data, `Financial Year` == fin_yr))
+    resp_number <- resp_dta_filter %>%
+      group_by(Question) %>%
+      summarise_at(vars(`n`),sum)
+    resp_number <- resp_number[1,2]
     # Create variables for percentages for different groups
     agent_perc <- resp_dta_filter[resp_dta_filter$Question == "Agent/Designer" & resp_dta_filter$value == 1, "perc"] %>% 
       pull(perc)
@@ -1216,7 +1219,7 @@ function(input, output, session) {
                               agent_perc, 
                               " were agents or designers, ", 
                               appli_perc, 
-                              "were applicants and ", 
+                              " were applicants and ", 
                               contr_perc, 
                               " were contractors. ", 
                               other_perc, 
@@ -1234,7 +1237,10 @@ function(input, output, session) {
     # Filter data to respondent reason
     resp_dta_filter <- resp_dta %>% filter(question_type == "Reason") 
     # Get total responses for referencing the percentage denominator
-    resp_number <- nrow(filter(unpivot_data, `Financial Year` == fin_yr))
+    resp_number <- resp_dta_filter %>%
+      group_by(Question) %>%
+      summarise_at(vars(`n`),sum)
+    resp_number <- resp_number[1,2]
     # Calculate percentages for each response type
     discuss_perc <- resp_dta_filter[resp_dta_filter$Question == "To discuss your proposal before applying for a building warrant" & resp_dta_filter$value == 1 ,"perc"] %>% 
       pull(perc)
