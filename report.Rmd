@@ -178,12 +178,16 @@ type_number <- type_number[1, 2]
 # Create variables for percentages for different groups
 agent_perc <- type_dta_filter[type_dta_filter$Question == "Agent/Designer" & type_dta_filter$value == 1 ,"perc"] %>% 
   pull(perc)
+
 appli_perc <- type_dta_filter[type_dta_filter$Question == "Applicant" & type_dta_filter$value == 1 ,"perc"] %>% 
   pull(perc)
+
 contr_perc <- type_dta_filter[type_dta_filter$Question == "Contractor" & type_dta_filter$value == 1 ,"perc"] %>% 
   pull(perc)
+
 type_other_perc <- type_dta_filter[type_dta_filter$Question == "Other" & type_dta_filter$value == 1 ,"perc"] %>% 
   pull(perc)
+
 # If any are 0 then replace with "none"
 agent_perc <- ifelse(isEmpty(agent_perc), "none", paste0(agent_perc, "%"))
 appli_perc <- ifelse(isEmpty(appli_perc), "none", paste0(appli_perc, "%"))
@@ -198,8 +202,7 @@ Respondents were asked to provide details on the type of respondent they were, a
 
 
 ```{r echo = FALSE}
-ggplot(data = type_data,
-       aes(x = Question, y = perc)) +
+ggplot(data = type_data, aes(x = Question, y = perc)) +
   geom_col(fill = "cadetblue3", colour = "black") +
   geom_text(aes(label = perc, y = perc + 2.5), 
             vjust = 0,
@@ -215,49 +218,61 @@ ggplot(data = type_data,
 \newpage
 
 # Response Reason
-```{r echo=FALSE, comment= ""}
+```{r echo= FALSE, comment = ""}
 # Set up text for response reason
-     resp_dta_filter <- respondent_data %>% filter(question_type == "Reason") 
-     ##Get a total no. of respondents for working out percentages
-     resp_number <- resp_dta_filter %>% 
-       ungroup() %>% 
-       filter(Question == "To make an application for a building warrant") %>% 
-       summarise_at(vars(`n`), sum) %>%
-       select(`n`)
-     #Calculate percentages for each response type
-     discuss_perc <- round(resp_dta_filter[resp_dta_filter$Question == "To discuss your proposal before applying for a building warrant" & resp_dta_filter$value == 1 ,"perc"] *100, 1) %>% pull(perc)
-     appli_perc <- round(resp_dta_filter[resp_dta_filter$Question == "To make an application for a building warrant" & resp_dta_filter$value == 1 ,"perc"] *100, 1) %>% pull(perc)
-     constr_perc <- round(resp_dta_filter[resp_dta_filter$Question == "During construction, including submission of a completion certificate" & resp_dta_filter$value == 1 ,"perc"] *100, 1) %>% pull(perc)
-     other_perc <- round(resp_dta_filter[resp_dta_filter$Question == "Other" & resp_dta_filter$value == 1 ,"perc"] *100, 1) %>% pull(perc)
+resp_dta_filter <- respondent_data %>% filter(question_type == "Reason") 
+# Get total responses for referencing the percentage denominator
+resp_number <- resp_dta_filter %>% 
+  group_by(Question) %>%
+  summarise_at(vars(`n`), sum)
+resp_number <- resp_number[1, 2]
+# Calculate percentages for each response type
+discuss_perc <- resp_dta_filter[resp_dta_filter$Question == "To discuss your proposal before applying for a building warrant" & 
+                                  resp_dta_filter$value == 1, "perc"] %>% 
+  pull(perc)
+
+appli_perc <- resp_dta_filter[resp_dta_filter$Question == "To make an application for a building warrant" & 
+                                resp_dta_filter$value == 1 ,"perc"] %>%
+  pull(perc)
+
+constr_perc <- resp_dta_filter[resp_dta_filter$Question == "During construction, including submission of a completion certificate" &
+                                 resp_dta_filter$value == 1 ,"perc"] %>% 
+  pull(perc)
+
+other_perc <- resp_dta_filter[resp_dta_filter$Question == "Other" &
+                                resp_dta_filter$value == 1 ,"perc"] %>%
+  pull(perc)
      
-     #if any are 0 then replace with "none"
-     discuss_perc <-ifelse(isEmpty(discuss_perc), "none", paste0(discuss_perc,"%"))
-     appli_perc <-ifelse(isEmpty(appli_perc), "none", paste0(appli_perc,"%"))
-     constr_perc <-ifelse(isEmpty(constr_perc), "none", paste0(constr_perc,"%"))
-     other_perc <- ifelse(isEmpty(other_perc), "No respondents", paste0(other_perc, "%"))
-     
+# If any are 0 then replace with "none"
+discuss_perc <- ifelse(isEmpty(discuss_perc), 
+                       "none", 
+                       paste0(discuss_perc,"%")
+                       )
+appli_perc <- ifelse(isEmpty(appli_perc), "none", paste0(appli_perc, "%"))
+constr_perc <- ifelse(isEmpty(constr_perc), "none", paste0(constr_perc, "%"))
+other_perc <- ifelse(isEmpty(other_perc), 
+                     "No respondents", 
+                     paste0(other_perc, "%")
+                     )
 ```
 
   
 Respondents were asked to provide details on the type of respondent they were, as well as their reason for contacting the Building Standards Service in `r la`. Of the `r resp_number` respondents, `r discuss_perc` contacted the local authority to discuss their proposal before applying for a building warrant, `r appli_perc` were making an application for a warrant and `r constr_perc` contacted the service during construction. `r other_perc` contacted the service for some other reason.  
 
 
-```{r echo = F}
-ggplot(data = reason_data,
-       aes(x = Question, 
-          y = perc)
-       ) +
-        geom_col(fill = "cadetblue3", colour = "black")+
+```{r echo = FALSE}
+ggplot(data = reason_data,aes(x = Question, y = perc)) +
+  geom_col(fill = "cadetblue3", colour = "black") +
   geom_text(aes(label = perc, y = perc + 2.5), 
-                 vjust = 0,
-                 position = position_dodge(width = 0.9) 
-                 )+
-        coord_flip() +
-        theme_classic()+
-        scale_y_continuous( expand = expansion(mult = c(0, 0.1)))+
-         ggtitle("Response Reason:YTD")+
-         xlab("Reason")+
-         ylab("Percentage of Responses")
+            vjust = 0,
+            position = position_dodge(width = 0.9) 
+            ) +
+  coord_flip() +
+  theme_classic() +
+  scale_y_continuous(expand = expansion(mult = c(0, 0.1))) +
+  ggtitle("Response Reason:YTD") +
+  xlab("Reason") +
+  ylab("Percentage of Responses")
 ```
 \newpage
 
