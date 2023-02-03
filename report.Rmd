@@ -167,47 +167,50 @@ ggplot(data = kpo_data1,
 \newpage
 
 # Respondent Type
-```{r echo=FALSE, comment= ""}
+```{r echo = FALSE, comment = ""}
 # Set up text for respondent type
 type_dta_filter <- respondent_data %>% filter(question_type == "Type") 
-     #get total responses for using as percentage denominator
-     type_number <- type_dta_filter %>% 
-       ungroup() %>% 
-       filter(Question == "Agent/Designer") %>% 
-       summarise_at(vars(`n`), sum) %>%
-       select(`n`)
-     #create variables for percentages for different groups
-     agent_perc <- round(type_dta_filter[type_dta_filter$Question == "Agent/Designer" & type_dta_filter$value == 1 ,"perc"] *100, 1) %>% pull(perc)
-     appli_perc <- round(type_dta_filter[type_dta_filter$Question == "Applicant" & type_dta_filter$value == 1 ,"perc"] *100, 1) %>% pull(perc)
-     contr_perc <- round(type_dta_filter[type_dta_filter$Question == "Contractor" & type_dta_filter$value == 1 ,"perc"] *100, 1) %>% pull(perc)
-     type_other_perc <- round(type_dta_filter[type_dta_filter$Question == "Other" & type_dta_filter$value == 1 ,"perc"] *100, 1) %>% pull(perc)
-     #if any are 0 then replace with "none"
-     agent_perc <-ifelse(isEmpty(agent_perc), "none", paste0(agent_perc,"%"))
-     appli_perc <-ifelse(isEmpty(appli_perc), "none", paste0(appli_perc,"%"))
-     contr_perc <-ifelse(isEmpty(contr_perc), "none", paste0(contr_perc,"%"))
-     type_other_perc <- ifelse(isEmpty(type_other_perc), "No respondents", paste0(type_other_perc, "%"))
+# Get total responses for referencing the percentage denominator
+type_number <- type_dta_filter %>% 
+  group_by(Question) %>%
+  summarise_at(vars(`n`),sum)
+type_number <- type_number[1, 2]
+# Create variables for percentages for different groups
+agent_perc <- type_dta_filter[type_dta_filter$Question == "Agent/Designer" & type_dta_filter$value == 1 ,"perc"] %>% 
+  pull(perc)
+appli_perc <- type_dta_filter[type_dta_filter$Question == "Applicant" & type_dta_filter$value == 1 ,"perc"] %>% 
+  pull(perc)
+contr_perc <- type_dta_filter[type_dta_filter$Question == "Contractor" & type_dta_filter$value == 1 ,"perc"] %>% 
+  pull(perc)
+type_other_perc <- type_dta_filter[type_dta_filter$Question == "Other" & type_dta_filter$value == 1 ,"perc"] %>% 
+  pull(perc)
+# If any are 0 then replace with "none"
+agent_perc <- ifelse(isEmpty(agent_perc), "none", paste0(agent_perc, "%"))
+appli_perc <- ifelse(isEmpty(appli_perc), "none", paste0(appli_perc, "%"))
+contr_perc <- ifelse(isEmpty(contr_perc), "none", paste0(contr_perc, "%"))
+type_other_perc <- ifelse(isEmpty(type_other_perc), 
+                          "No respondents", 
+                          paste0(type_other_perc, "%"))
 ```
 
   
 Respondents were asked to provide details on the type of respondent they were, as well as their reason for contacting the Building Standards Service in `r la`. Of the `r type_number` respondents `r agent_perc` were agents or designers, `r appli_perc` were applicants and `r contr_perc` were contractors. `r type_other_perc` said they were an other respondent type.  
 
 
-```{r echo = F}
+```{r echo = FALSE}
 ggplot(data = type_data,
        aes(x = Question, y = perc)) +
-        geom_col(fill = "cadetblue3", 
-                 colour = "black"
-                 )+
-    geom_text(aes(label = perc, y = perc + 2.5), 
-                 vjust = 0,
-                 position = position_dodge(width = 0.9) 
-                 )+
-        coord_flip() +
-        theme_classic()+
-        scale_y_continuous(expand = expansion(mult = c(0, 0.1)))+
-        ggtitle("Respondent Type: YTD")+
-        xlab("Respondent Type")+
-        ylab("Percentage of Responses")
+  geom_col(fill = "cadetblue3", colour = "black") +
+  geom_text(aes(label = perc, y = perc + 2.5), 
+            vjust = 0,
+            position = position_dodge(width = 0.9) 
+            ) +
+  coord_flip() +
+  theme_classic() +
+  scale_y_continuous(expand = expansion(mult = c(0, 0.1))) +
+  ggtitle("Respondent Type: YTD") +
+  xlab("Respondent Type") +
+  ylab("Percentage of Responses")
 ```
 \newpage
 
