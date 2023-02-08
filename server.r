@@ -896,7 +896,11 @@ function(input, output, session) {
       geom_bar(aes(x = reorder(named_value, as.numeric(value)), 
                    y = n, 
                    text = paste(paste0("Response: ", named_value), 
-                                paste0("Number of Responses:", n),
+                                paste0("Number of Responses ", 
+                                      fin_yr(), 
+                                      ": ", 
+                                      n
+                                      ),
                                 sep = "\n"
                                 )
                    ),
@@ -907,7 +911,7 @@ function(input, output, session) {
                ) +
       ggtitle(input$Qstn_tab2) +
       xlab("Response") +
-      ylab("Number of responses") +
+      ylab(paste("Number of responses", fin_yr())) +
       scale_y_continuous(expand = expansion(mult = c(0, 0.1))) +
       theme_classic()
     
@@ -1005,6 +1009,17 @@ function(input, output, session) {
                 }
     
     Labels <- levels(qstnDta$Response)
+    
+    # Add Financial year to quarter labels
+    qstnDta$`Tracking Link` <- gsub("Quarter\\ ",
+                                    "Q",
+                                     qstnDta$`Tracking Link`, 
+                                     perl = TRUE
+                                    )
+    qstnDta$`Tracking Link` <- paste(qstnDta$`Tracking Link`, 
+                                     fin_yr(), 
+                                     sep = " "
+                                     )
     # Rename in dataset to set what shows on hover labels
     qstnDta <- qstnDta %>% rename(Quarter = `Tracking Link`)
     
@@ -1022,6 +1037,7 @@ function(input, output, session) {
       scale_y_continuous(expand = expansion(mult = c(0, 0.1))) +
       ggtitle(input$Qstn_tab2) +
       xlab("") +
+      ylab(paste("% of responses", fin_yr())) +
       theme_classic() +
       scale_fill_manual(breaks = Labels, 
                         values = c("forestgreen", 
