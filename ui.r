@@ -3,13 +3,13 @@ ui <- dashboardPage(skin = "blue",
                     dashboardHeader(title = "National Customer Survey Dashboard",
                                     titleWidth = 400),
 # Dashboard Sidebar --------------------------------------------------------
-                                    # LA selection (IS & SG only)
-                    dashboardSidebar(uiOutput("la_select"),
+                                    # KPO4 download button (IS & SG only)
+                    dashboardSidebar(uiOutput("KPO_data_dl"),
+                                     # LA selection (IS & SG only)
+                                     uiOutput("la_select"),
                                      # Financial Year selection.
                                      # Will only show if more than 1 year available
                                      uiOutput("fin_yr"),
-                                     # KPO4 download button (IS & SG only)
-                                     uiOutput("KPO_data_dl"),
                                      sidebarMenu(menuItem("Performance Overview", 
                                                           tabName = "PrfOvr", 
                                                           icon = icon("dashboard")
