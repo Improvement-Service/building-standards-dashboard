@@ -1115,11 +1115,18 @@ function(input, output, session) {
     Years <- all_kpo_data %>% filter(id == council_fltr)
     Years <- length(unique(Years$`Financial Year`))
     
+    # Filter the data depending on number of years
+    # If only one use year available, otherwise use current financial year
+    all_kpo_data <- if (Years > 1) {
+      all_kpo_data %>% 
+        filter(`Tracking Link` == "Total" & `Financial Year` == crnt_fin_yr)
+    } else {
+      all_kpo_data %>% 
+        filter(`Tracking Link` == "Total" & `Financial Year` == fin_yr())
+    }
+    
     # Compare council KPO4 values with Scotland and target to create 
     # reactive text values
-    
-    all_kpo_data <- all_kpo_data %>% 
-      filter(`Tracking Link` == "Total" & `Financial Year` == fin_yr())
     # Council KPO4
     KPO4_ytd <- all_kpo_data %>% 
       filter(id == council_fltr) %>% 
@@ -1177,7 +1184,7 @@ function(input, output, session) {
     text_multiple_kpo <- paste0("This indicator summarises performance across all questions, with differential weightings based on importance. For ", 
                                 council_fltr,
                                 " in ",
-                                fin_yr(), 
+                                crnt_fin_yr, 
                                 " overall performance is at ", 
                                 KPO4_ytd, 
                                 " for the year to date. This reflects ", 
@@ -1191,7 +1198,7 @@ function(input, output, session) {
                                 ". The year to date performance of ", 
                                 council_fltr, 
                                 " in ", 
-                                fin_yr(), 
+                                crnt_fin_yr, 
                                 " is ", 
                                 abbel_kpo4,
                                 " the Scotland average of ", 
@@ -1439,35 +1446,35 @@ function(input, output, session) {
              ) %>% 
       ungroup()
      
-     # Set the quarter labels as a factor to ensure they stay in order
-     QLabels <- unique(all_kpo_data$`Tracking Link`)
-     all_kpo_data$`Tracking Link` <- factor(all_kpo_data$`Tracking Link`, 
-                                            levels = QLabels
-                                            )
-     # Store the names of the quarters by position (can't just reference by
-     # quarter number as some councils may have data missing) 
-     # if there is a quarter missing the position will be empty
-     first_Q <- all_kpo_data$`Tracking Link`[[1]]
-     second_Q <- if (length(QLabels) > 1) {
-       all_kpo_data$`Tracking Link`[[2]]
-     } else {
-        0
-       }
-     third_Q <- if (length(QLabels) > 2) {
-       all_kpo_data$`Tracking Link`[[3]]
-     } else {
-         0
-       }
-     fourth_Q <- if (length(QLabels) > 3) {
-       all_kpo_data$`Tracking Link`[[4]]
-     } else {
-         0
-       }
-     
-     # Filter to get KPO for first quarter available
-     Q1_kpo <- all_kpo_data %>% 
-       filter(`Tracking Link` == first_Q) %>%
-       select(KPO_score)
+    # Set the quarter labels as a factor to ensure they stay in order
+    QLabels <- unique(all_kpo_data$`Tracking Link`)
+    all_kpo_data$`Tracking Link` <- factor(all_kpo_data$`Tracking Link`, 
+                                          levels = QLabels
+                                          )
+    # Store the names of the quarters by position (can't just reference by
+    # quarter number as some councils may have data missing) 
+    # if there is a quarter missing the position will be empty
+    first_Q <- all_kpo_data$`Tracking Link`[[1]]
+    second_Q <- if (length(QLabels) > 1) {
+     all_kpo_data$`Tracking Link`[[2]]
+    } else {
+      0
+     }
+    third_Q <- if (length(QLabels) > 2) {
+     all_kpo_data$`Tracking Link`[[3]]
+    } else {
+       0
+     }
+    fourth_Q <- if (length(QLabels) > 3) {
+     all_kpo_data$`Tracking Link`[[4]]
+    } else {
+       0
+     }
+    
+    # Filter to get KPO for first quarter available
+   Q1_kpo <- all_kpo_data %>% 
+      filter(`Tracking Link` == first_Q) %>%
+     select(KPO_score)
      # Render text for first quarter available
      Q1_text <- paste0("In ", 
                        first_Q, 
