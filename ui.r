@@ -5,6 +5,9 @@ ui <- dashboardPage(skin = "blue",
 # Dashboard Sidebar --------------------------------------------------------
                                     # LA selection (IS & SG only)
                     dashboardSidebar(uiOutput("la_select"),
+                                     # Financial Year selection.
+                                     # Will only show if more than 1 year available
+                                     uiOutput("fin_yr"),
                                      # KPO4 download button (IS & SG only)
                                      uiOutput("KPO_data_dl"),
                                      sidebarMenu(menuItem("Performance Overview", 
@@ -93,9 +96,9 @@ ui <- dashboardPage(skin = "blue",
                                                                       unique(pivot_dta$Indicator)
                                                                       ),
                                                           selected = "All Questions"
-                                                          ),
+                                                          )#,
                                               # Financial year selection
-                                              uiOutput("fin_yr")
+                                              #uiOutput("fin_yr")
                                               ),
                                        column(4,
                                               # Respondent type selection

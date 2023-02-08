@@ -1,7 +1,8 @@
 function(input, output, session) {
 # Set up reactive council selection based on log in -------------------------
   user <- reactive({
-    session$user
+   # session$user
+    "cara.connachan@improvementservice.org.uk"
     })
   
   # LA selection generated for IS & SG users
@@ -186,6 +187,25 @@ function(input, output, session) {
       }
     })
 
+# Financial Year Selection---------------------------------------------------
+  
+  # Create select button for financial year if there is more than 1 year available
+  output$fin_yr <- renderUI({
+    council_fltr <- local_authority()
+    pivot_dta <- pivot_dta %>% filter(`Local Authority Name` == council_fltr) 
+    years <- unique(pivot_dta$`Financial Year`)
+    no_years <- length(unique(pivot_dta$`Financial Year`))
+    if (no_years > 1) {
+      selectizeInput(inputId = "fin_yr_selection", 
+                     label = "Select financial year",
+                     choices = years, 
+                     selected = fin_yr
+      )
+    } else {
+      return()
+    }
+  })
+  
 # Download Data - format data for download --------------------------------
 
 # This data is used in the data download page as this is to be presented in
@@ -780,23 +800,6 @@ function(input, output, session) {
     })
     
 # Questions results tab (Data filtering)--------------------------------
-  
-  # Create select button for financial year if there is more than 1 year available
-  output$fin_yr <- renderUI({
-    council_fltr <- local_authority()
-    pivot_dta <- pivot_dta %>% filter(`Local Authority Name` == council_fltr) 
-    years <- unique(pivot_dta$`Financial Year`)
-    no_years <- length(unique(pivot_dta$`Financial Year`))
-    if (no_years > 1) {
-      selectizeInput(inputId = "fin_yr_selection", 
-                     label = "Select financial year",
-                     choices = years, 
-                     selected = fin_yr
-                     )
-      } else {
-        return()
-        }
-    })
   
   # Create filtered dataset from checkboxes
   qstn_dataset_filtered <- reactive({
