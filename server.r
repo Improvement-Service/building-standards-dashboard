@@ -358,7 +358,7 @@ function(input, output, session) {
                               )
     # Remove "(please specify):" from "Other" question value
     resp_dta$Question[resp_dta$Question == "Other (please specify):"] <- "Other"
-    # Filter to selected council & current financial year
+    # Filter to selected council & selected financial year
     resp_dta <- resp_dta %>% 
       filter(`Financial Year` == fin_yr() & `Local Authority Name` == council_fltr)
     resp_dta
@@ -619,7 +619,7 @@ function(input, output, session) {
                                       ],
                            1
                            ), 
-             paste("Council KPO4 YTD", fin_yr()),
+             paste("Council KPO4 Year to Date", fin_yr()),
              icon = icon("chart-bar"), 
              color = kpo_colr
              )
@@ -631,7 +631,7 @@ function(input, output, session) {
                                         "KPO_score"],
                            1
                            ), 
-             paste("Scotland Average KPO4 YTD", fin_yr()), 
+             paste("Scotland Average KPO4 Year to Date", fin_yr()), 
              icon = icon("times"), 
              color = "navy"
                )
@@ -714,7 +714,7 @@ function(input, output, session) {
       scale_y_continuous(limits = c(0, 10), 
                          expand = expansion(mult = c(0, 0.1))
                          ) +
-      ggtitle("KPO4 performance by quarter and YTD") +
+      ggtitle("KPO4 performance by quarter and Year to Date") +
       ylab("KPO 4 Score") +
       xlab("Response period") +
       theme(axis.text.x = element_text(size = 10),
@@ -760,7 +760,7 @@ function(input, output, session) {
       coord_flip() +
       theme_classic() +
       scale_y_continuous(expand = expansion(mult = c(0, 0.1))) +
-      ggtitle("Respondent Type: YTD") +
+      ggtitle(paste("Respondent Type:\nYear to Date", fin_yr())) +
       xlab("Respondent Type") +
       ylab("Percentage of Responses") +
       theme(plot.title = element_text(size = 12))
@@ -805,7 +805,7 @@ function(input, output, session) {
       coord_flip() +
       theme_classic() +
       scale_y_continuous(expand = expansion(mult = c(0, 0.1))) +
-      ggtitle("Response Reason:YTD") +
+      ggtitle(paste("Response Reason:\nYear to Date", fin_yr())) +
       xlab("Reason") +
       ylab("Percentage of Responses") +
       theme(plot.title = element_text(size = 12))

@@ -73,14 +73,14 @@ ui <- dashboardPage(skin = "blue",
                                               # Respondents type graph
                                               tabPanel("Type",
                                                        plotlyOutput("resp_type_graph_overview",
-                                                                    height = "60vh"
+                                                                    height = "55vh"
                                                                     ) %>%
                                                          withSpinner()
                                                        ),
                                               # Respondents reason graph
                                               tabPanel("Reason", 
                                                        plotlyOutput("resp_reason_graph_overview",
-                                                                    height = "60vh"
+                                                                    height = "55vh"
                                                                     )
                                                        )
                                               )
