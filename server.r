@@ -199,10 +199,24 @@ function(input, output, session) {
       selectizeInput(inputId = "fin_yr_selection", 
                      label = "Select financial year",
                      choices = years, 
-                     selected = fin_yr
+                     selected = crnt_fin_yr
       )
     } else {
       return()
+    }
+  })
+  
+  # Reactive expression to store financial year selected
+  # Either selected year if more than 1 available, otherwise year available
+  fin_yr <- reactive({
+    council_fltr <- local_authority()
+    pivot_dta <- pivot_dta %>% filter(`Local Authority Name` == council_fltr) 
+    years <- unique(pivot_dta$`Financial Year`)
+    no_years <- length(unique(pivot_dta$`Financial Year`))
+    fin_yr <- if (no_years > 1) {
+      input$fin_yr_selection
+    } else {
+      years
     }
   })
   
@@ -346,7 +360,7 @@ function(input, output, session) {
     resp_dta$Question[resp_dta$Question == "Other (please specify):"] <- "Other"
     # Filter to selected council & current financial year
     resp_dta <- resp_dta %>% 
-      filter(`Financial Year` == fin_yr & `Local Authority Name` == council_fltr)
+      filter(`Financial Year` == fin_yr() & `Local Authority Name` == council_fltr)
     resp_dta
   })
   
@@ -588,11 +602,11 @@ function(input, output, session) {
     la_max_sum <- la_max_sum()
     # Sets traffic light colours based on KPO4 score
     kpo_colr <- ifelse(
-      la_max_sum[la_max_sum$`Tracking Link` =="Total" & la_max_sum$`Financial Year` == fin_yr, 
+      la_max_sum[la_max_sum$`Tracking Link` =="Total" & la_max_sum$`Financial Year` == fin_yr(), 
                  "KPO_score"
                  ] > 7.5, 
       "green", 
-      ifelse(la_max_sum[la_max_sum$`Tracking Link` =="Total" & la_max_sum$`Financial Year` == fin_yr, 
+      ifelse(la_max_sum[la_max_sum$`Tracking Link` =="Total" & la_max_sum$`Financial Year` == fin_yr(), 
                         "KPO_score"
                         ] < 6.5, 
              "red", 
@@ -600,12 +614,12 @@ function(input, output, session) {
              )
       )
     
-    valueBox(value = round(la_max_sum[la_max_sum$`Tracking Link` =="Total" & la_max_sum$`Financial Year` == fin_yr, 
+    valueBox(value = round(la_max_sum[la_max_sum$`Tracking Link` =="Total" & la_max_sum$`Financial Year` == fin_yr(), 
                                       "KPO_score"
                                       ],
                            1
                            ), 
-             paste("Council KPO4 YTD", fin_yr),
+             paste("Council KPO4 YTD", fin_yr()),
              icon = icon("chart-bar"), 
              color = kpo_colr
              )
@@ -613,11 +627,11 @@ function(input, output, session) {
   
   # Create performance box for Scotland
   output$scotPerfBox<- renderValueBox({
-    valueBox(value = round(scot_max_sum[scot_max_sum$`Tracking Link` =="Total" & scot_max_sum$`Financial Year` == fin_yr, 
+    valueBox(value = round(scot_max_sum[scot_max_sum$`Tracking Link` =="Total" & scot_max_sum$`Financial Year` == fin_yr(), 
                                         "KPO_score"],
                            1
                            ), 
-             paste("Scotland Average KPO4 YTD", fin_yr), 
+             paste("Scotland Average KPO4 YTD", fin_yr()), 
              icon = icon("times"), 
              color = "navy"
                )
@@ -629,7 +643,7 @@ function(input, output, session) {
     # Counts the number of rows (responses) in the given quarter & financial year
     # data is already filtered to selected council
     valueBox(value = paste(nrow(filter(unpivot_data, 
-                                       Quarter == crnt_qtr & `Financial Year` == fin_yr
+                                       Quarter == crnt_qtr & `Financial Year` == fin_yr()
                                        )
                                 ), 
                            paste("Responses", 
@@ -637,8 +651,8 @@ function(input, output, session) {
                                  )
                            ),
              # Counts the rows (responses) for the full year
-             subtitle = paste(nrow(filter(unpivot_data, `Financial Year` == fin_yr)),
-                              paste("Year to Date", fin_yr)
+             subtitle = paste(nrow(filter(unpivot_data, `Financial Year` == fin_yr())),
+                              paste("Year to Date", fin_yr())
                               ), 
              icon = icon("user-friends"), 
              color = "light-blue"
@@ -656,7 +670,7 @@ function(input, output, session) {
                                          )
     # Filter to only include the Quarters for current year
     la_max_sum <- la_max_sum %>% 
-      filter(`Tracking Link` == "YTD" | (`Tracking Link` != "YTD" & `Financial Year` == fin_yr))
+      filter(`Tracking Link` == "YTD" | (`Tracking Link` != "YTD" & `Financial Year` == fin_yr()))
     # Add Financial year to quarter labels
     la_max_sum$`Tracking Link` <- gsub("Quarter\\ ",
                                        "Q",
@@ -820,12 +834,7 @@ function(input, output, session) {
       filter(if_any(slctn_respondent, ~. == 1)) %>%
       filter(if_any(slctn_reason, ~. ==1)) 
     # Filter to correct financial year - either current year or selected year
-    no_years <- length(unique(pivot_dta$`Financial Year`))
-    filter_data <- if (no_years > 1) {
-      filter(filter_data, `Financial Year` == input$fin_yr_selection)
-      } else {
-        filter(filter_data, `Financial Year` == fin_yr)
-        }
+    filter_data <- filter(filter_data, `Financial Year` == fin_yr())
     filter_data
     })
     
@@ -1094,7 +1103,7 @@ function(input, output, session) {
     # reactive text values
     
     all_kpo_data <- all_kpo_data %>% 
-      filter(`Tracking Link` == "Total" & `Financial Year` == fin_yr)
+      filter(`Tracking Link` == "Total" & `Financial Year` == fin_yr())
     # Council KPO4
     KPO4_ytd <- all_kpo_data %>% 
       filter(id == council_fltr) %>% 
@@ -1135,7 +1144,7 @@ function(input, output, session) {
     text_kpo <- paste0("This indicator summarises performance across all questions, with differential weightings based on importance. For ", 
                        council_fltr,
                        " in ",
-                       fin_yr, 
+                       fin_yr(), 
                        " overall performance is at ", 
                        KPO4_ytd, 
                        " for the year to date. ", 
@@ -1152,7 +1161,7 @@ function(input, output, session) {
     text_multiple_kpo <- paste0("This indicator summarises performance across all questions, with differential weightings based on importance. For ", 
                                 council_fltr,
                                 " in ",
-                                fin_yr, 
+                                fin_yr(), 
                                 " overall performance is at ", 
                                 KPO4_ytd, 
                                 " for the year to date. This reflects ", 
@@ -1166,7 +1175,7 @@ function(input, output, session) {
                                 ". The year to date performance of ", 
                                 council_fltr, 
                                 " in ", 
-                                fin_yr, 
+                                fin_yr(), 
                                 " is ", 
                                 abbel_kpo4,
                                 " the Scotland average of ", 
@@ -1409,7 +1418,7 @@ function(input, output, session) {
     # Filter to quarters, selected council and current financial year
     all_kpo_data <- all_kpo_data %>% 
       filter(`Tracking Link` != "Total",
-             `Financial Year` == fin_yr,  
+             `Financial Year` == fin_yr(),  
              id == council_fltr
              ) %>% 
       ungroup()
@@ -1566,7 +1575,7 @@ function(input, output, session) {
         }
      
      second_fin_yr <- if (length(extra_data$`Tracking Link`) > 1) {
-       filter(extra_data, `Financial Year` == fin_yr) %>%
+       filter(extra_data, `Financial Year` == fin_yr()) %>%
          ungroup() %>%
          select(KPO_score)
      } else {
@@ -1592,7 +1601,7 @@ function(input, output, session) {
      extra_text <- paste0("KPO 4 performance in ", 
                           crnt_qtr, 
                           " ", 
-                          fin_yr, 
+                          fin_yr(), 
                           " was ", 
                           extra_comp_value, 
                           extra_comp,
@@ -1622,7 +1631,7 @@ function(input, output, session) {
                               ) {
     council_fltr <- local_authority()
     # Filter pivot_dta to current financial year and remove missing values
-    pivot_dta <- pivot_dta %>% filter(`Financial Year` == fin_yr) %>%
+    pivot_dta <- pivot_dta %>% filter(`Financial Year` == fin_yr()) %>%
       filter(value != "-")
     # Set values as factor to keep in order
     pivot_dta$`value` <- factor(pivot_dta$`value`, levels = c(1, 2, 3, 4))
