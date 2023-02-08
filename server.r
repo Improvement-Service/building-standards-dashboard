@@ -1,8 +1,7 @@
 function(input, output, session) {
 # Set up reactive council selection based on log in -------------------------
-  # session$user - used login below for testing
   user <- reactive({
-    "cara.connachan@improvementservice.org.uk"
+    session$user
     })
   
   # LA selection generated for IS & SG users
