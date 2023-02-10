@@ -1114,7 +1114,6 @@ function(input, output, session) {
     # Store the number of financial years available for council
     Years <- all_kpo_data %>% filter(id == council_fltr)
     Years <- length(unique(Years$`Financial Year`))
-    
     # Filter the data depending on number of years
     # If only one use year available, otherwise use current financial year
     all_kpo_data <- if (Years > 1) {
@@ -1385,6 +1384,7 @@ function(input, output, session) {
                       ),
                   lwd = 1
                   ) +
+        scale_x_discrete(breaks = function(x){x[c(TRUE, FALSE)]}) +
         scale_color_manual(values = c("cadetblue3", "dimgrey"), name = "") +
         ggtitle("KPO 4 score - over time") +
         ylim(0, 10) +
@@ -1442,14 +1442,19 @@ function(input, output, session) {
   output$quarter_text <- renderText({
     council_fltr <- local_authority()
     all_kpo_data <- report_kpo_data()
-    # Filter to quarters, selected council and current financial year
+    # Store the number of financial years available for council
+    Years <- all_kpo_data %>% filter(id == council_fltr)
+    Years <- length(unique(Years$`Financial Year`))
+    Years <- if_else(Years > 1, crnt_fin_yr, fin_yr())
+    
+    # Filter to quarters, selected council and year 
     all_kpo_data <- all_kpo_data %>% 
       filter(`Tracking Link` != "Total",
-             `Financial Year` == fin_yr(),  
+             `Financial Year` == Years,  
              id == council_fltr
              ) %>% 
       ungroup()
-     
+
     # Set the quarter labels as a factor to ensure they stay in order
     QLabels <- unique(all_kpo_data$`Tracking Link`)
     all_kpo_data$`Tracking Link` <- factor(all_kpo_data$`Tracking Link`, 
@@ -1481,7 +1486,9 @@ function(input, output, session) {
      select(KPO_score)
      # Render text for first quarter available
      Q1_text <- paste0("In ", 
-                       first_Q, 
+                       first_Q,
+                       " ",
+                       Years,
                        " performance for KPO 4 calculated across all responses for all questions was ",
                        Q1_kpo,
                        " for ", 
@@ -1561,7 +1568,7 @@ function(input, output, session) {
        )
      # Render text for when there are four quarters                   
      Q4_text<- paste0(Q3_text, 
-                      ". In ", 
+                      " In ", 
                       fourth_Q,
                       " performance was ", 
                       comp_Q34,
@@ -1602,7 +1609,7 @@ function(input, output, session) {
         }
      
      second_fin_yr <- if (length(extra_data$`Tracking Link`) > 1) {
-       filter(extra_data, `Financial Year` == fin_yr()) %>%
+       filter(extra_data, `Financial Year` == Years) %>%
          ungroup() %>%
          select(KPO_score)
      } else {
@@ -1628,7 +1635,7 @@ function(input, output, session) {
      extra_text <- paste0("KPO 4 performance in ", 
                           crnt_qtr, 
                           " ", 
-                          fin_yr(), 
+                          Years, 
                           " was ", 
                           extra_comp_value, 
                           extra_comp,
