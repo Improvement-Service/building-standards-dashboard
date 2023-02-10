@@ -1828,7 +1828,9 @@ function(input, output, session) {
         }
     
     # Paste the text together
-    paste0("In this year to date for the question \"",
+    paste0("In the ",
+           fin_yr(),
+           " year to date for the question \"",
            question,
            "\" responses have been ",
            pos_or_neg, 
