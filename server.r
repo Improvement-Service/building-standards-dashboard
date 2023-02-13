@@ -2153,6 +2153,9 @@ function(input, output, session) {
     content = function(file) {
       dl_all_data <- dl_all_data()
       council_fltr <- local_authority()
+      
+      dl_all_data <- dl_all_data %>% arrange(desc(`Ended date`))
+      
       # Reorder columns so that submission date moves to start
       dl_all_data <- dl_all_data %>% rename("Submission date" = "Ended date")
       dl_all_data <- dl_all_data[c(ncol(dl_all_data), 1:(ncol(dl_all_data) - 1))]
@@ -2254,6 +2257,7 @@ function(input, output, session) {
                                     colnames(dl_all_data)
                                     )
       colnames(dl_all_data) <- gsub("\\...[1-9]*$", "",colnames(dl_all_data))
+      
       write.csv(dl_all_data, file)
       }
     )
@@ -2273,23 +2277,32 @@ function(input, output, session) {
                                                       names(unpivot_data)[3:ncol(unpivot_data)], 
                                                       perl = TRUE
                                                       )
+   
+    # Order by submission date
+    unpivot_data <- unpivot_data %>% arrange(desc(`Submission date`))
     
-    tbl <- datatable(unpivot_data, 
-                     rownames = FALSE, 
-                     class = "row-border",
+    tbl <- datatable(unpivot_data,
+                     rownames = FALSE,
                      escape = FALSE,
-                     extensions = c("Scroller", "FixedColumns"), 
-                     options = list(pageLength = 32, 
-                                    scrollY = 250, 
-                                    # Used to just show table
-                                    dom = "t", 
-                                    scrollX = TRUE, 
-                                    fnDrawCallback = htmlwidgets::JS("function(){HTMLWidgets.staticRender();}"), 
-                                    columnDefs = list(list(className = "dt-center", 
-                                                           targets = "_all"
-                                                           )
-                                                      )
-                                    )
+                     extensions = 'Scroller',
+                     options = list(
+                       # This shortens the text labels and makes them viewable
+                       # by hovering instead
+                       columnDefs = list(list(
+                         targets = c(7,11,13,15,19,21,23,24),
+                         render = JS(
+                           "function(data, type, row, meta) {",
+                           "return type === 'display' && data != null && data.length > 20 ?",
+                           "'<span title=\"' + data + '\">' + data.substr(0, 20) + '...</span>' : data;",
+                           "}")
+                         )
+                         ),
+                       dom = "t",
+                       deferRender = TRUE,
+                       scrollY = "320px",
+                       scrollX = TRUE,
+                       scroller = TRUE
+                       )
                      )
     })
 
