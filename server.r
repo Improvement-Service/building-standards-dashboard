@@ -2317,6 +2317,9 @@ function(input, output, session) {
                                                       names(unpivot_data)[3:ncol(unpivot_data)], 
                                                       perl = TRUE
                                                       )
+    # Order by submission date
+    unpivot_data <- unpivot_data %>% arrange(desc(`Submission date`))
+    
     unpivot_data$Quarter <- as.factor(unpivot_data$Quarter)
     # store selected respondent type  
     slctn_respondent <- input$cmnts_resp_input
@@ -2337,7 +2340,24 @@ function(input, output, session) {
               rownames = FALSE, 
               class = "row-border",
               escape = FALSE,
-              extensions = c("Scroller", "FixedColumns")
+              extensions = c("Scroller", "FixedColumns"),
+              options = list(
+                columnDefs = list(list(
+                  # This shortens the text labels and makes them viewable
+                  # by hovering instead
+                  targets = 3,
+                  render = JS(
+                    "function(data, type, row, meta) {",
+                    "return type === 'display' && data != null && data.length > 100 ?",
+                    "'<span title=\"' + data + '\">' + data.substr(0, 100) + '...</span>' : data;",
+                    "}")
+                )
+                ),
+                dom = "t",
+                deferRender = TRUE,
+                scrollY = "280px",
+                scroller = TRUE
+              )
               )
     })
   
