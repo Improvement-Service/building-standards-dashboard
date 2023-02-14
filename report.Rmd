@@ -57,7 +57,8 @@ kpo_data1 <- if (Years > 1) {
   kpo_data %>% 
   filter(`Tracking Link` == "Total" & `Financial Year` == crnt_fin_yr)
 } else {
-  filter(`Tracking Link` == "Total" & `Financial Year` == year)
+  kpo_data %>% 
+    filter(`Tracking Link` == "Total" & `Financial Year` == year)
 }
 
 # Council KPO4
@@ -89,7 +90,7 @@ change_text <- if_else(change_value < 0, "a decrease", "an increase")
      
 # Text for when there is only 1 financial year
 text_kpo <- paste0("This indicator summarises performance across all questions, with differential weightings based on importance. For ",
-council_fltr,
+la,
 " in ",
 year, 
 " overall performance is at ", 
@@ -287,7 +288,7 @@ ggplot(data = reason_data,aes(x = Question, y = perc)) +
 # KPO 4 Over Time
 ```{r echo = FALSE, comment = ""}
 # Store the number of financial years available for council
-Years <- kpo_data %>% filter(id == council_fltr)
+Years <- kpo_data %>% filter(id == la)
 Years <- length(unique(Years$`Financial Year`))
 Years <- if_else(Years > 1, crnt_fin_yr, year)
 
@@ -295,7 +296,7 @@ Years <- if_else(Years > 1, crnt_fin_yr, year)
 kpo_data1 <- kpo_data %>% 
   filter(`Tracking Link` != "Total",
          `Financial Year` == Years,  
-         id == council_fltr
+         id == la
          ) %>% 
   ungroup()
      
@@ -336,7 +337,7 @@ Q1_text <- paste0("In ",
                   " performance for KPO 4 calculated across all responses for all questions was ",
                   Q1_kpo,
                   " for ", 
-                  council_fltr,
+                  la,
                   ". "
                   )
 # Filter to get KPO for second quarter available
@@ -429,7 +430,7 @@ main_text <- ifelse(length(QLabels) == 1,
 extra_data <- kpo_data
 # Filter to current quarter and selected council
 extra_data <- extra_data %>% 
-  filter(`Tracking Link` == crnt_qtr, id == council_fltr)
+  filter(`Tracking Link` == crnt_qtr, id == la)
 # Store values for current financial year and previous financial year
 first_fin_yr <- if (length(extra_data$`Tracking Link`) > 1) {
   filter(extra_data, `Financial Year` == prev_fin_yr) %>%
@@ -475,7 +476,6 @@ extra_text <- paste0("KPO 4 performance in ",
 
 # Number of years
 no_years <- length(unique(extra_data$`Financial Year`))
-
 ```    
     
 `r ifelse(no_years > 1, paste(main_text, extra_text), main_text)`
@@ -507,7 +507,6 @@ line_data <- arrange(line_data, `Financial Year`, `Tracking Link`, LA)
 # Set the date labels as a factor to ensure they stay in order
 QLabels <- unique(line_data$Label)
 line_data$Label <- factor(line_data$Label, levels = QLabels)
-
 ```
   
   
