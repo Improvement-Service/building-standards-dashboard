@@ -1832,7 +1832,9 @@ function(input, output, session) {
            fin_yr(),
            " year to date for the question \"",
            question,
-           "\" responses have been ",
+           "\" responses for ",
+           local_authority(),
+           " have been ",
            pos_or_neg, 
            " with ",
            total_good,
@@ -2120,6 +2122,7 @@ function(input, output, session) {
       
       # Set up parameters to pass to Rmd document
       params <- list(la = local_authority(),
+                     year = fin_yr(),
                      kpo_data = report_kpo_data(),
                      type_data = report_type_data(),
                      reason_data = report_reason_data(),
