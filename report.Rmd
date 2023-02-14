@@ -476,6 +476,8 @@ extra_text <- paste0("KPO 4 performance in ",
 
 # Number of years
 no_years <- length(unique(extra_data$`Financial Year`))
+
+# Select which text is shown based on the no. of years available
 ```    
     
 `r ifelse(no_years > 1, paste(main_text, extra_text), main_text)`
