@@ -186,6 +186,39 @@ function(input, output, session) {
       }
     })
 
+# Financial Year Selection---------------------------------------------------
+  
+  # Create select button for financial year if there is more than 1 year available
+  output$fin_yr <- renderUI({
+    council_fltr <- local_authority()
+    pivot_dta <- pivot_dta %>% filter(`Local Authority Name` == council_fltr) 
+    years <- unique(pivot_dta$`Financial Year`)
+    no_years <- length(unique(pivot_dta$`Financial Year`))
+    if (no_years > 1) {
+      selectizeInput(inputId = "fin_yr_selection", 
+                     label = "Select financial year",
+                     choices = years, 
+                     selected = crnt_fin_yr
+      )
+    } else {
+      return()
+    }
+  })
+  
+  # Reactive expression to store financial year selected
+  # Either selected year if more than 1 available, otherwise year available
+  fin_yr <- reactive({
+    council_fltr <- local_authority()
+    pivot_dta <- pivot_dta %>% filter(`Local Authority Name` == council_fltr) 
+    years <- unique(pivot_dta$`Financial Year`)
+    no_years <- length(unique(pivot_dta$`Financial Year`))
+    fin_yr <- if (no_years > 1) {
+      input$fin_yr_selection
+    } else {
+      years
+    }
+  })
+  
 # Download Data - format data for download --------------------------------
 
 # This data is used in the data download page as this is to be presented in
@@ -324,9 +357,9 @@ function(input, output, session) {
                               )
     # Remove "(please specify):" from "Other" question value
     resp_dta$Question[resp_dta$Question == "Other (please specify):"] <- "Other"
-    # Filter to selected council & current financial year
+    # Filter to selected council & selected financial year
     resp_dta <- resp_dta %>% 
-      filter(`Financial Year` == fin_yr & `Local Authority Name` == council_fltr)
+      filter(`Financial Year` == fin_yr() & `Local Authority Name` == council_fltr)
     resp_dta
   })
   
@@ -568,11 +601,11 @@ function(input, output, session) {
     la_max_sum <- la_max_sum()
     # Sets traffic light colours based on KPO4 score
     kpo_colr <- ifelse(
-      la_max_sum[la_max_sum$`Tracking Link` =="Total" & la_max_sum$`Financial Year` == fin_yr, 
+      la_max_sum[la_max_sum$`Tracking Link` =="Total" & la_max_sum$`Financial Year` == fin_yr(), 
                  "KPO_score"
                  ] > 7.5, 
       "green", 
-      ifelse(la_max_sum[la_max_sum$`Tracking Link` =="Total" & la_max_sum$`Financial Year` == fin_yr, 
+      ifelse(la_max_sum[la_max_sum$`Tracking Link` =="Total" & la_max_sum$`Financial Year` == fin_yr(), 
                         "KPO_score"
                         ] < 6.5, 
              "red", 
@@ -580,12 +613,12 @@ function(input, output, session) {
              )
       )
     
-    valueBox(value = round(la_max_sum[la_max_sum$`Tracking Link` =="Total" & la_max_sum$`Financial Year` == fin_yr, 
+    valueBox(value = round(la_max_sum[la_max_sum$`Tracking Link` =="Total" & la_max_sum$`Financial Year` == fin_yr(), 
                                       "KPO_score"
                                       ],
                            1
                            ), 
-             paste("Council KPO4 YTD", fin_yr),
+             paste("Council KPO4 Year to Date", fin_yr()),
              icon = icon("chart-bar"), 
              color = kpo_colr
              )
@@ -593,11 +626,11 @@ function(input, output, session) {
   
   # Create performance box for Scotland
   output$scotPerfBox<- renderValueBox({
-    valueBox(value = round(scot_max_sum[scot_max_sum$`Tracking Link` =="Total" & scot_max_sum$`Financial Year` == fin_yr, 
+    valueBox(value = round(scot_max_sum[scot_max_sum$`Tracking Link` =="Total" & scot_max_sum$`Financial Year` == fin_yr(), 
                                         "KPO_score"],
                            1
                            ), 
-             paste("Scotland Average KPO4 YTD", fin_yr), 
+             paste("Scotland Average KPO4 Year to Date", fin_yr()), 
              icon = icon("times"), 
              color = "navy"
                )
@@ -609,7 +642,7 @@ function(input, output, session) {
     # Counts the number of rows (responses) in the given quarter & financial year
     # data is already filtered to selected council
     valueBox(value = paste(nrow(filter(unpivot_data, 
-                                       Quarter == crnt_qtr & `Financial Year` == fin_yr
+                                       Quarter == crnt_qtr & `Financial Year` == fin_yr()
                                        )
                                 ), 
                            paste("Responses", 
@@ -617,8 +650,8 @@ function(input, output, session) {
                                  )
                            ),
              # Counts the rows (responses) for the full year
-             subtitle = paste(nrow(filter(unpivot_data, `Financial Year` == fin_yr)),
-                              paste("Year to Date", fin_yr)
+             subtitle = paste(nrow(filter(unpivot_data, `Financial Year` == fin_yr())),
+                              paste("Year to Date", fin_yr())
                               ), 
              icon = icon("user-friends"), 
              color = "light-blue"
@@ -636,7 +669,7 @@ function(input, output, session) {
                                          )
     # Filter to only include the Quarters for current year
     la_max_sum <- la_max_sum %>% 
-      filter(`Tracking Link` == "YTD" | (`Tracking Link` != "YTD" & `Financial Year` == fin_yr))
+      filter(`Tracking Link` == "YTD" | (`Tracking Link` != "YTD" & `Financial Year` == fin_yr()))
     # Add Financial year to quarter labels
     la_max_sum$`Tracking Link` <- gsub("Quarter\\ ",
                                        "Q",
@@ -680,7 +713,7 @@ function(input, output, session) {
       scale_y_continuous(limits = c(0, 10), 
                          expand = expansion(mult = c(0, 0.1))
                          ) +
-      ggtitle("KPO4 performance by quarter and YTD") +
+      ggtitle("KPO4 performance by quarter and Year to Date") +
       ylab("KPO 4 Score") +
       xlab("Response period") +
       theme(axis.text.x = element_text(size = 10),
@@ -726,7 +759,7 @@ function(input, output, session) {
       coord_flip() +
       theme_classic() +
       scale_y_continuous(expand = expansion(mult = c(0, 0.1))) +
-      ggtitle("Respondent Type: YTD") +
+      ggtitle(paste("Respondent Type:\nYear to Date", fin_yr())) +
       xlab("Respondent Type") +
       ylab("Percentage of Responses") +
       theme(plot.title = element_text(size = 12))
@@ -771,7 +804,7 @@ function(input, output, session) {
       coord_flip() +
       theme_classic() +
       scale_y_continuous(expand = expansion(mult = c(0, 0.1))) +
-      ggtitle("Response Reason:YTD") +
+      ggtitle(paste("Response Reason:\nYear to Date", fin_yr())) +
       xlab("Reason") +
       ylab("Percentage of Responses") +
       theme(plot.title = element_text(size = 12))
@@ -780,23 +813,6 @@ function(input, output, session) {
     })
     
 # Questions results tab (Data filtering)--------------------------------
-  
-  # Create select button for financial year if there is more than 1 year available
-  output$fin_yr <- renderUI({
-    council_fltr <- local_authority()
-    pivot_dta <- pivot_dta %>% filter(`Local Authority Name` == council_fltr) 
-    years <- unique(pivot_dta$`Financial Year`)
-    no_years <- length(unique(pivot_dta$`Financial Year`))
-    if (no_years > 1) {
-      selectizeInput(inputId = "fin_yr_selection", 
-                     label = "Select financial year",
-                     choices = years, 
-                     selected = fin_yr
-                     )
-      } else {
-        return()
-        }
-    })
   
   # Create filtered dataset from checkboxes
   qstn_dataset_filtered <- reactive({
@@ -817,12 +833,7 @@ function(input, output, session) {
       filter(if_any(slctn_respondent, ~. == 1)) %>%
       filter(if_any(slctn_reason, ~. ==1)) 
     # Filter to correct financial year - either current year or selected year
-    no_years <- length(unique(pivot_dta$`Financial Year`))
-    filter_data <- if (no_years > 1) {
-      filter(filter_data, `Financial Year` == input$fin_yr_selection)
-      } else {
-        filter(filter_data, `Financial Year` == fin_yr)
-        }
+    filter_data <- filter(filter_data, `Financial Year` == fin_yr())
     filter_data
     })
     
@@ -884,7 +895,11 @@ function(input, output, session) {
       geom_bar(aes(x = reorder(named_value, as.numeric(value)), 
                    y = n, 
                    text = paste(paste0("Response: ", named_value), 
-                                paste0("Number of Responses:", n),
+                                paste0("Number of Responses ", 
+                                      fin_yr(), 
+                                      ": ", 
+                                      n
+                                      ),
                                 sep = "\n"
                                 )
                    ),
@@ -895,7 +910,7 @@ function(input, output, session) {
                ) +
       ggtitle(input$Qstn_tab2) +
       xlab("Response") +
-      ylab("Number of responses") +
+      ylab(paste("Number of responses", fin_yr())) +
       scale_y_continuous(expand = expansion(mult = c(0, 0.1))) +
       theme_classic()
     
@@ -993,6 +1008,17 @@ function(input, output, session) {
                 }
     
     Labels <- levels(qstnDta$Response)
+    
+    # Add Financial year to quarter labels
+    qstnDta$`Tracking Link` <- gsub("Quarter\\ ",
+                                    "Q",
+                                     qstnDta$`Tracking Link`, 
+                                     perl = TRUE
+                                    )
+    qstnDta$`Tracking Link` <- paste(qstnDta$`Tracking Link`, 
+                                     fin_yr(), 
+                                     sep = " "
+                                     )
     # Rename in dataset to set what shows on hover labels
     qstnDta <- qstnDta %>% rename(Quarter = `Tracking Link`)
     
@@ -1010,6 +1036,7 @@ function(input, output, session) {
       scale_y_continuous(expand = expansion(mult = c(0, 0.1))) +
       ggtitle(input$Qstn_tab2) +
       xlab("") +
+      ylab(paste("% of responses", fin_yr())) +
       theme_classic() +
       scale_fill_manual(breaks = Labels, 
                         values = c("forestgreen", 
@@ -1086,12 +1113,18 @@ function(input, output, session) {
     # Store the number of financial years available for council
     Years <- all_kpo_data %>% filter(id == council_fltr)
     Years <- length(unique(Years$`Financial Year`))
+    # Filter the data depending on number of years
+    # If only one use year available, otherwise use current financial year
+    all_kpo_data <- if (Years > 1) {
+      all_kpo_data %>% 
+        filter(`Tracking Link` == "Total" & `Financial Year` == crnt_fin_yr)
+    } else {
+      all_kpo_data %>% 
+        filter(`Tracking Link` == "Total" & `Financial Year` == fin_yr())
+    }
     
     # Compare council KPO4 values with Scotland and target to create 
     # reactive text values
-    
-    all_kpo_data <- all_kpo_data %>% 
-      filter(`Tracking Link` == "Total" & `Financial Year` == fin_yr)
     # Council KPO4
     KPO4_ytd <- all_kpo_data %>% 
       filter(id == council_fltr) %>% 
@@ -1132,7 +1165,7 @@ function(input, output, session) {
     text_kpo <- paste0("This indicator summarises performance across all questions, with differential weightings based on importance. For ", 
                        council_fltr,
                        " in ",
-                       fin_yr, 
+                       fin_yr(), 
                        " overall performance is at ", 
                        KPO4_ytd, 
                        " for the year to date. ", 
@@ -1149,7 +1182,7 @@ function(input, output, session) {
     text_multiple_kpo <- paste0("This indicator summarises performance across all questions, with differential weightings based on importance. For ", 
                                 council_fltr,
                                 " in ",
-                                fin_yr, 
+                                crnt_fin_yr, 
                                 " overall performance is at ", 
                                 KPO4_ytd, 
                                 " for the year to date. This reflects ", 
@@ -1163,7 +1196,7 @@ function(input, output, session) {
                                 ". The year to date performance of ", 
                                 council_fltr, 
                                 " in ", 
-                                fin_yr, 
+                                crnt_fin_yr, 
                                 " is ", 
                                 abbel_kpo4,
                                 " the Scotland average of ", 
@@ -1214,7 +1247,9 @@ function(input, output, session) {
                               council_fltr,
                               ". Of the ", 
                               resp_number, 
-                              " respondents ", 
+                              " respondents in ", 
+                              fin_yr(),
+                              " ",
                               agent_perc, 
                               " were agents or designers, ", 
                               appli_perc, 
@@ -1258,8 +1293,10 @@ function(input, output, session) {
     txt_respondents <- paste0("Respondents were asked to provide details on the type of respondent they were, as well as their reason for contacting the Building Standards Service in ", 
                               council_fltr,
                               ". Of the ", 
-                              resp_number, 
-                              " respondents ", 
+                              resp_number,
+                              " respondents in ", 
+                              fin_yr(),
+                              " ",
                               discuss_perc, 
                               " contacted the local authority to discuss their proposal before applying for a building warrant, ",
                               appli_perc, 
@@ -1346,6 +1383,7 @@ function(input, output, session) {
                       ),
                   lwd = 1
                   ) +
+        scale_x_discrete(breaks = function(x){x[c(TRUE, FALSE)]}) +
         scale_color_manual(values = c("cadetblue3", "dimgrey"), name = "") +
         ggtitle("KPO 4 score - over time") +
         ylim(0, 10) +
@@ -1403,46 +1441,53 @@ function(input, output, session) {
   output$quarter_text <- renderText({
     council_fltr <- local_authority()
     all_kpo_data <- report_kpo_data()
-    # Filter to quarters, selected council and current financial year
+    # Store the number of financial years available for council
+    Years <- all_kpo_data %>% filter(id == council_fltr)
+    Years <- length(unique(Years$`Financial Year`))
+    Years <- if_else(Years > 1, crnt_fin_yr, fin_yr())
+    
+    # Filter to quarters, selected council and year 
     all_kpo_data <- all_kpo_data %>% 
       filter(`Tracking Link` != "Total",
-             `Financial Year` == fin_yr,  
+             `Financial Year` == Years,  
              id == council_fltr
              ) %>% 
       ungroup()
-     
-     # Set the quarter labels as a factor to ensure they stay in order
-     QLabels <- unique(all_kpo_data$`Tracking Link`)
-     all_kpo_data$`Tracking Link` <- factor(all_kpo_data$`Tracking Link`, 
-                                            levels = QLabels
-                                            )
-     # Store the names of the quarters by position (can't just reference by
-     # quarter number as some councils may have data missing) 
-     # if there is a quarter missing the position will be empty
-     first_Q <- all_kpo_data$`Tracking Link`[[1]]
-     second_Q <- if (length(QLabels) > 1) {
-       all_kpo_data$`Tracking Link`[[2]]
-     } else {
-        0
-       }
-     third_Q <- if (length(QLabels) > 2) {
-       all_kpo_data$`Tracking Link`[[3]]
-     } else {
-         0
-       }
-     fourth_Q <- if (length(QLabels) > 3) {
-       all_kpo_data$`Tracking Link`[[4]]
-     } else {
-         0
-       }
-     
-     # Filter to get KPO for first quarter available
-     Q1_kpo <- all_kpo_data %>% 
-       filter(`Tracking Link` == first_Q) %>%
-       select(KPO_score)
+
+    # Set the quarter labels as a factor to ensure they stay in order
+    QLabels <- unique(all_kpo_data$`Tracking Link`)
+    all_kpo_data$`Tracking Link` <- factor(all_kpo_data$`Tracking Link`, 
+                                          levels = QLabels
+                                          )
+    # Store the names of the quarters by position (can't just reference by
+    # quarter number as some councils may have data missing) 
+    # if there is a quarter missing the position will be empty
+    first_Q <- all_kpo_data$`Tracking Link`[[1]]
+    second_Q <- if (length(QLabels) > 1) {
+     all_kpo_data$`Tracking Link`[[2]]
+    } else {
+      0
+     }
+    third_Q <- if (length(QLabels) > 2) {
+     all_kpo_data$`Tracking Link`[[3]]
+    } else {
+       0
+     }
+    fourth_Q <- if (length(QLabels) > 3) {
+     all_kpo_data$`Tracking Link`[[4]]
+    } else {
+       0
+     }
+    
+    # Filter to get KPO for first quarter available
+   Q1_kpo <- all_kpo_data %>% 
+      filter(`Tracking Link` == first_Q) %>%
+     select(KPO_score)
      # Render text for first quarter available
      Q1_text <- paste0("In ", 
-                       first_Q, 
+                       first_Q,
+                       " ",
+                       Years,
                        " performance for KPO 4 calculated across all responses for all questions was ",
                        Q1_kpo,
                        " for ", 
@@ -1522,7 +1567,7 @@ function(input, output, session) {
        )
      # Render text for when there are four quarters                   
      Q4_text<- paste0(Q3_text, 
-                      ". In ", 
+                      " In ", 
                       fourth_Q,
                       " performance was ", 
                       comp_Q34,
@@ -1563,7 +1608,7 @@ function(input, output, session) {
         }
      
      second_fin_yr <- if (length(extra_data$`Tracking Link`) > 1) {
-       filter(extra_data, `Financial Year` == fin_yr) %>%
+       filter(extra_data, `Financial Year` == Years) %>%
          ungroup() %>%
          select(KPO_score)
      } else {
@@ -1589,7 +1634,7 @@ function(input, output, session) {
      extra_text <- paste0("KPO 4 performance in ", 
                           crnt_qtr, 
                           " ", 
-                          fin_yr, 
+                          Years, 
                           " was ", 
                           extra_comp_value, 
                           extra_comp,
@@ -1619,7 +1664,7 @@ function(input, output, session) {
                               ) {
     council_fltr <- local_authority()
     # Filter pivot_dta to current financial year and remove missing values
-    pivot_dta <- pivot_dta %>% filter(`Financial Year` == fin_yr) %>%
+    pivot_dta <- pivot_dta %>% filter(`Financial Year` == fin_yr()) %>%
       filter(value != "-")
     # Set values as factor to keep in order
     pivot_dta$`value` <- factor(pivot_dta$`value`, levels = c(1, 2, 3, 4))
@@ -1679,7 +1724,7 @@ function(input, output, session) {
       scale_fill_manual(values = c("cadetblue3", "dimgrey"), name = "") +
       ggtitle(title) +
       xlab("Responses") +
-      ylab("Percentage of Responses") +
+      ylab(paste("Percentage of Responses", fin_yr())) +
       theme_classic()
     ggplotly(plot, tooltip = "text")
   }
@@ -1782,9 +1827,13 @@ function(input, output, session) {
         }
     
     # Paste the text together
-    paste0("In this year to date for the question \"",
+    paste0("In the ",
+           fin_yr(),
+           " year to date for the question \"",
            question,
-           "\" responses have been ",
+           "\" responses for ",
+           local_authority(),
+           " have been ",
            pos_or_neg, 
            " with ",
            total_good,
@@ -1831,7 +1880,9 @@ function(input, output, session) {
   output$question_time_report <- renderPlotly({
     # Call function to create plot
     create_qstn_plot(data = question_time_data_report(),
-                     title = "Satisfaction with time taken - Year to Date"
+                     title = paste("Satisfaction with time taken - Year to Date", 
+                                   fin_yr()
+                                   )
                      )
     })
   
@@ -1864,7 +1915,9 @@ function(input, output, session) {
   output$question_comms_report <- renderPlotly({
    # Call function to create plot
    create_qstn_plot(data = question_comms_data_report(),
-                    title = "Standard of communication - Year to Date"
+                    title = paste("Standard of communication - Year to Date",
+                                  fin_yr()
+                                  )
                     )
     })
    
@@ -1897,7 +1950,9 @@ function(input, output, session) {
   output$question_info_report <- renderPlotly({
     # Call function to create plot
     create_qstn_plot(data = question_info_data_report(),
-                     title = "Quality of information - Year to Date"
+                     title = paste("Quality of information - Year to Date",
+                                   fin_yr()
+                                   )
                      )
     })
   
@@ -1930,7 +1985,9 @@ function(input, output, session) {
   output$question_staff_report <- renderPlotly({
     # Call function to create plot
     create_qstn_plot(data = question_staff_data_report(),
-                    title = "Service offered by staff - Year to Date"
+                    title = paste("Service offered by staff - Year to Date",
+                                  fin_yr()
+                                  )
                     )
     })
      
@@ -1963,7 +2020,9 @@ function(input, output, session) {
   output$question_responsiveness_report <- renderPlotly({
     # Call function to create plot
     create_qstn_plot(data = question_responsiveness_data_report(),
-                     title = "Responsiveness to queries or issues - Year to Date"
+                     title = paste("Responsiveness to queries or issues - Year to Date",
+                                   fin_yr()
+                                   )
                      )
     })
   
@@ -1996,7 +2055,9 @@ function(input, output, session) {
   output$question_fair_report <- renderPlotly({
     # Call function to create plot
     create_qstn_plot(data = question_fairly_data_report(),
-                     title = "Would you agree you were treated fairly - Year to Date"
+                     title = paste("Would you agree you were treated fairly - Year to Date",
+                                   fin_yr()
+                                   )
                      )
     })
   
@@ -2029,7 +2090,9 @@ function(input, output, session) {
   output$question_overall_report <- renderPlotly({
    # Call function to create plot
    create_qstn_plot(data = question_overall_data_report(),
-                    title = "Overall satisfaction - Year to Date"
+                    title = paste("Overall satisfaction - Year to Date",
+                                  fin_yr()
+                                  )
                     )
     })    
      
@@ -2058,6 +2121,7 @@ function(input, output, session) {
       
       # Set up parameters to pass to Rmd document
       params <- list(la = local_authority(),
+                     year = fin_yr(),
                      kpo_data = report_kpo_data(),
                      type_data = report_type_data(),
                      reason_data = report_reason_data(),
@@ -2091,6 +2155,9 @@ function(input, output, session) {
     content = function(file) {
       dl_all_data <- dl_all_data()
       council_fltr <- local_authority()
+      
+      dl_all_data <- dl_all_data %>% arrange(desc(`Ended date`))
+      
       # Reorder columns so that submission date moves to start
       dl_all_data <- dl_all_data %>% rename("Submission date" = "Ended date")
       dl_all_data <- dl_all_data[c(ncol(dl_all_data), 1:(ncol(dl_all_data) - 1))]
@@ -2192,6 +2259,7 @@ function(input, output, session) {
                                     colnames(dl_all_data)
                                     )
       colnames(dl_all_data) <- gsub("\\...[1-9]*$", "",colnames(dl_all_data))
+      
       write.csv(dl_all_data, file)
       }
     )
@@ -2211,23 +2279,32 @@ function(input, output, session) {
                                                       names(unpivot_data)[3:ncol(unpivot_data)], 
                                                       perl = TRUE
                                                       )
+   
+    # Order by submission date
+    unpivot_data <- unpivot_data %>% arrange(desc(`Submission date`))
     
-    tbl <- datatable(unpivot_data, 
-                     rownames = FALSE, 
-                     class = "row-border",
+    tbl <- datatable(unpivot_data,
+                     rownames = FALSE,
                      escape = FALSE,
-                     extensions = c("Scroller", "FixedColumns"), 
-                     options = list(pageLength = 32, 
-                                    scrollY = 250, 
-                                    # Used to just show table
-                                    dom = "t", 
-                                    scrollX = TRUE, 
-                                    fnDrawCallback = htmlwidgets::JS("function(){HTMLWidgets.staticRender();}"), 
-                                    columnDefs = list(list(className = "dt-center", 
-                                                           targets = "_all"
-                                                           )
-                                                      )
-                                    )
+                     extensions = 'Scroller',
+                     options = list(
+                       # This shortens the text labels and makes them viewable
+                       # by hovering instead
+                       columnDefs = list(list(
+                         targets = c(7,11,13,15,19,21,23,24),
+                         render = JS(
+                           "function(data, type, row, meta) {",
+                           "return type === 'display' && data != null && data.length > 20 ?",
+                           "'<span title=\"' + data + '\">' + data.substr(0, 20) + '...</span>' : data;",
+                           "}")
+                         )
+                         ),
+                       dom = "t",
+                       deferRender = TRUE,
+                       scrollY = "320px",
+                       scrollX = TRUE,
+                       scroller = TRUE
+                       )
                      )
     })
 
@@ -2242,6 +2319,9 @@ function(input, output, session) {
                                                       names(unpivot_data)[3:ncol(unpivot_data)], 
                                                       perl = TRUE
                                                       )
+    # Order by submission date
+    unpivot_data <- unpivot_data %>% arrange(desc(`Submission date`))
+    
     unpivot_data$Quarter <- as.factor(unpivot_data$Quarter)
     # store selected respondent type  
     slctn_respondent <- input$cmnts_resp_input
@@ -2262,7 +2342,24 @@ function(input, output, session) {
               rownames = FALSE, 
               class = "row-border",
               escape = FALSE,
-              extensions = c("Scroller", "FixedColumns")
+              extensions = c("Scroller", "FixedColumns"),
+              options = list(
+                columnDefs = list(list(
+                  # This shortens the text labels and makes them viewable
+                  # by hovering instead
+                  targets = 3,
+                  render = JS(
+                    "function(data, type, row, meta) {",
+                    "return type === 'display' && data != null && data.length > 100 ?",
+                    "'<span title=\"' + data + '\">' + data.substr(0, 100) + '...</span>' : data;",
+                    "}")
+                )
+                ),
+                dom = "t",
+                deferRender = TRUE,
+                scrollY = "280px",
+                scroller = TRUE
+              )
               )
     })
   

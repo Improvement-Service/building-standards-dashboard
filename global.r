@@ -53,22 +53,22 @@ LA_names_dta <- data.frame(LA_names, LA)
 # This formatting uses calender year values rather than financial so need
 # to reduce by a quarter to format as financial years
 crnt_date <- as.yearqtr(Sys.Date(), format = "%Y-%m-%d") -1/4
-crnt_fin_yr <- gsub("\\ ", "-", crnt_date, perl = TRUE)
+crnt_yr <- gsub("\\ ", "-", crnt_date, perl = TRUE)
 # extracts just the year value - 1st year in the financial year
-crnt_fin_yr <- gsub("-Q[0-9]","", crnt_fin_yr) %>% as.numeric(.) 
+crnt_yr <- gsub("-Q[0-9]","", crnt_yr) %>% as.numeric(.) 
 # gets the second year value - 2nd year in the financial year
-crnt_fin_yr2 <-  crnt_fin_yr + 1
+crnt_yr2 <-  crnt_yr + 1
 # extract just the last 2 digits of the 2nd financial year
-crnt_fin_yr2 <- substr(crnt_fin_yr2, 3, 4) 
+crnt_yr2 <- substr(crnt_yr2, 3, 4) 
 # adds a separator between the 2 years to format as a financial year
-fin_yr <- paste(crnt_fin_yr, crnt_fin_yr2, sep = "/")
-rm(crnt_fin_yr2)
+crnt_fin_yr <- paste(crnt_yr, crnt_yr2, sep = "/")
+rm(crnt_yr2)
 crnt_qtr <- gsub("[0-9]*\\ Q", "Quarter ", crnt_date, perl = TRUE)
 
 # Create a variable for storing the previous financial year
-prev_fin_yr <- crnt_fin_yr - 1
-crnt_fin_yr <- substr(crnt_fin_yr,3,4) 
-prev_fin_yr <- paste(prev_fin_yr, crnt_fin_yr, sep = "/")
+prev_fin_yr <- crnt_yr - 1
+crnt_yr <- substr(crnt_yr, 3, 4) 
+prev_fin_yr <- paste(prev_fin_yr, crnt_yr, sep = "/")
 
 # Unchanged data ---------------------------------------------------------
 

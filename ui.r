@@ -3,10 +3,13 @@ ui <- dashboardPage(skin = "blue",
                     dashboardHeader(title = "National Customer Survey Dashboard",
                                     titleWidth = 400),
 # Dashboard Sidebar --------------------------------------------------------
-                                    # LA selection (IS & SG only)
-                    dashboardSidebar(uiOutput("la_select"),
-                                     # KPO4 download button (IS & SG only)
-                                     uiOutput("KPO_data_dl"),
+                                    # KPO4 download button (IS & SG only)
+                    dashboardSidebar(uiOutput("KPO_data_dl"),
+                                     # LA selection (IS & SG only)
+                                     uiOutput("la_select"),
+                                     # Financial Year selection.
+                                     # Will only show if more than 1 year available
+                                     uiOutput("fin_yr"),
                                      sidebarMenu(menuItem("Performance Overview", 
                                                           tabName = "PrfOvr", 
                                                           icon = icon("dashboard")
@@ -70,14 +73,14 @@ ui <- dashboardPage(skin = "blue",
                                               # Respondents type graph
                                               tabPanel("Type",
                                                        plotlyOutput("resp_type_graph_overview",
-                                                                    height = "60vh"
+                                                                    height = "55vh"
                                                                     ) %>%
                                                          withSpinner()
                                                        ),
                                               # Respondents reason graph
                                               tabPanel("Reason", 
                                                        plotlyOutput("resp_reason_graph_overview",
-                                                                    height = "60vh"
+                                                                    height = "55vh"
                                                                     )
                                                        )
                                               )
@@ -93,9 +96,9 @@ ui <- dashboardPage(skin = "blue",
                                                                       unique(pivot_dta$Indicator)
                                                                       ),
                                                           selected = "All Questions"
-                                                          ),
+                                                          )#,
                                               # Financial year selection
-                                              uiOutput("fin_yr")
+                                              #uiOutput("fin_yr")
                                               ),
                                        column(4,
                                               # Respondent type selection
