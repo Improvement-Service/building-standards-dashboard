@@ -545,11 +545,12 @@ function(input, output, session) {
   #function to get KPO by respondent type at Scotland level
   scot_resp_kpo <- function(resp_col){
     resp_col <- enquo(resp_col)
-    scot_max_sum_resp <- scot_max %>% group_by(`Tracking Link`, !!resp_col) %>%
+    scot_max_sum_resp <- scot_max %>% 
+      filter(!!resp_col == 1) %>%
+      group_by(`Tracking Link`,`Financial Year`) %>%
       summarise(across(c(maxAvailable,KPO4_weighted),sum, na.rm = T)) %>% 
       ungroup() %>%
-      filter(!!resp_col == 1) %>%
-      select(-!!resp_col)%>%
+      group_by(`Financial Year`)%>%
       bind_rows(summarise(.,across(where(is.numeric), sum),
                           across(where(is.character), ~"Total")))  %>%
       ##generate the KPO score (out of 10)    
@@ -559,25 +560,31 @@ function(input, output, session) {
   }
   
   ##calculate KPO4 for quarter for all results   
-  t <- scot_resp_kpo(resp_col = `Q1.1. Agent/Designer`)
+  scot_kpo_agent <- scot_resp_kpo(resp_col = `Q1.1. Agent/Designer`)
+  scot_kpo_applicant <- scot_resp_kpo(resp_col = `Q1.2. Applicant`)
+  scot_kpo_contractor <- scot_resp_kpo(resp_col = `Q1.3. Contractor`)
+  scot_kpo_other <- scot_resp_kpo(resp_col = `Q1.4. Other respondent`)
   
   #function to get KPO by respondent type at local authority level
   la_resp_kpo <- function(resp_col){
     resp_col <- enquo(resp_col)
-    la_max_sum <- scot_max %>% filter(`Local Authority Name` == council_fltr) %>%     
-      group_by(`Tracking Link`, !!resp_col) %>%
+    la_max_sum <- scot_max %>% 
+      filter(!!resp_col == 1) %>%
+      filter(`Local Authority Name` == council_fltr) %>%     
+      group_by(`Tracking Link`, `Financial Year`) %>%
       summarise(across(c(maxAvailable,KPO4_weighted),sum, na.rm = T)) %>% 
       ungroup()%>%
-      filter(!!resp_col == 1) %>%
-      select(-!!resp_col)%>%
+      group_by(`Financial Year`)%>%
       bind_rows(summarise(.,across(where(is.numeric), sum),
                           across(where(is.character), ~"Total")))  %>%
       ##generate the KPO score (out of 10)    
       mutate(KPO_score = round((1-KPO4_weighted/maxAvailable)*10,1))
   }
   ##calculate KPO4 for quarter for selected local authority    
-  y <- la_resp_kpo(resp_col = `Q1.1. Agent/Designer`)
-  
+  la_kpo_agent <- la_resp_kpo(resp_col = `Q1.1. Agent/Designer`)
+  la_kpo_applicant <- la_resp_kpo(resp_col = `Q1.2. Applicant`)
+  la_kpo_contractor <- la_resp_kpo(resp_col = `Q1.3. Contractor`)
+  la_kpo_other <- la_resp_kpo(resp_col = `Q1.4. Other respondent`)  
   
 # Create KPO4 download ---------------------------------------------------
   
