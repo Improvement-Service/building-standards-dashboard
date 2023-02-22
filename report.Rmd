@@ -5,6 +5,7 @@ fontsize: 13pt
 params:
   time_data: NA
   la: NA
+  year: NA
   type_data: NA
   reason_data: NA
   respondent_data: NA
@@ -18,12 +19,12 @@ params:
   overall_data: NA
 ---
 
-```{r echo = F}
+```{r echo = FALSE}
 library(knitr)
-opts_chunk$set(tidy.opts=list(width.cutoff=60),tidy=TRUE)
+opts_chunk$set(tidy.opts = list(width.cutoff = 60), tidy = TRUE)
 ```
 
-```{r echo = F}
+```{r echo = FALSE}
 # The `params` object is available in the document.
 kpo_data <- params$kpo_data
 type_data <- params$type_data
@@ -38,564 +39,821 @@ responsive_data <- params$responsive_data
 fair_data <- params$fair_data
 overall_data <- params$overall_data
 la <- params$la
+year <- params$year
 ```
 
 ## KPO 4 Score
-```{r echo=FALSE, comment= ""}
-## Set up text for KPO4 
-kpo_data1 <- kpo_data %>% filter(`Tracking Link` == "Total")
-local_auth <- la
-     curr_year <- fin_yr
-     KPO4_ytd <- kpo_data1 %>% filter(id == la) %>% pull(KPO_score)
-     hilow_kpo4 <- ifelse(KPO4_ytd > 7.5, "higher than", ifelse(KPO4_ytd < 7.5, "lower than", "equal to"))
-     scotAv_kpo4 <- kpo_data1 %>% filter(id == "Scotland") %>% pull(KPO_score)
-     abbel_kpo4 <- ifelse(KPO4_ytd > scotAv_kpo4, "higher than", ifelse(KPO4_ytd < scotAv_kpo4, "lower than", "equal to"))
+```{r echo = FALSE, comment = ""}
+# Set up text for KPO4 
+# Store the number of financial years available for council
+all_kpo_data <- kpo_data
+Years <- all_kpo_data %>% filter(id == la)
+Years <- length(unique(Years$`Financial Year`))
+# Filter the data depending on number of years
+# If only one use year available, otherwise use current financial year
+kpo_data1 <- if (Years > 1) {
+  kpo_data %>% 
+  filter(`Tracking Link` == "Total" & `Financial Year` == crnt_fin_yr)
+} else {
+  kpo_data %>% 
+    filter(`Tracking Link` == "Total" & `Financial Year` == year)
+}
+# Council KPO4
+KPO4_ytd <- kpo_data1 %>% filter(id == la) %>% pull(KPO_score)
+# Scotland KPO4
+scotAv_kpo4 <- kpo_data1 %>% filter(id == "Scotland") %>% pull(KPO_score)
+# Compare council KPO4 values with Scotland and target to create 
+# reactive text values
+hilow_kpo4 <- ifelse(KPO4_ytd > 7.5, 
+                     "higher than", 
+                     ifelse(KPO4_ytd < 7.5, "lower than", "equal to")
+                     )
+abbel_kpo4 <- ifelse(KPO4_ytd > scotAv_kpo4, 
+                     "higher than", 
+                     ifelse(KPO4_ytd < scotAv_kpo4, 
+                            "lower than", 
+                            "equal to"
+                            )
+                     )
+# Store value for previous financial year
+KPO4_prev <- all_kpo_data %>% 
+  filter(`Tracking Link` == "Total" & `Financial Year` == prev_fin_yr)
+KPO4_prev <- KPO4_prev %>% filter(id == la) %>% pull(KPO_score)
+# Create text for comparison with previous year
+change_value <- KPO4_ytd - KPO4_prev
+change_text <- if_else(change_value < 0, "a decrease", "an increase")
      
+# Text for when there is only 1 financial year
+text_kpo <- paste0("This indicator summarises performance across all questions, with differential weightings based on importance. For ",
+la,
+" in ",
+year, 
+" overall performance is at ", 
+KPO4_ytd, 
+" for the year to date. This is ",
+abbel_kpo4,
+" the Scotland average of ", 
+scotAv_kpo4,
+" and ", 
+hilow_kpo4,
+" the target value of 7.5."
+)
+     
+# Text for when there are more than 1 financial years     
+text_multiple_kpo <- paste0("This indicator summarises performance across all questions, with differential weightings based on importance. For ", 
+la,
+" in ",
+crnt_fin_yr, 
+" overall performance is at ", 
+KPO4_ytd, 
+" for the year to date. This reflects ", 
+change_text,
+" of ", 
+change_value, 
+" points from the performance of ", 
+KPO4_prev, 
+" in ", 
+prev_fin_yr, 
+". The year to date performance of ", 
+la, 
+" in ", 
+crnt_fin_yr, 
+" is ", 
+abbel_kpo4,
+" the Scotland average of ", 
+scotAv_kpo4,
+" and ", 
+hilow_kpo4,
+" the target value of 7.5."
+)
 ```
 
-This indicator summarises performance across all questions, with differential weightings based on importance. For `r la` in `r curr_year`, overall performance is at `r KPO4_ytd` for the year to date. This is `r abbel_kpo4` the Scotland average of `r scotAv_kpo4` and `r hilow_kpo4` the target value of 7.5.  
+`r ifelse(Years > 1, text_multiple_kpo, text_kpo)`
 
 
-```{r echo = F}
+```{r echo = FALSE}
+# Create graph for KPO4 YTD
      
 kpo_data1 <- kpo_data %>% filter(`Tracking Link` == "Total")
-
 # Set the council values as a factor so the data can be arranged to have the council first regardless of alphabetical order
-     kpo_data1$id <- factor(kpo_data1$id, levels = c(la, "Scotland"))
+kpo_data1$id <- factor(kpo_data1$id, levels = c(la, "Scotland"))
+kpo_data1 <- arrange(kpo_data1, id)
      
-     # arrange the data and store order of colours
-     kpo_data1 <- arrange(kpo_data1, id)
-
+# Store number of years to determine the number of reps for colours of bars
+Years <- length(unique(kpo_data1$`Financial Year`))
 ggplot(data = kpo_data1,
-            aes(
-         x = `Tracking Link`, 
-         y = KPO_score, 
-         fill = id)
-         ) +
-       geom_bar( 
-         stat = "identity", 
-         position = "dodge",
-         width = 0.7,
-         colour = "black") +
+       aes(x = `Financial Year`, 
+           y = KPO_score, 
+           fill = id
+           )
+       ) +
+  geom_bar(stat = "identity", 
+           position = "dodge",
+           width = 0.7,
+           colour = "black") +
   geom_text(aes(label = KPO_score, y = KPO_score + 0.8), 
-                 vjust = 0,
-                 position = position_dodge(width = 0.9) 
-                 )+
-  scale_y_continuous(limits = c(0,11), expand = expansion(mult = c(0, 0.1)))+
-  scale_fill_manual(
-    values = c("cadetblue3", "dimgrey"),
-    name = ""
-    )+
-  ggtitle("KPO 4 score - Year to Date")+
+            vjust = 0,
+            position = position_dodge(width = 0.9) 
+            ) +
+  scale_y_continuous(limits = c(0, 11), 
+                     expand = expansion(mult = c(0, 0.1))
+                     ) +
+  scale_fill_manual(values = rep(c("cadetblue3", "dimgrey"), Years),
+                    name = ""
+                    ) +
+  ggtitle("KPO 4 score - Year to Date") +
   xlab("") +
-  ylab("KPO 4 Score")+
+  ylab("KPO 4 Score") +
   theme_classic()
 ```
 \newpage
 
 # Respondent Type
-```{r echo=FALSE, comment= ""}
+```{r echo = FALSE, comment = ""}
 # Set up text for respondent type
 type_dta_filter <- respondent_data %>% filter(question_type == "Type") 
-     #get total responses for using as percentage denominator
-     type_number <- type_dta_filter %>% 
-       ungroup() %>% 
-       filter(Question == "Agent/Designer") %>% 
-       summarise_at(vars(`n`), sum) %>%
-       select(`n`)
-     #create variables for percentages for different groups
-     agent_perc <- round(type_dta_filter[type_dta_filter$Question == "Agent/Designer" & type_dta_filter$value == 1 ,"perc"] *100, 1) %>% pull(perc)
-     appli_perc <- round(type_dta_filter[type_dta_filter$Question == "Applicant" & type_dta_filter$value == 1 ,"perc"] *100, 1) %>% pull(perc)
-     contr_perc <- round(type_dta_filter[type_dta_filter$Question == "Contractor" & type_dta_filter$value == 1 ,"perc"] *100, 1) %>% pull(perc)
-     type_other_perc <- round(type_dta_filter[type_dta_filter$Question == "Other" & type_dta_filter$value == 1 ,"perc"] *100, 1) %>% pull(perc)
-     #if any are 0 then replace with "none"
-     agent_perc <-ifelse(isEmpty(agent_perc), "none", paste0(agent_perc,"%"))
-     appli_perc <-ifelse(isEmpty(appli_perc), "none", paste0(appli_perc,"%"))
-     contr_perc <-ifelse(isEmpty(contr_perc), "none", paste0(contr_perc,"%"))
-     type_other_perc <- ifelse(isEmpty(type_other_perc), "No respondents", paste0(type_other_perc, "%"))
+# Get total responses for referencing the percentage denominator
+type_number <- type_dta_filter %>% 
+  group_by(Question) %>%
+  summarise_at(vars(`n`),sum)
+type_number <- type_number[1, 2]
+# Create variables for percentages for different groups
+agent_perc <- type_dta_filter[type_dta_filter$Question == "Agent/Designer" & type_dta_filter$value == 1 ,"perc"] %>% 
+  pull(perc)
+appli_perc <- type_dta_filter[type_dta_filter$Question == "Applicant" & type_dta_filter$value == 1 ,"perc"] %>% 
+  pull(perc)
+contr_perc <- type_dta_filter[type_dta_filter$Question == "Contractor" & type_dta_filter$value == 1 ,"perc"] %>% 
+  pull(perc)
+type_other_perc <- type_dta_filter[type_dta_filter$Question == "Other" & type_dta_filter$value == 1 ,"perc"] %>% 
+  pull(perc)
+# If any are 0 then replace with "none"
+agent_perc <- ifelse(isEmpty(agent_perc), "none", paste0(agent_perc, "%"))
+appli_perc <- ifelse(isEmpty(appli_perc), "none", paste0(appli_perc, "%"))
+contr_perc <- ifelse(isEmpty(contr_perc), "none", paste0(contr_perc, "%"))
+type_other_perc <- ifelse(isEmpty(type_other_perc), 
+                          "No respondents", 
+                          paste0(type_other_perc, "%"))
 ```
 
   
-Respondents were asked to provide details on the type of respondent they were, as well as their reason for contacting the Building Standards Service in `r la`. Of the `r type_number` respondents `r agent_perc` were agents or designers, `r appli_perc` were applicants and `r contr_perc` were contractors. `r type_other_perc` said they were an other respondent type.  
+Respondents were asked to provide details on the type of respondent they were, as well as their reason for contacting the Building Standards Service in `r la`. Of the `r type_number` respondents in `r year` `r agent_perc` were agents or designers, `r appli_perc` were applicants and `r contr_perc` were contractors. `r type_other_perc` said they were an other respondent type.  
 
 
-```{r echo = F}
-ggplot(data = type_data,
-       aes(x = Question, y = perc)) +
-        geom_col(fill = "cadetblue3", 
-                 colour = "black"
-                 )+
-    geom_text(aes(label = perc, y = perc + 2.5), 
-                 vjust = 0,
-                 position = position_dodge(width = 0.9) 
-                 )+
-        coord_flip() +
-        theme_classic()+
-        scale_y_continuous(expand = expansion(mult = c(0, 0.1)))+
-        ggtitle("Respondent Type: YTD")+
-        xlab("Respondent Type")+
-        ylab("Percentage of Responses")
+```{r echo = FALSE}
+ggplot(data = type_data, aes(x = Question, y = perc)) +
+  geom_col(fill = "cadetblue3", colour = "black") +
+  geom_text(aes(label = perc, y = perc + 2.5), 
+            vjust = 0,
+            position = position_dodge(width = 0.9) 
+            ) +
+  coord_flip() +
+  theme_classic() +
+  scale_y_continuous(expand = expansion(mult = c(0, 0.1))) +
+  ggtitle(paste("Respondent Type: \nYear to Date", year)) +
+  xlab("Respondent Type") +
+  ylab("Percentage of Responses")
 ```
 \newpage
 
 # Response Reason
-```{r echo=FALSE, comment= ""}
+```{r echo= FALSE, comment = ""}
 # Set up text for response reason
-     resp_dta_filter <- respondent_data %>% filter(question_type == "Reason") 
-     ##Get a total no. of respondents for working out percentages
-     resp_number <- resp_dta_filter %>% 
-       ungroup() %>% 
-       filter(Question == "To make an application for a building warrant") %>% 
-       summarise_at(vars(`n`), sum) %>%
-       select(`n`)
-     #Calculate percentages for each response type
-     discuss_perc <- round(resp_dta_filter[resp_dta_filter$Question == "To discuss your proposal before applying for a building warrant" & resp_dta_filter$value == 1 ,"perc"] *100, 1) %>% pull(perc)
-     appli_perc <- round(resp_dta_filter[resp_dta_filter$Question == "To make an application for a building warrant" & resp_dta_filter$value == 1 ,"perc"] *100, 1) %>% pull(perc)
-     constr_perc <- round(resp_dta_filter[resp_dta_filter$Question == "During construction, including submission of a completion certificate" & resp_dta_filter$value == 1 ,"perc"] *100, 1) %>% pull(perc)
-     other_perc <- round(resp_dta_filter[resp_dta_filter$Question == "Other" & resp_dta_filter$value == 1 ,"perc"] *100, 1) %>% pull(perc)
+resp_dta_filter <- respondent_data %>% filter(question_type == "Reason") 
+# Get total responses for referencing the percentage denominator
+resp_number <- resp_dta_filter %>% 
+  group_by(Question) %>%
+  summarise_at(vars(`n`), sum)
+resp_number <- resp_number[1, 2]
+# Calculate percentages for each response type
+discuss_perc <- resp_dta_filter[resp_dta_filter$Question == "To discuss your proposal before applying for a building warrant" & 
+                                  resp_dta_filter$value == 1, "perc"] %>% 
+  pull(perc)
+appli_perc <- resp_dta_filter[resp_dta_filter$Question == "To make an application for a building warrant" & 
+                                resp_dta_filter$value == 1 ,"perc"] %>%
+  pull(perc)
+constr_perc <- resp_dta_filter[resp_dta_filter$Question == "During construction, including submission of a completion certificate" &
+                                 resp_dta_filter$value == 1 ,"perc"] %>% 
+  pull(perc)
+other_perc <- resp_dta_filter[resp_dta_filter$Question == "Other" &
+                                resp_dta_filter$value == 1 ,"perc"] %>%
+  pull(perc)
      
-     #if any are 0 then replace with "none"
-     discuss_perc <-ifelse(isEmpty(discuss_perc), "none", paste0(discuss_perc,"%"))
-     appli_perc <-ifelse(isEmpty(appli_perc), "none", paste0(appli_perc,"%"))
-     constr_perc <-ifelse(isEmpty(constr_perc), "none", paste0(constr_perc,"%"))
-     other_perc <- ifelse(isEmpty(other_perc), "No respondents", paste0(other_perc, "%"))
-     
+# If any are 0 then replace with "none"
+discuss_perc <- ifelse(isEmpty(discuss_perc), 
+                       "none", 
+                       paste0(discuss_perc,"%")
+                       )
+appli_perc <- ifelse(isEmpty(appli_perc), "none", paste0(appli_perc, "%"))
+constr_perc <- ifelse(isEmpty(constr_perc), "none", paste0(constr_perc, "%"))
+other_perc <- ifelse(isEmpty(other_perc), 
+                     "No respondents", 
+                     paste0(other_perc, "%")
+                     )
 ```
 
   
-Respondents were asked to provide details on the type of respondent they were, as well as their reason for contacting the Building Standards Service in `r la`. Of the `r resp_number` respondents, `r discuss_perc` contacted the local authority to discuss their proposal before applying for a building warrant, `r appli_perc` were making an application for a warrant and `r constr_perc` contacted the service during construction. `r other_perc` contacted the service for some other reason.  
+Respondents were asked to provide details on the type of respondent they were, as well as their reason for contacting the Building Standards Service in `r la`. Of the `r resp_number` respondents in, `r year`, `r discuss_perc` contacted the local authority to discuss their proposal before applying for a building warrant, `r appli_perc` were making an application for a warrant and `r constr_perc` contacted the service during construction. `r other_perc` contacted the service for some other reason.  
 
 
-```{r echo = F}
-ggplot(data = reason_data,
-       aes(x = Question, 
-          y = perc)
-       ) +
-        geom_col(fill = "cadetblue3", colour = "black")+
+```{r echo = FALSE}
+ggplot(data = reason_data,aes(x = Question, y = perc)) +
+  geom_col(fill = "cadetblue3", colour = "black") +
   geom_text(aes(label = perc, y = perc + 2.5), 
-                 vjust = 0,
-                 position = position_dodge(width = 0.9) 
-                 )+
-        coord_flip() +
-        theme_classic()+
-        scale_y_continuous( expand = expansion(mult = c(0, 0.1)))+
-         ggtitle("Response Reason:YTD")+
-         xlab("Reason")+
-         ylab("Percentage of Responses")
+            vjust = 0,
+            position = position_dodge(width = 0.9) 
+            ) +
+  coord_flip() +
+  theme_classic() +
+  scale_y_continuous(expand = expansion(mult = c(0, 0.1))) +
+  ggtitle(paste("Response Reason: \nYear to Date", year)) +
+  xlab("Reason") +
+  ylab("Percentage of Responses")
 ```
 \newpage
 
 # KPO 4 Over Time
-```{r echo=FALSE, comment= ""}
-#get the number of quarters for rendering the text
-     no_quarts <- length(unique(dta$`Tracking Link`[dta$`Local Authority Name` == la]))
+```{r echo = FALSE, comment = ""}
+# Store the number of financial years available for council
+Years <- kpo_data %>% filter(id == la)
+Years <- length(unique(Years$`Financial Year`))
+Years <- if_else(Years > 1, crnt_fin_yr, year)
+# Filter to quarters, selected council and current financial year
+kpo_data1 <- kpo_data %>% 
+  filter(`Tracking Link` != "Total",
+         `Financial Year` == Years,  
+         id == la
+         ) %>% 
+  ungroup()
+     
+# Set the quarter labels as a factor to ensure they stay in order
+QLabels <- unique(kpo_data1$`Tracking Link`)
+kpo_data1$`Tracking Link` <- factor(kpo_data1$`Tracking Link`, 
+                                    levels = QLabels
+                                    )
+     
+# Store the names of the quarters by position (can't just reference by quarter number as some councils may have data missing).
+# If there is a quarter missing the position will be empty
+first_Q <- kpo_data1$`Tracking Link`[[1]]
+second_Q <- if (length(QLabels) > 1) {
+  kpo_data1$`Tracking Link`[[2]]
+} else {
+    0
+  }
+third_Q <- if (length(QLabels) > 2) {
+  kpo_data1$`Tracking Link`[[3]]
+} else {
+    0
+  }
+fourth_Q <- if (length(QLabels) > 3) {
+  kpo_data1$`Tracking Link`[[4]]
+} else {
+    0
+  }
     
-    #filter to get KPO for quarter 1
-    Q1_kpo <- kpo_data %>% filter(`Tracking Link` == "Quarter 1", id == la) %>%
-      pull(KPO_score)
-    #render text for quarter 1
-    Q1_text<- paste0("In Quarter 1 performance for KPO 4 calculated across all responses for all questions was ",
-                      Q1_kpo,". ")
-    #filter to get KPO for quarter 2
-    Q2_kpo <- kpo_data %>% filter(`Tracking Link` == "Quarter 2", id == la) %>%
-      pull(KPO_score)
-    #compare quarter 2 and quarter 1
-    comp_Q12 <- tryCatch({ifelse(Q2_kpo > Q1_kpo+0.2, "rose", ifelse(Q2_kpo < Q1_kpo-0.2, "fell", "stayed the same "))},error =function(error_message){""})
-    #render text for quarter 2                   
-    Q2_text<- paste0(Q1_text,"Performance then ", comp_Q12,
-            " in Quarter 2 to stand at ", Q2_kpo)
-    
-    #filter to get KPO for quarter 3
-    Q3_kpo <- kpo_data %>% filter(`Tracking Link` == "Quarter 3", id == la) %>%
-      pull(KPO_score)
-    #compare quarter 3 and quarter 2 - ignore if error occurs
-    comp_Q23 <- tryCatch({ifelse(Q3_kpo > Q2_kpo+0.2, "higher than", ifelse(Q3_kpo < Q2_kpo-0.2, "lower than", "the same as"))},error =function(error_message){""})
-    #render text for quarter 3                   
-    Q3_text<- paste0(Q2_text,". In Quarter 3 performance was ", comp_Q23,
-                     " Quarter 2 at ", Q3_kpo)
-    
-    #filter to get KPO for quarter 4
-    Q4_kpo <- kpo_data %>% filter(`Tracking Link` == "Quarter 4", id == la) %>%
-      pull(KPO_score)
-    #compare quarter 4 and quarter 3 - ignore if error occurs
-    comp_Q34 <- tryCatch({ifelse(Q4_kpo > Q3_kpo+0.2, "higher than", ifelse(Q4_kpo < Q3_kpo-0.2, "lower than", "the same as"))},error =function(error_message){""})
-    #render text for quarter 4                   
-    Q3_text<- paste0(Q3_text, ". In Quarter 4 performance was ", comp_Q34,
-                     " Quarter 3, and stands at ", Q4_kpo)
-    
-    final_text <- ifelse(no_quarts == 1, Q1_text, ifelse(no_quarts == 2, Q2_text, ifelse(no_quarts == 3, Q3_text, Q4_text)))
-    
+# Filter to get KPO for first quarter available
+Q1_kpo <- kpo_data1 %>% 
+  filter(`Tracking Link` == first_Q) %>%
+  select(KPO_score)
+# Render text for quarter 1
+Q1_text <- paste0("In ", 
+                  first_Q,
+                  " ",
+                  Years,
+                  " performance for KPO 4 calculated across all responses for all questions was ",
+                  Q1_kpo,
+                  " for ", 
+                  la,
+                  ". "
+                  )
+# Filter to get KPO for second quarter available
+Q2_kpo <- kpo_data1 %>% 
+  filter(`Tracking Link` == second_Q) %>%
+  select(KPO_score)
+# Compare quarter 2 and quarter 1
+comp_Q12 <- tryCatch({
+  ifelse(Q2_kpo > Q1_kpo + 0.2, 
+         "rose", 
+         ifelse(Q2_kpo < Q1_kpo - 0.2, "fell", "stayed the same")
+         )
+  },
+  error = function(error_message) {""}
+  )
+# Render text for when there are 2 quarters                 
+Q2_text <- paste0(Q1_text,
+                  "Performance then ", 
+                  comp_Q12,
+                  " in ", 
+                  second_Q, 
+                  " to stand at ", 
+                  Q2_kpo, 
+                  "."
+                  )
+# Filter to get KPO for third quarter available
+Q3_kpo <- kpo_data1 %>% 
+  filter(`Tracking Link` == third_Q) %>%
+  select(KPO_score)
+# Compare third & second quarter available - ignore if error occurs
+comp_Q23 <- tryCatch({
+  ifelse(Q3_kpo > Q2_kpo + 0.2, 
+         "higher than", 
+         ifelse(Q3_kpo < Q2_kpo - 0.2, "lower than", "the same as")
+         )
+  }, 
+  error = function(error_message) {""}
+  )
+# Render text for when there are 3 quarters                    
+Q3_text <- paste0(Q2_text,
+                  " In ", 
+                  third_Q, 
+                  " performance was ", 
+                  comp_Q23,
+                  " ", 
+                  second_Q,
+                  " at ", 
+                  Q3_kpo,
+                  "."
+                  )
+# Filter to get KPO for fourth quarter available  
+Q4_kpo <- kpo_data1 %>% 
+  filter(`Tracking Link` == fourth_Q) %>%
+  select(KPO_score)
+# Compare fourth and third quarter available - ignore if error occurs
+comp_Q34 <- tryCatch({
+  ifelse(Q4_kpo > Q3_kpo + 0.2, 
+         "higher than", 
+         ifelse(Q4_kpo < Q3_kpo - 0.2, "lower than", "the same as")
+         )
+  },
+  error = function(error_message) {""}
+  )
+# Render text for when there are four quarters                    
+Q4_text<- paste0(Q3_text, 
+                 " In ", 
+                 fourth_Q,
+                 " performance was ", 
+                 comp_Q34,
+                 " ",
+                 third_Q,
+                 " and stands at ",
+                 Q4_kpo, 
+                 "."
+                 )
+# Select what text to include based on the no. of quarters available     
+main_text <- ifelse(length(QLabels) == 1, 
+                    Q1_text, 
+                    ifelse(length(QLabels) == 2, 
+                           Q2_text, 
+                           ifelse(length(QLabels) == 3, 
+                                  Q3_text, 
+                                  Q4_text
+                                  )
+                           )
+                    )
+# If there is data for more than 1 financial year compare most recent quarter with same quarter in previous year
+extra_data <- kpo_data
+# Filter to current quarter and selected council
+extra_data <- extra_data %>% 
+  filter(`Tracking Link` == crnt_qtr, id == la)
+# Store values for current financial year and previous financial year
+first_fin_yr <- if (length(extra_data$`Tracking Link`) > 1) {
+  filter(extra_data, `Financial Year` == prev_fin_yr) %>%
+    ungroup() %>%
+    select(KPO_score)
+  } else {
+    0
+    }
+second_fin_yr <- if (length(extra_data$`Tracking Link`) > 1) {
+  filter(extra_data, `Financial Year` == Years) %>%
+    ungroup() %>%
+    select(KPO_score)
+} else {
+    0
+  }
+# Compare values and create text
+extra_comp <- tryCatch({
+  ifelse(second_fin_yr > first_fin_yr + 0.2, 
+         " higher than in ", 
+         ifelse(second_fin_yr < first_fin_yr - 0.2, 
+                " lower than in ",
+                " the same as in "
+                )
+         )
+  }, error = function(error_message) {""}
+  )
+extra_comp_value <- ifelse(extra_comp == " the same as in ",
+                           "", 
+                           second_fin_yr - first_fin_yr
+                           )
+extra_text <- paste0("KPO 4 performance in ", 
+                     crnt_qtr, 
+                     " ", 
+                     Years, 
+                     " was ", 
+                     extra_comp_value, 
+                     extra_comp,
+                     crnt_qtr, 
+                     " ",
+                     prev_fin_yr,
+                     "."
+                     )
+# Number of years
+no_years <- length(unique(extra_data$`Financial Year`))
+# Select which text is shown based on the no. of years available
 ```    
     
-`r ifelse(no_quarts == 1, Q1_text, ifelse(no_quarts == 2, Q2_text, ifelse(no_quarts == 3, Q3_text, Q4_text)))`
+`r ifelse(no_years > 1, paste(main_text, extra_text), main_text)`
     
-```{r echo = F}
-
+```{r echo = FALSE}
 # Set the council values as a factor so the data can be arranged to have the council first regardless of alphabetical order
 line_data$LA <- factor(line_data$LA, levels = c(la, "Scotland"))
-
-# arrange the data and store order of colours
-line_data <- arrange(line_data,LA)
-
+# Add Financial year to quarter labels
+line_data$`Tracking Link` <- gsub("Quarter\\ ",
+                                  "Q",
+                                  line_data$`Tracking Link`, 
+                                  perl = TRUE
+                                  )
+line_data$Label <- paste(line_data$`Tracking Link`, 
+                         line_data$`Financial Year`, 
+                         sep = " "
+                         )
+line_data$`Tracking Link` <- gsub("Q",
+                                  "",
+                                  line_data$`Tracking Link`, 
+                                  perl = TRUE
+                                  )
+# Arrange the data to set the order of colours
+line_data <- arrange(line_data, `Financial Year`, `Tracking Link`, LA)
+      
+# Set the date labels as a factor to ensure they stay in order
+QLabels <- unique(line_data$Label)
+line_data$Label <- factor(line_data$Label, levels = QLabels)
 ```
   
   
-```{r, eval = length(line_data$`Tracking Link`[line_data$LA == la]) > 1, echo = F}
-
+```{r, eval = length(line_data$LA[line_data$LA == la]) > 1, echo = FALSE}
+# The above test whether there is more than one data point available for the council and will only evaluate the code below if this is TRUE
 ggplot(data = line_data,
-       aes(x = `Tracking Link`, 
-         y = KPO_score, 
-         group = LA, 
-         colour = LA)
+       aes(x = Label, y = KPO_score, group = LA, colour = LA)
        ) +
-       geom_line(lwd = 1)+
+  geom_line(lwd = 1) +
   geom_text(aes(label = KPO_score, y = KPO_score + 0.1), 
-                 vjust = 0,
-                 position = position_dodge(width = 0),
+            vjust = 0,
+            position = position_dodge(width = 0),
             show.legend = FALSE
-                 )+
-       scale_color_manual( 
-            values = c("cadetblue3", "dimgrey"), name = "")+
-       ggtitle("KPO 4 score - over time")+
-     #scale_y_continuous(limits = c(0,11), expand = expansion(mult = c(0, 0.1)))+
-       xlab("")+
-       ylab("KPO 4 Score")+
-       theme_classic()
-  
+            ) +
+  scale_x_discrete(breaks = function(x){x[c(TRUE, FALSE)]}) +
+  scale_color_manual(values = c("cadetblue3", "dimgrey"), name = "") +
+  ggtitle("KPO 4 score - over time") +
+  xlab("") +
+  ylab("KPO 4 Score") +
+  theme_classic()
 ```
   
   
-```{r, eval = length(line_data$`Tracking Link`[line_data$LA == la]) < 2, echo = F}
-
+```{r, eval = length(line_data$LA[line_data$LA == la]) < 2, echo = F}
+# The above test whether there is only one data point available for the council and will only evaluate the code below if this is TRUE
+# Pulls out quarter and financial year available for selected council
+# There may be more than one quarter for Scotland so need to filter so that's not included
+qrtr_available <- line_data$`Tracking Link`[line_data$LA == la]
+year_available <- line_data$`Financial Year`[line_data$LA == la]
+      
+line_data <- line_data %>% 
+  filter(`Tracking Link` == qrtr_available, 
+         `Financial Year` == year_available
+         )
 ggplot(data = line_data,
        aes(x = `Tracking Link`, 
-         y = KPO_score, 
-         fill = LA)
+           y = KPO_score, 
+           fill = LA
+           )
        ) +
-       geom_bar(stat = "identity",
+  geom_bar(stat = "identity",
            position = "dodge",
            width = 0.7, 
-           colour = "black")+
+           colour = "black"
+           ) +
   geom_text(aes(label = KPO_score, y = KPO_score + 0.8), 
-                 vjust = 0,
-                 position = position_dodge(width = 0.9)
-                 )+
-scale_y_continuous(limits = c(0,11), expand = expansion(mult = c(0, 0.1)))+
-       scale_fill_manual( 
-            values = c("cadetblue3", "dimgrey"), name = "")+
-       ggtitle("KPO 4 score - over time")+
-       xlab("")+
-       ylab("KPO 4 Score")+
-       theme_classic()
-
+            vjust = 0,
+            position = position_dodge(width = 0.9)
+            ) +
+  scale_y_continuous(limits = c(0,11), 
+                     expand = expansion(mult = c(0, 0.1))
+                     ) +
+  scale_fill_manual(values = c("cadetblue3", "dimgrey"), name = "") +
+  ggtitle("KPO 4 score - over time") +
+  xlab("") +
+  ylab("KPO 4 Score") +
+  theme_classic()
 ```
 \newpage
 
 # Individual Questions
 
 ## Time taken
-```{r echo=FALSE, comment= ""}
-##Set up for time taken graph and text
-#load data and split into Scotland and LA datasets
-     text_prep <- function(dataset){
-     qstnDta <- dataset
-     qstnDta_LA <- qstnDta %>% filter(Selection == la)
-     qstnDta_scot<- qstnDta %>% filter(Selection == "Scotland")
-     #get total percentage good or very good 
-     total_good <- filter(qstnDta_LA, value %in% c(1,2) & Selection == la) %>% pull(perc_resp) %>%
-       sum()
-     #if this is above 55% then overall is positive, otherwise negative/balances
-     pos_or_neg <- ifelse(total_good > 55, "mainly positive", ifelse(total_good < 45, "mainly negative", "balanced"))
-     
-     # add "only" to the % positive if this is below 45
-     if(total_good < 45) {
-       total_good <- paste("only", total_good)
-     } else{
-       total_good <- total_good
-     }
-     
-     #get the name for the maximum value in LA dataset. If more than one paste these together
-     max_name <- as.character(qstnDta_LA %>% filter(n == max(n)) %>% pull(named_value))
-     if(length(max_name >1)){
-       max_name <- paste(max_name, collapse = " & ")
-     }
-     #Get the pecentage for the highest response and paste together if multiple
-     max_perc <- qstnDta_LA %>% filter(n == max(n)) %>% pull(perc_resp)
-     if(length(max_perc) >1){
-       max_perc <- paste(paste(max_perc, collapse = " & "), "percent respectively.")
-     } else{
-       max_perc <- paste0(max_perc, " percent.")
-     }
-     
-     #Get second highest value
-     sec_val <- sort(qstnDta_LA$n, partial= 3)[3]
-     #Filter for second highest value's name
-     sec_name <- qstnDta_LA %>% filter(n == sec_val) %>% pull(named_value)
-     if(length(sec_name) >1){
-       sec_name <- paste(sec_name, collapse = " & ")
-     }
-     
-     #Filter for second highest value's value
-     sec_perc <- qstnDta_LA %>% filter(n == sec_val) %>% pull(perc_resp)
-     if(length(sec_perc) >1){
-       sec_perc <- paste(paste(sec_perc, collapse = " & "), "percent respectively.")
-     }else{
-       sec_perc <- paste0(sec_perc, " percent.")
-     }
-     
-     #get most frequent response for Scotland
-     scot_max_name <- as.character(qstnDta_scot %>% filter(n == max(n)) %>% pull(named_value))
-     
-     if(length(scot_max_name) >1){
-       scot_max_name <- paste(scot_max_name, collapse = " & ")
-     }
-     #get percentage for most frequent Scotland level response
-     scot_max_perc <- qstnDta_scot %>% filter(n == max(n)) %>% pull(perc_resp)
-     if(length(scot_max_perc) >1){
-       scot_max_perc <- paste(paste(scot_max_perc, collapse = " & "), "percent respectively.")
-     } else{
-       scot_max_perc <- paste0(scot_max_perc, " percent.")
-     }
-     #assign all objects as specifically for this question dataset
-     objcts <- list(
-     pos_or_neg,
-     total_good,
-     max_name,
-     max_perc,
-     sec_name,
-     sec_perc,
-     sec_name,
-     sec_perc,
-     scot_max_name,
-     scot_max_perc)
-     
-     names(objcts) <- c("pos_or_neg","total_good","max_name", "max_perc","sec_name","sec_perc",
-     "sec_name","sec_perc", "scot_max_name", "scot_max_perc")
-     return(objcts)
-     }
-
+```{r echo = FALSE, comment= ""}
+# Create function for preparing text values for individual questions
+text_prep <- function(dataset) {
+  # Load data and split into Scotland and LA datasets
+  qstnDta <- dataset
+  qstnDta_LA <- qstnDta %>% filter(Selection == la)
+  qstnDta_scot <- qstnDta %>% filter(Selection == "Scotland")
+  # Get total percentage positive
+  total_good <- filter(qstnDta_LA, value %in% c(1,2) & Selection == la) %>%
+    pull(perc_resp) %>%
+    sum()
+  # If this is above 55% then overall is positive, If less than 45% negative,   otherwise balanced
+  pos_or_neg <- ifelse(total_good > 55, 
+                       "mainly positive", 
+                       ifelse(total_good < 45, 
+                              "mainly negative", 
+                              "balanced"
+                              )
+                       )
+  # Add "only" to the % positive if this is below 45
+  if (total_good < 45) {
+    total_good <- paste("only", total_good)
+  } else {
+    total_good <- total_good
+    }
+  
+  # Get the name for the maximum value in LA dataset. 
+  # If more than one paste these together
+  max_name <- as.character(qstnDta_LA %>% 
+                             filter(n == max(n)) %>%
+                             pull(named_value)
+                           )
+  if (length(max_name > 1)) {
+    max_name <- paste(max_name, collapse = " & ")
+  }
+  # Get the percentage for the highest response and paste together if 
+  # multiple
+  max_perc <- qstnDta_LA %>% 
+    filter(n == max(n)) %>% 
+    pull(perc_resp)
+  if (length(max_perc) > 1) {
+    max_perc <- paste(paste(max_perc, collapse = " & "), 
+                      "percent respectively."
+                      )
+    } else {
+      max_perc <- paste0(max_perc, " percent.")
+      }
+  # Get second highest value
+  sec_val <- sort(qstnDta_LA$n, partial = 3)[3]
+  # Filter for second highest value's name
+  sec_name <- qstnDta_LA %>% 
+    filter(n == sec_val) %>% 
+    pull(named_value)
+  if (length(sec_name) > 1) {
+    sec_name <- paste(sec_name, collapse = " & ")
+    }
+  # Filter for second highest value's value
+  sec_perc <- qstnDta_LA %>% 
+    filter(n == sec_val) %>% 
+    pull(perc_resp)
+  if (length(sec_perc) > 1) {
+    sec_perc <- paste(paste(sec_perc, collapse = " & "), 
+                      "percent respectively."
+                      )
+    } else {
+      sec_perc <- paste0(sec_perc, " percent.")
+      }
+  
+  # Get most frequent response for Scotland
+  scot_max_name <- as.character(qstnDta_scot %>% 
+                                  filter(n == max(n)) %>% 
+                                  pull(named_value)
+                                )
+  if (length(scot_max_name) > 1) {
+    scot_max_name <- paste(scot_max_name, collapse = " & ")
+    }
+  # Get percentage for most frequent Scotland level response
+  scot_max_perc <- qstnDta_scot %>% 
+    filter(n == max(n)) %>% 
+    pull(perc_resp)
+  if (length(scot_max_perc) > 1) {
+    scot_max_perc <- paste(paste(scot_max_perc, collapse = " & "), 
+                           "percent respectively."
+                           )
+    } else {
+      scot_max_perc <- paste0(scot_max_perc, " percent.")
+      }
+  
+  # Assign all objects so they can be referenced in the question dataset
+  objcts <- list(pos_or_neg,
+                 total_good,
+                 max_name,
+                 max_perc,
+                 sec_name,
+                 sec_perc,
+                 sec_name,
+                 sec_perc,
+                 scot_max_name,
+                 scot_max_perc
+                 )
+  names(objcts) <- c("pos_or_neg",
+                     "total_good",
+                     "max_name", 
+                     "max_perc",
+                     "sec_name",
+                     "sec_perc",
+                     "sec_name",
+                     "sec_perc", 
+                     "scot_max_name", 
+                     "scot_max_perc"
+                     )
+  return(objcts)
+  }
+# Set up for time taken text
 tm <- text_prep(time_data)
 ```
-In this year for `r la` to date for the question "Thinking of your engagement, how satisfied were you with the time taken to complete the process?" responses have been `r tm$pos_or_neg` with `r tm$total_good` percent saying that they were very satisfied or satisfied. The greatest proportion of respondents said they were `r tm$max_name` at `r tm$max_perc` This was followed by `r tm$sec_name` at `r tm$sec_perc` For Scotland overall, most respondents said that they were `r tm$scot_max_name` at `r tm$scot_max_perc`  
+In the `r year` year to date for the question "Thinking of your engagement, how satisfied were you with the time taken to complete the process?" responses for `r la` have been `r tm$pos_or_neg` with `r tm$total_good` percent saying that they were very satisfied or satisfied. The greatest proportion of respondents said they were `r tm$max_name` at `r tm$max_perc` This was followed by `r tm$sec_name` at `r tm$sec_perc` For Scotland overall, most respondents said that they were `r tm$scot_max_name` at `r tm$scot_max_perc`  
 
-
-```{r echo = F}
-     ggplot(data = time_data,
-            aes(
-         x = named_value, 
-         y = perc_resp, 
-         fill = Selection)
-         ) +
-       geom_bar( 
-         stat = "identity", 
-         position = "dodge",
-         width = 0.7,
-         colour = "black") +
+```{r echo = FALSE}
+ggplot(data = time_data,
+       aes(x = named_value, y = perc_resp, fill = Selection)
+       ) +
+  geom_bar(stat = "identity", 
+           position = "dodge",
+           width = 0.7,
+           colour = "black"
+           ) +
   geom_text(aes(label = perc_resp, y = perc_resp + 1.2), 
-                 vjust = 0,
-                 position = position_dodge(width = 0.9) 
-                 )+
-  scale_fill_manual(
-    values = c("cadetblue3", "dimgrey"),
-    name = ""
-    )+
-  scale_y_continuous(expand = expansion(mult = c(0, 0.1)))+
-  ggtitle("Satisfaction with time taken - Year to Date")+
+            vjust = 0,
+            position = position_dodge(width = 0.9)
+            ) +
+  scale_fill_manual(values = c("cadetblue3", "dimgrey"), name = "") +
+  scale_y_continuous(expand = expansion(mult = c(0, 0.1))) +
+  ggtitle(paste("Satisfaction with time taken - Year to Date", year)) +
   xlab("Responses") +
-  ylab("Percentage of Responses")+
+  ylab(paste("Percentage of Responses", year)) +
   theme_classic()
 ```
 \newpage
 
 ## Communications
-```{r echo=FALSE, comment= ""}
+```{r echo = FALSE, comment = ""}
 cm_txt <- text_prep(comms_data)
 ```
-In this year for `r la` to date for the question "How would you rate the standard of communication provided?" responses have been `r cm_txt$pos_or_neg` with `r cm_txt$total_good` percent saying that it was good or very good. The greatest proportion of respondents said they felt it was `r cm_txt$max_name` at `r cm_txt$max_perc` This was followed by `r cm_txt$sec_name` at `r cm_txt$sec_perc` For Scotland overall, most respondents said that communication was `r cm_txt$scot_max_name` at `r cm_txt$scot_max_perc`  
+In the `r year` year to date for the question "How would you rate the standard of communication provided?" responses for `r la` have been `r cm_txt$pos_or_neg` with `r cm_txt$total_good` percent saying that it was good or very good. The greatest proportion of respondents said they felt it was `r cm_txt$max_name` at `r cm_txt$max_perc` This was followed by `r cm_txt$sec_name` at `r cm_txt$sec_perc` For Scotland overall, most respondents said that communication was `r cm_txt$scot_max_name` at `r cm_txt$scot_max_perc`  
 
-```{r echo = F}
-     ggplot(data = comms_data,
-            aes(
-         x = named_value, 
-         y = perc_resp, 
-         fill = Selection
-         )) +
-       geom_bar( 
-         stat= "identity", 
-         position = "dodge",
-         width = 0.7,
-         colour = "black"
-         )+
-   geom_text(aes(label = perc_resp, y = perc_resp + 1.2), 
-                 vjust = 0,
-                 position = position_dodge(width = 0.9) 
-                 )+
-  scale_fill_manual(
-    values = c("cadetblue3", "dimgrey"), name = ""
-  )+
-  scale_y_continuous(expand = expansion(mult = c(0, 0.1)))+
-  ggtitle("Standard of Communication - Year to Date")+
-  xlab("Responses")+
-  ylab("Percentage of Responses")+
+```{r echo = FALSE}
+ggplot(data = comms_data,
+       aes(x = named_value, y = perc_resp, fill = Selection)
+       ) +
+  geom_bar(stat= "identity", 
+           position = "dodge",
+           width = 0.7,
+           colour = "black"
+           ) +
+  geom_text(aes(label = perc_resp, y = perc_resp + 1.2), 
+            vjust = 0, 
+            position = position_dodge(width = 0.9) 
+            ) +
+  scale_fill_manual(values = c("cadetblue3", "dimgrey"), name = "") +
+  scale_y_continuous(expand = expansion(mult = c(0, 0.1))) +
+  ggtitle(paste("Standard of Communication - Year to Date", year)) +
+  xlab("Responses") +
+  ylab(paste("Percentage of Responses", year)) +
   theme_classic()
 ```
 \newpage
 
 ## Information
-```{r echo=FALSE, comment= ""}
+```{r echo = FALSE, comment = ""}
 inf_txt <- text_prep(info_data)
 ```
-In this year for `r la` to date for the question "How would you rate the quality of information provided?" responses have been `r inf_txt$pos_or_neg` with `r inf_txt$total_good` percent saying that it was good or very good. The greatest proportion of respondents said they felt it was `r inf_txt$max_name` at `r inf_txt$max_perc` This was followed by `r inf_txt$sec_name` at `r inf_txt$sec_perc` For Scotland overall, most respondents said that the information they received was `r inf_txt$scot_max_name` at `r inf_txt$scot_max_perc`  
+In the `r year` year to date for the question "How would you rate the quality of information provided?" responses for `r la` have been `r inf_txt$pos_or_neg` with `r inf_txt$total_good` percent saying that it was good or very good. The greatest proportion of respondents said they felt it was `r inf_txt$max_name` at `r inf_txt$max_perc` This was followed by `r inf_txt$sec_name` at `r inf_txt$sec_perc` For Scotland overall, most respondents said that the information they received was `r inf_txt$scot_max_name` at `r inf_txt$scot_max_perc`  
 
-```{r echo = F}
-     ggplot(
-       data = info_data,
+```{r echo = FALSE}
+ggplot(data = info_data,
        aes(x = named_value, y = perc_resp, fill = Selection)
-       )+
-       geom_bar(
-         stat= "identity", 
-         position = "dodge",
-         width = 0.7,
-         colour = "black") +
+       ) +
+  geom_bar(stat= "identity", 
+           position = "dodge",
+           width = 0.7,
+           colour = "black"
+           ) +
   geom_text(aes(label = perc_resp, y = perc_resp + 1.2), 
-                 vjust = 0,
-                 position = position_dodge(width = 0.9) 
-                 )+
-  scale_fill_manual(
-    values = c("cadetblue3","dimgrey"),
-    name = ""
-    )+
-  ggtitle("Quality of information - Year to Date")+
+            vjust = 0,
+            position = position_dodge(width = 0.9) 
+            ) +
+  scale_fill_manual(values = c("cadetblue3","dimgrey"), name = "") +
+  ggtitle(paste("Quality of information - Year to Date", year)) +
   xlab("Responses") +
-    scale_y_continuous(expand = expansion(mult = c(0, 0.1)))+
-  ylab("Percentage of Responses")+
+  scale_y_continuous(expand = expansion(mult = c(0, 0.1))) +
+  ylab(paste("Percentage of Responses", year)) +
   theme_classic()
 ```
 \newpage
 
 ## Staff
-```{r echo=FALSE, comment= ""}
+```{r echo = FALSE, comment = ""}
 staff_txt <- text_prep(staff_data)
 ```
-In this year for `r la` to date for the question "How would you rate the service offered by staff?" responses have been `r staff_txt$pos_or_neg` with `r staff_txt$total_good` percent saying that it was good or very good. The greatest proportion of respondents said they felt it was `r staff_txt$max_name` at `r staff_txt$max_perc` This was followed by `r staff_txt$sec_name` at `r staff_txt$sec_perc` For Scotland overall, most respondents said that the service received was `r staff_txt$scot_max_name` at `r staff_txt$scot_max_perc`  
+In the `r year` year to date for the question "How would you rate the service offered by staff?" responses for `r la` have been `r staff_txt$pos_or_neg` with `r staff_txt$total_good` percent saying that it was good or very good. The greatest proportion of respondents said they felt it was `r staff_txt$max_name` at `r staff_txt$max_perc` This was followed by `r staff_txt$sec_name` at `r staff_txt$sec_perc` For Scotland overall, most respondents said that the service received was `r staff_txt$scot_max_name` at `r staff_txt$scot_max_perc`  
 
-```{r echo = F}
-     ggplot(
-       data = staff_data,
+```{r echo = FALSE}
+ggplot(data = staff_data, 
        aes(x = named_value, y = perc_resp, fill = Selection)
        ) +
-       geom_bar(
-         stat= "identity", 
-         position = "dodge",
-         width = 0.7,
-         colour = "black") +
+  geom_bar(stat= "identity", 
+           position = "dodge",
+           width = 0.7,
+           colour = "black"
+           ) +
   geom_text(aes(label = perc_resp, y = perc_resp + 1.2), 
-                 vjust = 0,
-                 position = position_dodge(width = 0.9) 
-                 )+
-  scale_fill_manual(
-    values = c("cadetblue3", "dimgrey"),
-    name = ""
-    )+
-    scale_y_continuous(expand = expansion(mult = c(0, 0.1)))+
-  ggtitle("Service offered by staff - Year to Date")+
+            vjust = 0,
+            position = position_dodge(width = 0.9) 
+            ) +
+  scale_fill_manual(values = c("cadetblue3", "dimgrey"), name = "") +
+  scale_y_continuous(expand = expansion(mult = c(0, 0.1))) +
+  ggtitle(paste("Service offered by staff - Year to Date", year)) +
   xlab("Responses") +
-  ylab("Percentage of Responses")+
+  ylab(paste("Percentage of Responses", year)) +
   theme_classic()
-         
 ```
 \newpage
 
 ## Responsiveness
-```{r echo=FALSE, comment= ""}
+```{r echo = FALSE, comment = ""}
 resp_txt <- text_prep(responsive_data)
 ```
-In this year for `r la` to date for the question "How would you rate the time taken to respond to any queries or issues raised?" responses have been `r resp_txt$pos_or_neg` with `r resp_txt$total_good` percent saying that it was good or very good. The greatest proportion of respondents said they were `r resp_txt$max_name` at `r resp_txt$max_perc` This was followed by `r resp_txt$sec_name` at `r resp_txt$sec_perc` For Scotland overall, most respondents said that responsiveness was `r resp_txt$scot_max_name` at `r resp_txt$scot_max_perc`  
+In the `r year` year to date for the question "How would you rate the time taken to respond to any queries or issues raised?" responses for `r la` have been `r resp_txt$pos_or_neg` with `r resp_txt$total_good` percent saying that it was good or very good. The greatest proportion of respondents said they were `r resp_txt$max_name` at `r resp_txt$max_perc` This was followed by `r resp_txt$sec_name` at `r resp_txt$sec_perc` For Scotland overall, most respondents said that responsiveness was `r resp_txt$scot_max_name` at `r resp_txt$scot_max_perc`  
 
-```{r echo = F}
-     ggplot(
-       data = responsive_data,
+```{r echo = FALSE}
+ggplot(data = responsive_data,
        aes(x = named_value, y = perc_resp, fill = Selection)
        ) +
-       geom_bar(
-         stat= "identity", 
-         position = "dodge",width = 0.7,
-         colour = "black") +
+  geom_bar(stat= "identity", 
+           position = "dodge",
+           width = 0.7,
+           colour = "black"
+           ) +
   geom_text(aes(label = perc_resp, y = perc_resp + 1.2), 
-                 vjust = 0,
-                 position = position_dodge(width = 0.9) 
-                 )+
-  scale_fill_manual(
-    values = c("cadetblue3", "dimgrey"),
-    name = ""
-    )+
-  ggtitle("Responsiveness to queries or issues - Year to Date")+
-    scale_y_continuous(expand = expansion(mult = c(0, 0.1)))+
+            vjust = 0,
+            position = position_dodge(width = 0.9) 
+            ) +
+  scale_fill_manual(values = c("cadetblue3", "dimgrey"), name = "") +
+  ggtitle(paste("Responsiveness to queries or issues - Year to Date", year))+
+  scale_y_continuous(expand = expansion(mult = c(0, 0.1))) +
   xlab("Responses") +
-  ylab("Percentage of Responses")+
+  ylab(paste("Percentage of Responses", year)) +
   theme_classic()
 ```
 \newpage
 
 ## Treated Fairly
-```{r echo=FALSE, comment= ""}
+```{r echo = FALSE, comment = ""}
 fair_txt <- text_prep(fair_data)
 ```
-In this year for `r la` to date for the question "To what extent would you agree that you were treated fairly?" responses have been `r fair_txt$pos_or_neg` with `r fair_txt$total_good` percent saying that they agree or strongly agree. The greatest proportion of respondents said they `r fair_txt$max_name` with the statement at `r fair_txt$max_perc` This was followed by `r fair_txt$sec_name` at `r fair_txt$sec_perc` For Scotland overall, most respondents said that they `r fair_txt$scot_max_name` at `r fair_txt$scot_max_perc`  
+In the `r year` year to date for the question "To what extent would you agree that you were treated fairly?" responses for `r la` have been `r fair_txt$pos_or_neg` with `r fair_txt$total_good` percent saying that they agree or strongly agree. The greatest proportion of respondents said they `r fair_txt$max_name` with the statement at `r fair_txt$max_perc` This was followed by `r fair_txt$sec_name` at `r fair_txt$sec_perc` For Scotland overall, most respondents said that they `r fair_txt$scot_max_name` at `r fair_txt$scot_max_perc`  
 
-```{r echo = F}
-     ggplot(
-       data = fair_data,
-       aes(x = named_value, y = perc_resp, fill =Selection)
+```{r echo = FALSE}
+ggplot(data = fair_data,
+       aes(x = named_value, y = perc_resp, fill = Selection)
        ) +
-       geom_bar(
-         stat= "identity", 
-         position = "dodge",
-         width = 0.7,
-         colour = "black") +
+  geom_bar(stat= "identity", 
+           position = "dodge",
+           width = 0.7,
+           colour = "black"
+           ) +
   geom_text(aes(label = perc_resp, y = perc_resp + 1.2), 
-                 vjust = 0,
-                 position = position_dodge(width = 0.9) 
-                 )+
-  scale_fill_manual(
-    values = c("cadetblue3", "dimgrey"),
-    name = ""
-    )+
-  ggtitle("Would you agree you were treated fairly - Year to Date")+
-    scale_y_continuous(expand = expansion(mult = c(0, 0.1)))+
+            vjust = 0,
+            position = position_dodge(width = 0.9) 
+            ) +
+  scale_fill_manual(values = c("cadetblue3", "dimgrey"), name = "") +
+  ggtitle(paste("Would you agree you were treated fairly - Year to Date",
+                year)) +
+  scale_y_continuous(expand = expansion(mult = c(0, 0.1))) +
   xlab("Responses") +
-  ylab("Percentage of Responses")+
+  ylab(paste("Percentage of Responses", year)) +
   theme_classic()
 ```
 \newpage
 
 ## Overall Satisfaction
-```{r echo=FALSE, comment= ""}
+```{r echo = FALSE, comment = ""}
 ovr_txt <- text_prep(overall_data)
 ```
-In this year for `r la` to date for the question "Overall, how satisfied were you with the service provided?" responses have been `r ovr_txt$pos_or_neg` with `r ovr_txt$total_good` percent saying that they were very satisfied or satisfied. The greatest proportion of respondents said they were `r ovr_txt$max_name` at `r ovr_txt$max_perc` This was followed by `r ovr_txt$sec_name` at `r ovr_txt$sec_perc` For Scotland overall, most respondents said that they were `r ovr_txt$scot_max_name` at `r ovr_txt$scot_max_perc`  
+In the `r year` year to date for the question "Overall, how satisfied were you with the service provided?" responses for `r la` have been `r ovr_txt$pos_or_neg` with `r ovr_txt$total_good` percent saying that they were very satisfied or satisfied. The greatest proportion of respondents said they were `r ovr_txt$max_name` at `r ovr_txt$max_perc` This was followed by `r ovr_txt$sec_name` at `r ovr_txt$sec_perc` For Scotland overall, most respondents said that they were `r ovr_txt$scot_max_name` at `r ovr_txt$scot_max_perc`  
 
-```{r echo = F}
-     ggplot(
-       data = overall_data,
+```{r echo = FALSE}
+ggplot(data = overall_data,
        aes(x = named_value, y = perc_resp, fill = Selection)
        ) +
-       geom_bar(
-         stat= "identity", 
-         position = "dodge",
-         width = 0.7,
-         colour = "black") +
+  geom_bar(stat= "identity", 
+           position = "dodge",
+           width = 0.7,
+           colour = "black"
+           ) +
   geom_text(aes(label = perc_resp, y = perc_resp + 1.2), 
-                 vjust = 0,
-                 position = position_dodge(width = 0.9) 
-                 )+
-  scale_fill_manual(
-    values = c("cadetblue3", "dimgrey"),
-    name = ""
-    )+
-    scale_y_continuous(expand = expansion(mult = c(0, 0.1)))+
-  ggtitle("Overall satisfaction - Year to Date")+
+            vjust = 0,
+            position = position_dodge(width = 0.9) 
+            ) +
+  scale_fill_manual(values = c("cadetblue3", "dimgrey"), name = "") +
+  scale_y_continuous(expand = expansion(mult = c(0, 0.1))) +
+  ggtitle(paste("Overall satisfaction - Year to Date", year)) +
   xlab("Responses") +
-  ylab("Percentage of Responses")+
+  ylab(paste("Percentage of Responses", year)) +
   theme_classic()
 ```
