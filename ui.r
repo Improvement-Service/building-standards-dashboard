@@ -14,6 +14,10 @@ ui <- dashboardPage(skin = "blue",
                                                           tabName = "PrfOvr", 
                                                           icon = icon("dashboard")
                                                           ),
+                                                 # menuItem("KPO by Respondent",
+                                                 #          tabName = "KPO_resp",
+                                                 #          icon = icon("user")
+                                                 # ),
                                                  menuItem("Question Results", 
                                                           tabName = "Qstns", 
                                                           icon = icon("question-circle")
@@ -86,6 +90,13 @@ ui <- dashboardPage(skin = "blue",
                                               )
                                        )
                               ), 
+
+# KPO4 by Respondent Tab ------------------------------------
+                      tabItem(tabName  = "KPO_resp",
+                              fluidRow(style = "margin-bottom:0px;margin-right:1px",
+                                       plotlyOutput("resp_reason_graph_report")
+                              ) 
+                      ),
 # Question Results Tab -------------------------------------------------------
                       tabItem(tabName = "Qstns",
                               fluidRow(column(4,
