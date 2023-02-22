@@ -14,10 +14,10 @@ ui <- dashboardPage(skin = "blue",
                                                           tabName = "PrfOvr", 
                                                           icon = icon("dashboard")
                                                           ),
-                                                 # menuItem("KPO by Respondent",
-                                                 #          tabName = "KPO_resp",
-                                                 #          icon = icon("user")
-                                                 # ),
+                                                 menuItem("KPO by Respondent",
+                                                          tabName = "KPO_resp",
+                                                          icon = icon("user")
+                                                 ),
                                                  menuItem("Question Results", 
                                                           tabName = "Qstns", 
                                                           icon = icon("question-circle")
