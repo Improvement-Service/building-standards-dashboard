@@ -5,16 +5,9 @@ account: isresearchnc
 server: shinyapps.io
 hostUrl: https://api.shinyapps.io/v1
 appId: 5443404
-<<<<<<< HEAD
 bundleId: 6875027
 url: https://isresearchnc.shinyapps.io/building-standards-dashboard/
 when: 1677080542.67514
 lastSyncTime: 1677080542.67514
-=======
-bundleId: 6832161
-url: https://isresearchnc.shinyapps.io/building-standards-dashboard/
-when: 1676036640.15185
-lastSyncTime: 1676036640.15187
->>>>>>> aa3fc25cd15a1ff3fae724bf43cf639981bce6b9
 asMultiple: FALSE
 asStatic: FALSE
