@@ -2192,6 +2192,8 @@ function(input, output, session) {
       # Set up parameters to pass to Rmd document
       params <- list(la = local_authority(),
                      year = fin_yr(),
+                     quarter = qrtr(),
+                     named_qrtr = input$qrtr_selection,
                      kpo_data = report_kpo_data(),
                      type_data = report_type_data(),
                      reason_data = report_reason_data(),
