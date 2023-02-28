@@ -2234,9 +2234,8 @@ function(input, output, session) {
       
       # Recode all responses for the download from a number to text, remove LA column
       dl_all_data <- dl_all_data %>% 
-        # Filter to selected financial year
-        filter(`Financial Year` == fin_yr() &
-                 `Local Authority Name` == council_fltr) %>%
+        # Filter to selected financial year and selected quarter
+        filter(`Tracking Link` %in% qrtr() & `Financial Year` == fin_yr() & `Local Authority Name` == council_fltr) %>%
         mutate(across(contains("how satisfied"),
                       ~recode(., 
                               "1" = "Very satisfied", 
@@ -2354,6 +2353,10 @@ function(input, output, session) {
     
     # Order by submission date
     unpivot_data <- unpivot_data %>% arrange(desc(`Submission date`))
+    
+    # Filter to selected year and quarter
+    unpivot_data <- unpivot_data %>% 
+      filter(Quarter %in% qrtr() & `Financial Year` == fin_yr())
     
     tbl <- datatable(unpivot_data,
                      rownames = FALSE,
