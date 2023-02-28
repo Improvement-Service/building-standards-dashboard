@@ -197,7 +197,7 @@ function(input, output, session) {
     no_years <- length(unique(pivot_dta$`Financial Year`))
     if (no_years > 1) {
       selectizeInput(inputId = "fin_yr_selection", 
-                     label = "Select financial year",
+                     label = "Select Financial Year",
                      choices = years, 
                      selected = crnt_fin_yr
       )
@@ -222,7 +222,7 @@ function(input, output, session) {
   
   # Quarter Selection---------------------------------------------------
   
-  # Create select button for quarter if there is more than 1 available in the selected year
+  # Create select button for quarter - default YTD
   output$qrtr <- renderUI({
    # council_fltr <- local_authority()
     pivot_dta <- pivot_dta %>% 
@@ -230,16 +230,12 @@ function(input, output, session) {
         `Local Authority Name` == local_authority())
     quarters <- unique(pivot_dta$`Tracking Link`)
     quarters <- str_sort(quarters)
-    no_quarters <- length(unique(pivot_dta$`Tracking Link`))
-    if (no_quarters > 1) {
-      selectizeInput(inputId = "qrtr_selection", 
-                     label = "Select Quarter",
-                     choices = c("Year to Date", quarters), 
-                     selected = "Year to Date"
-      )
-    } else {
-      return()
-    }
+    
+    selectizeInput(inputId = "qrtr_selection", 
+                   label = "Select Quarter",
+                   choices = c("Year to Date", quarters), 
+                   selected = "Year to Date"
+                   )
   })
   
   # Reactive expression to store quarter selected
@@ -642,13 +638,20 @@ function(input, output, session) {
   # Create performance box for selected Council  
   output$performanceBox <- renderValueBox({
     la_max_sum <- la_max_sum()
+    
+    fltr_qrtr <- if (input$qrtr_selection == "Year to Date") {
+      "Total"
+    } else {
+      qrtr()
+    }
+    
     # Sets traffic light colours based on KPO4 score
     kpo_colr <- ifelse(
-      la_max_sum[la_max_sum$`Tracking Link` =="Total" & la_max_sum$`Financial Year` == fin_yr(), 
+      la_max_sum[la_max_sum$`Tracking Link` == fltr_qrtr & la_max_sum$`Financial Year` == fin_yr(), 
                  "KPO_score"
       ] > 7.5, 
       "green", 
-      ifelse(la_max_sum[la_max_sum$`Tracking Link` =="Total" & la_max_sum$`Financial Year` == fin_yr(), 
+      ifelse(la_max_sum[la_max_sum$`Tracking Link` == fltr_qrtr & la_max_sum$`Financial Year` == fin_yr(), 
                         "KPO_score"
       ] < 6.5, 
       "red", 
@@ -656,12 +659,12 @@ function(input, output, session) {
       )
     )
     
-    valueBox(value = round(la_max_sum[la_max_sum$`Tracking Link` =="Total" & la_max_sum$`Financial Year` == fin_yr(), 
+    valueBox(value = round(la_max_sum[la_max_sum$`Tracking Link` == fltr_qrtr & la_max_sum$`Financial Year` == fin_yr(), 
                                       "KPO_score"
     ],
     1
     ), 
-    paste("Council KPO4 Year to Date", fin_yr()),
+    paste("Council KPO4", input$qrtr_selection, fin_yr()),
     icon = icon("chart-bar"), 
     color = kpo_colr
     )
@@ -669,11 +672,18 @@ function(input, output, session) {
   
   # Create performance box for Scotland
   output$scotPerfBox<- renderValueBox({
-    valueBox(value = round(scot_max_sum[scot_max_sum$`Tracking Link` =="Total" & scot_max_sum$`Financial Year` == fin_yr(), 
+    
+    fltr_qrtr <- if (input$qrtr_selection == "Year to Date") {
+      "Total"
+    } else {
+      qrtr()
+    }
+    
+    valueBox(value = round(scot_max_sum[scot_max_sum$`Tracking Link` == fltr_qrtr & scot_max_sum$`Financial Year` == fin_yr(), 
                                         "KPO_score"],
                            1
     ), 
-    paste("Scotland Average KPO4 Year to Date", fin_yr()), 
+    paste("Scotland Average KPO4", input$qrtr_selection, fin_yr()), 
     icon = icon("times"), 
     color = "navy"
     )
@@ -682,14 +692,22 @@ function(input, output, session) {
   # Create valuebox for number of responses 
   output$respBox <- renderValueBox({
     unpivot_data <- unpivot_data()
+    
+    # Use the most recent quarter as the default quarter when YTD is selected
+    qrtr <- if (input$qrtr_selection == "Year to Date") {
+      crnt_qtr
+      } else {
+        input$qrtr_selection
+      }
+    
     # Counts the number of rows (responses) in the given quarter & financial year
     # data is already filtered to selected council
     valueBox(value = paste(nrow(filter(unpivot_data, 
-                                       Quarter == crnt_qtr & `Financial Year` == fin_yr()
+                                       Quarter == qrtr & `Financial Year` == fin_yr()
     )
     ), 
     paste("Responses", 
-          gsub("Quarter\\ ","Q",crnt_qtr, perl = TRUE)
+          gsub("Quarter\\ ", "Q", qrtr, perl = TRUE)
     )
     ),
     # Counts the rows (responses) for the full year
