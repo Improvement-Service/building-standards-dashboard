@@ -1302,8 +1302,8 @@ function(input, output, session) {
     # Get total responses for referencing the percentage denominator
     resp_number <- resp_dta_filter %>%
       group_by(Question) %>%
-      summarise_at(vars(`n`),sum)
-    resp_number <- resp_number[1,2]
+      summarise_at(vars(`n`), sum)
+    resp_number <- resp_number[1, 2]
     # Create variables for percentages for different groups
     agent_perc <- resp_dta_filter[resp_dta_filter$Question == "Agent/Designer" & resp_dta_filter$value == 1, "perc"] %>% 
       pull(perc)
@@ -1323,9 +1323,11 @@ function(input, output, session) {
                               council_fltr,
                               ". Of the ", 
                               resp_number, 
-                              " respondents in ", 
-                              fin_yr(),
+                              " respondents in ",
+                              input$qrtr_selection,
                               " ",
+                              fin_yr(),
+                              ", ",
                               agent_perc, 
                               " were agents or designers, ", 
                               appli_perc, 
@@ -1370,9 +1372,11 @@ function(input, output, session) {
                               council_fltr,
                               ". Of the ", 
                               resp_number,
-                              " respondents in ", 
-                              fin_yr(),
+                              " respondents in ",
+                              input$qrtr_selection,
                               " ",
+                              fin_yr(),
+                              ", ",
                               discuss_perc, 
                               " contacted the local authority to discuss their proposal before applying for a building warrant, ",
                               appli_perc, 
@@ -1904,9 +1908,12 @@ function(input, output, session) {
     }
     
     # Paste the text together
-    paste0("In the ",
+    paste0("In ",
+           input$qrtr_selection,
+           " ",
            fin_yr(),
-           " year to date for the question \"",
+           ", ",
+           "for the question \"",
            question,
            "\" responses for ",
            local_authority(),
