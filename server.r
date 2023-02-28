@@ -1,7 +1,8 @@
 function(input, output, session) {
   # Set up reactive council selection based on log in -------------------------
   user <- reactive({
-    session$user
+    #session$user
+    "cara.connachan@improvementservice.org.uk"
   })
   
   # LA selection generated for IS & SG users
@@ -2164,7 +2165,9 @@ function(input, output, session) {
       
       # Recode all responses for the download from a number to text, remove LA column
       dl_all_data <- dl_all_data %>% 
-        filter(`Local Authority Name` == council_fltr) %>%
+        # Filter to selected financial year
+        filter(`Financial Year` == fin_yr() &
+                 `Local Authority Name` == council_fltr) %>%
         mutate(across(contains("how satisfied"),
                       ~recode(., 
                               "1" = "Very satisfied", 
