@@ -372,17 +372,32 @@ function(input, output, session) {
     dl_all_data$`Q1.4. Other (please specify):` <- as.numeric(dl_all_data$`Q1.4. Other (please specify):`)
     dl_all_data$`Q2.4. Other (please specify):` <- as.numeric(dl_all_data$`Q2.4. Other (please specify):`)
     
+    # Quarter responses
     # Calculates within each LA, the number of respondents answering yes to 
     # the different respondent options. Then calculates as a % of all responses
-    # within the financial year.
-    resp_dta <- dl_all_data %>% 
+    # within the quarter.
+    qrtr_resp_dta <- dl_all_data %>% 
+      group_by(`Local Authority Name`) %>% 
+      select(1:12) %>%
+      pivot_longer(cols = 5:12, names_to = "Question", values_to = "value") %>% 
+      group_by(`Tracking Link`, `Financial Year`,`Local Authority Name`, Question) %>%
+      count(value) %>%
+      mutate(perc = round((n/sum(n)) * 100, 1)) 
+    
+    # Financial Year responses
+    # Does the same calculation for YTD value
+    fin_yr_resp_dta <- dl_all_data %>% 
       group_by(`Local Authority Name`) %>% 
       select(1:12) %>%
       pivot_longer(cols = 5:12, names_to = "Question", values_to = "value") %>% 
       group_by(`Financial Year`,`Local Authority Name`, Question) %>%
       count(value) %>%
-      mutate(perc = round((n/sum(n)) * 100, 1))
+      mutate(perc = round((n/sum(n)) * 100, 1)) 
     
+    # Combine quarter and YTD data
+    resp_dta <- rbind(qrtr_resp_dta, fin_yr_resp_dta)
+    resp_dta$`Tracking Link`[is.na(resp_dta$`Tracking Link`)] <- "Year to Date" 
+
     # Differentiates questions by whether they ask about respondent types or reasons
     resp_dta$question_type <- ifelse(grepl("Q1", resp_dta$Question), 
                                      "Type", 
@@ -398,7 +413,7 @@ function(input, output, session) {
     resp_dta$Question[resp_dta$Question == "Other (please specify):"] <- "Other"
     # Filter to selected council & selected financial year
     resp_dta <- resp_dta %>% 
-      filter(`Financial Year` == fin_yr() & `Local Authority Name` == council_fltr)
+      filter(`Tracking Link` == input$qrtr_selection & `Financial Year` == fin_yr() & `Local Authority Name` == council_fltr)
     resp_dta
   })
   
@@ -820,7 +835,7 @@ function(input, output, session) {
       coord_flip() +
       theme_classic() +
       scale_y_continuous(expand = expansion(mult = c(0, 0.1))) +
-      ggtitle(paste("Respondent Type:\nYear to Date", fin_yr())) +
+      ggtitle(paste("Respondent Type:\n", input$qrtr_selection, fin_yr())) +
       xlab("Respondent Type") +
       ylab("Percentage of Responses") +
       theme(plot.title = element_text(size = 12))
@@ -865,7 +880,7 @@ function(input, output, session) {
       coord_flip() +
       theme_classic() +
       scale_y_continuous(expand = expansion(mult = c(0, 0.1))) +
-      ggtitle(paste("Response Reason:\nYear to Date", fin_yr())) +
+      ggtitle(paste("Response Reason:\n", input$qrtr_selection, fin_yr())) +
       xlab("Reason") +
       ylab("Percentage of Responses") +
       theme(plot.title = element_text(size = 12))
