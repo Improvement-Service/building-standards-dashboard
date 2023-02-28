@@ -220,6 +220,48 @@ function(input, output, session) {
     }
   })
   
+  # Quarter Selection---------------------------------------------------
+  
+  # Create select button for quarter if there is more than 1 available in the selected year
+  output$qrtr <- renderUI({
+   # council_fltr <- local_authority()
+    pivot_dta <- pivot_dta %>% 
+      filter(`Financial Year` == fin_yr() &
+        `Local Authority Name` == local_authority())
+    quarters <- unique(pivot_dta$`Tracking Link`)
+    quarters <- str_sort(quarters)
+    no_quarters <- length(unique(pivot_dta$`Tracking Link`))
+    if (no_quarters > 1) {
+      selectizeInput(inputId = "qrtr_selection", 
+                     label = "Select Quarter",
+                     choices = c("Year to Date", quarters), 
+                     selected = "Year to Date"
+      )
+    } else {
+      return()
+    }
+  })
+  
+  # Reactive expression to store quarter selected
+  # Either selected quarter if more than 1 available, otherwise quarter available
+  qrtr <- reactive({
+    council_fltr <- local_authority()
+    pivot_dta <- pivot_dta %>% 
+      filter(`Financial Year` == fin_yr() &
+               `Local Authority Name` == local_authority())
+    quarters <- unique(pivot_dta$`Tracking Link`)
+    no_quarters <- length(unique(pivot_dta$`Tracking Link`))
+    qrtr <- if (no_quarters < 2) {
+      quarters
+    } else {
+      if (input$qrtr_selection == "Year to Date") {
+        quarters
+      } else {
+        input$qrtr_selection
+      }
+    }
+  })
+  
   # Download Data - format data for download --------------------------------
   
   # This data is used in the data download page as this is to be presented in

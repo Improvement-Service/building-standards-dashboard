@@ -10,6 +10,9 @@ ui <- dashboardPage(skin = "blue",
                                      # Financial Year selection.
                                      # Will only show if more than 1 year available
                                      uiOutput("fin_yr"),
+                                     # Quarter selection.
+                                     # Will only show if more than 1 quarter available in selected year
+                                     uiOutput("qrtr"),
                                      sidebarMenu(menuItem("Performance Overview", 
                                                           tabName = "PrfOvr", 
                                                           icon = icon("dashboard")
