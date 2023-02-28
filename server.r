@@ -1739,8 +1739,9 @@ function(input, output, session) {
                               named_value_4
   ) {
     council_fltr <- local_authority()
-    # Filter pivot_dta to current financial year and remove missing values
-    pivot_dta <- pivot_dta %>% filter(`Financial Year` == fin_yr()) %>%
+    # Filter pivot_dta to selected financial year, selected quarter and remove missing values
+    pivot_dta <- pivot_dta %>% 
+      filter(`Tracking Link` %in% qrtr() & `Financial Year` == fin_yr()) %>%
       filter(value != "-")
     # Set values as factor to keep in order
     pivot_dta$`value` <- factor(pivot_dta$`value`, levels = c(1, 2, 3, 4))
@@ -1798,9 +1799,9 @@ function(input, output, session) {
       ) +
       scale_y_continuous(expand = expansion(mult = c(0, 0.1))) +
       scale_fill_manual(values = c("cadetblue3", "dimgrey"), name = "") +
-      ggtitle(title) +
+      ggtitle(paste(title, input$qrtr_selection, fin_yr())) +
       xlab("Responses") +
-      ylab(paste("Percentage of Responses", fin_yr())) +
+      ylab(paste("% of Responses", input$qrtr_selection, fin_yr())) +
       theme_classic()
     ggplotly(plot, tooltip = "text")
   }
@@ -1956,10 +1957,8 @@ function(input, output, session) {
   output$question_time_report <- renderPlotly({
     # Call function to create plot
     create_qstn_plot(data = question_time_data_report(),
-                     title = paste("Satisfaction with time taken - Year to Date", 
-                                   fin_yr()
+                     title = "Satisfaction with time taken -" 
                      )
-    )
   })
   
   # Render text
@@ -1991,10 +1990,8 @@ function(input, output, session) {
   output$question_comms_report <- renderPlotly({
     # Call function to create plot
     create_qstn_plot(data = question_comms_data_report(),
-                     title = paste("Standard of communication - Year to Date",
-                                   fin_yr()
+                     title = "Standard of communication -" 
                      )
-    )
   })
   
   # Render text
@@ -2026,10 +2023,8 @@ function(input, output, session) {
   output$question_info_report <- renderPlotly({
     # Call function to create plot
     create_qstn_plot(data = question_info_data_report(),
-                     title = paste("Quality of information - Year to Date",
-                                   fin_yr()
+                     title = "Quality of information -"
                      )
-    )
   })
   
   # Render text
@@ -2061,10 +2056,8 @@ function(input, output, session) {
   output$question_staff_report <- renderPlotly({
     # Call function to create plot
     create_qstn_plot(data = question_staff_data_report(),
-                     title = paste("Service offered by staff - Year to Date",
-                                   fin_yr()
+                     title = "Service offered by staff -"
                      )
-    )
   })
   
   # Render text
@@ -2096,10 +2089,8 @@ function(input, output, session) {
   output$question_responsiveness_report <- renderPlotly({
     # Call function to create plot
     create_qstn_plot(data = question_responsiveness_data_report(),
-                     title = paste("Responsiveness to queries or issues - Year to Date",
-                                   fin_yr()
+                     title = "Responsiveness to queries or issues -"
                      )
-    )
   })
   
   # Render text
@@ -2131,10 +2122,8 @@ function(input, output, session) {
   output$question_fair_report <- renderPlotly({
     # Call function to create plot
     create_qstn_plot(data = question_fairly_data_report(),
-                     title = paste("Would you agree you were treated fairly - Year to Date",
-                                   fin_yr()
+                     title = "Would you agree you were treated fairly -"
                      )
-    )
   })
   
   # Render text
@@ -2166,10 +2155,8 @@ function(input, output, session) {
   output$question_overall_report <- renderPlotly({
     # Call function to create plot
     create_qstn_plot(data = question_overall_data_report(),
-                     title = paste("Overall satisfaction - Year to Date",
-                                   fin_yr()
+                     title = "Overall satisfaction -"
                      )
-    )
   })    
   
   # Render text
