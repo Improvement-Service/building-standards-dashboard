@@ -2411,6 +2411,10 @@ function(input, output, session) {
       filter(if_any(slctn_reason, ~.== "Yes")) %>%
       select(Quarter, `Financial Year`, contains(input$cmnts_slct))
     
+    # Filter to selected year and quarter
+    filter_data <- filter_data %>%
+      filter(Quarter %in% qrtr() & `Financial Year` == fin_yr())
+    
     # Create datatable
     datatable(filter_data, 
               filter = "top",
