@@ -213,7 +213,7 @@ ggplot(data = type_data, aes(x = Question, y = perc)) +
   coord_flip() +
   theme_classic() +
   scale_y_continuous(expand = expansion(mult = c(0, 0.1))) +
-  ggtitle(paste("Respondent Type: \nYear to Date", year)) +
+  ggtitle(paste("Respondent Type: \n", named_qrtr, year)) +
   xlab("Respondent Type") +
   ylab("Percentage of Responses")
 ```
@@ -269,7 +269,7 @@ ggplot(data = reason_data,aes(x = Question, y = perc)) +
   coord_flip() +
   theme_classic() +
   scale_y_continuous(expand = expansion(mult = c(0, 0.1))) +
-  ggtitle(paste("Response Reason: \nYear to Date", year)) +
+  ggtitle(paste("Response Reason: \n", named_qrtr, year)) +
   xlab("Reason") +
   ylab("Percentage of Responses")
 ```
