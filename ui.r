@@ -34,6 +34,7 @@ ui <- dashboardPage(skin = "blue",
                                               icon = icon("comments")
                                      ),
                                      uiOutput("userpanel"),
+                                     actionLink(inputId = "version_link", label = "Version 2.2"),
                                      tags$footer(a("Contact us", 
                                                    href = "mailto:research@improvementservice.org.uk"
                                      ), 
