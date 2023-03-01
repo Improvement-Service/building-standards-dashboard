@@ -322,7 +322,7 @@ ui <- dashboardPage(skin = "blue",
                               div(style = "margin-bottom: 5px",
                                   # Data download button
                                   downloadBttn("all_data_dl", 
-                                               label = "Download all data", 
+                                               label = "Download selected data", 
                                                style = "jelly"
                                   )
                               ),
