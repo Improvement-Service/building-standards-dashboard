@@ -2222,11 +2222,11 @@ function(input, output, session) {
       # Knit the markdown document, passing in the `params` list, and eval 
       # it in a child of the global environment (this isolates the code in 
       # the document from the code in this app).
-      rmarkdown::render(tempReport, 
-                        output_file = file,
-                        params = params,
-                        envir = new.env(parent = globalenv())
-      )
+      output <- rmarkdown::render(input = tempReport, 
+                                  params = params, 
+                                  envir = new.env(parent = globalenv())
+                                  )
+      file.copy(output, file)
     }
   )
   
