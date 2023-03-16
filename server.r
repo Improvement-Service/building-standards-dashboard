@@ -1260,7 +1260,7 @@ function(input, output, session) {
       qstnDta$value <- factor(qstnDta$value, levels = c(1, 2, 3, 4))
     }
     # Calculate count for each response
-    qstnDta <- qstnDta %>% count(value, .drop = FALSE)
+    qstnDta <- qstnDta %>% count(value, .drop = FALSE) %>% mutate(perc = round((n/sum(n)) *100),2)
     
     # Set labels for tickmarks to display on x axis
     # Different responses for different questions so needs to be set accordingly
@@ -1299,12 +1299,13 @@ function(input, output, session) {
     # Generate barplot
     plot <- ggplot(data = qstnDta) +
       geom_bar(aes(x = reorder(named_value, as.numeric(value)), 
-                   y = n, 
+                   y = perc, 
                    text = paste(paste0("Response: ", named_value), 
                                 paste0("Number of Responses ", 
                                        fin_yr(), 
                                        ": ", 
-                                       n
+                                       perc,
+                                       "%"
                                 ),
                                 sep = "\n"
                    )
@@ -1316,7 +1317,7 @@ function(input, output, session) {
       ) +
       ggtitle(input$Qstn_tab2) +
       xlab("Response") +
-      ylab(paste("Number of responses", fin_yr())) +
+      ylab(paste("% of responses", fin_yr())) +
       scale_y_continuous(expand = expansion(mult = c(0, 0.1))) +
       theme_classic()
     
