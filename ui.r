@@ -115,7 +115,7 @@ ui <- dashboardPage(skin = "blue",
                       ),
 # Question Results Tab -------------------------------------------------------
                       tabItem(tabName = "Qstns",
-                              fluidRow(column(3, style = "display:inline-block",
+                              fluidRow(column(3,
                                               # Question drop down
                                               selectInput(inputId = "Qstn_tab2", 
                                                           label = "Select Question",
