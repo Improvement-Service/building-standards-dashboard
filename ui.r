@@ -1,4 +1,5 @@
 ui <- dashboardPage(skin = "blue",                      
+
                     # Dashboard header ---------------------------------------------------------                    
                     dashboardHeader(title = "National Customer Survey Dashboard",
                                     titleWidth = 400),
@@ -16,6 +17,10 @@ ui <- dashboardPage(skin = "blue",
                                      sidebarMenu(menuItem("Performance Overview", 
                                                           tabName = "PrfOvr", 
                                                           icon = icon("dashboard")
+                                     ),
+                                     menuItem("KPO by Respondent",
+                                              tabName = "KPO_resp",
+                                              icon = icon("user")
                                      ),
                                      menuItem("Question Results", 
                                               tabName = "Qstns", 
@@ -57,6 +62,7 @@ ui <- dashboardPage(skin = "blue",
                                                  "right", 
                                                  trigger = "hover"
                                        ),
+
                                        # KPO4 performance for Scotland average
                                        valueBoxOutput("scotPerfBox") %>%
                                          withSpinner(),   
@@ -68,31 +74,46 @@ ui <- dashboardPage(skin = "blue",
                                            height = "66vh",
                                            plotlyOutput("ovrPerfBar", 
                                                         height = "60vh"
-                                           ) %>%
+                                                        ) %>%
                                              withSpinner()
-                              ),
-                              # Respondents overview tabs
-                              tabBox(width = 4,
-                                     height = "66vh",
-                                     title = "Respondents", 
-                                     id = "RespOverViewTabs",
-                                     # Respondents type graph
-                                     tabPanel("Type",
-                                              plotlyOutput("resp_type_graph_overview",
-                                                           height = "55vh"
-                                              ) %>%
-                                                withSpinner()
-                                     ),
-                                     # Respondents reason graph
-                                     tabPanel("Reason", 
-                                              plotlyOutput("resp_reason_graph_overview",
-                                                           height = "55vh"
+                                           ),
+                                       # Respondents overview tabs
+                                       tabBox(width = 4,
+                                              height = "66vh",
+                                              title = "Respondents", 
+                                              id = "RespOverViewTabs",
+                                              # Respondents type graph
+                                              tabPanel("Type",
+                                                       plotlyOutput("resp_type_graph_overview",
+                                                                    height = "55vh"
+                                                                    ) %>%
+                                                         withSpinner()
+                                                       ),
+                                              # Respondents reason graph
+                                              tabPanel("Reason", 
+                                                       plotlyOutput("resp_reason_graph_overview",
+                                                                    height = "55vh"
+                                                                    )
+                                                       )
                                               )
-                                     )
-                              )
-                              )
-                      ), 
-                      # Question Results Tab -------------------------------------------------------
+                                       )
+                              ), 
+
+# KPO4 by Respondent Tab ------------------------------------
+                      tabItem(tabName  = "KPO_resp",
+                            div(
+                              fluidRow(style = "margin-bottom:0px;margin-right:10px; padding-right:5px; width:50%; display:inline-block",
+                                      plotlyOutput("kpo_resp_graph_agent"),
+                                      plotlyOutput("kpo_resp_graph_applicant")
+                                ),
+                              fluidRow(style = "margin-bottom:0px;margin-right:1px;width:50%;display:inline-block",
+                                       plotlyOutput("kpo_resp_graph_contr"),
+                                       plotlyOutput("kpo_resp_graph_other")
+                               )
+                            )
+                              
+                      ),
+# Question Results Tab -------------------------------------------------------
                       tabItem(tabName = "Qstns",
                               fluidRow(column(4,
                                               # Question drop down
@@ -100,53 +121,53 @@ ui <- dashboardPage(skin = "blue",
                                                           label = "Select Question",
                                                           choices = c("All Questions", 
                                                                       unique(pivot_dta$Indicator)
-                                                          ),
+                                                                      ),
                                                           selected = "All Questions"
-                                              )#,
+                                                          )#,
                                               # Financial year selection
                                               #uiOutput("fin_yr")
-                              ),
-                              column(4,
-                                     # Respondent type selection
-                                     prettyCheckboxGroup(inputId = "Qs_resp_input",
-                                                         label = "Respondent", 
-                                                         choices = c("Agent/Designer", 
-                                                                     "Applicant", 
-                                                                     "Contractor", 
-                                                                     "Other respondent"
-                                                         ),
-                                                         selected = c("Agent/Designer", 
-                                                                      "Applicant", 
-                                                                      "Contractor", 
-                                                                      "Other respondent"
-                                                         ),
-                                                         inline = TRUE,
-                                                         icon = icon("check"),
-                                                         status = "danger",
-                                                         animation = "rotate"
-                                     )
-                              ),
-                              column(4,
-                                     # Respondent reason selection
-                                     prettyCheckboxGroup(inputId = "Qs_reason_input",
-                                                         label = "Reasons", 
-                                                         choices = c("To discuss your proposal", 
-                                                                     "Make an application", 
-                                                                     "During construction", 
-                                                                     "Other reason"
-                                                         ),
-                                                         selected = c("To discuss your proposal", 
-                                                                      "Make an application", 
-                                                                      "During construction", 
-                                                                      "Other reason"
-                                                         ),
-                                                         inline = TRUE,
-                                                         icon = icon("check"),
-                                                         status = "info",
-                                                         animation = "pulse"
-                                     )
-                              )
-                              ),
+                                              ),
+                                       column(4,
+                                              # Respondent type selection
+                                              prettyCheckboxGroup(inputId = "Qs_resp_input",
+                                                                  label = "Respondent", 
+                                                                  choices = c("Agent/Designer", 
+                                                                              "Applicant", 
+                                                                              "Contractor", 
+                                                                              "Other respondent"
+                                                                              ),
+                                                                  selected = c("Agent/Designer", 
+                                                                               "Applicant", 
+                                                                               "Contractor", 
+                                                                               "Other respondent"
+                                                                               ),
+                                                                  inline = TRUE,
+                                                                  icon = icon("check"),
+                                                                  status = "danger",
+                                                                  animation = "rotate"
+                                                                  )
+                                              ),
+                                       column(4,
+                                              # Respondent reason selection
+                                              prettyCheckboxGroup(inputId = "Qs_reason_input",
+                                                                  label = "Reasons", 
+                                                                  choices = c("To discuss your proposal", 
+                                                                              "Make an application", 
+                                                                              "During construction", 
+                                                                              "Other reason"
+                                                                              ),
+                                                                  selected = c("To discuss your proposal", 
+                                                                               "Make an application", 
+                                                                               "During construction", 
+                                                                               "Other reason"
+                                                                               ),
+                                                                  inline = TRUE,
+                                                                  icon = icon("check"),
+                                                                  status = "info",
+                                                                  animation = "pulse"
+                                                                  )
+                                              )
+                                       ),
                               # Response overview graphs tabs
                               tabBox(width = 12, 
                                      height = "66vh",
@@ -154,22 +175,22 @@ ui <- dashboardPage(skin = "blue",
                                      tabPanel("Year to Date",
                                               plotlyOutput("YTDqstsPlot", 
                                                            height = "60vh"
-                                              )
-                                     ),
+                                                           )
+                                              ),
                                      # Summary by quarter graph
                                      tabPanel("Summary by Quarter", 
                                               plotlyOutput("qrtsQsplot", 
                                                            height = "60vh"
+                                                           )
                                               )
                                      )
-                              )
-                      ),
-                      # Report Download Tab -----------------------------------------------------
+                              ),
+# Report Download Tab -----------------------------------------------------
                       tabItem(tabName = "RptDl",
                               # Report download button
                               div(style = "margin-bottom: 5px; display: inline",
                                   downloadBttn("report", "Generate report")
-                              ),
+                                  ),
                               # About this page button
                               div(style = "float:right", 
                                   bsButton("q1_pop", 
@@ -177,168 +198,168 @@ ui <- dashboardPage(skin = "blue",
                                            icon = icon("question"), 
                                            style = "info", 
                                            size = "extra-small"
-                                  )
-                              ),
+                                           )
+                                  ),
                               # About this page popover content
                               bsPopover("q1_pop",
                                         title = "About This Page" ,
                                         content = report_popover_text,
                                         "left", 
                                         trigger = "hover"
-                              ),
+                                        ),
                               fluidRow(style = "margin-top:10px",
                                        # KPO4 YTD graph
                                        box(width = 8, 
                                            plotlyOutput("reportKPO4Plot") %>%
                                              withSpinner()
-                                       ),
+                                           ),
                                        # KPO4 YTD Text
                                        box(width = 4,
                                            style = "font-size:18px",
                                            textOutput("KPO4_text_report") %>%
                                              withSpinner()
-                                       )
-                              ),
-                              # Respondent type graph
+                                           )
+                                       ),
+                                      # Respondent type graph
                               fluidRow(box(width = 8, 
                                            plotlyOutput("resp_type_graph_report") %>%
                                              withSpinner()
-                              ),
-                              # Respondent type text
-                              box(width = 4,
-                                  style = "font-size:18px",
-                                  textOutput("respondent_type_text_report") %>%
-                                    withSpinner()
-                              )
-                              ),
-                              # Respondent reason graph
+                                           ),
+                                       # Respondent type text
+                                       box(width = 4,
+                                           style = "font-size:18px",
+                                           textOutput("respondent_type_text_report") %>%
+                                             withSpinner()
+                                           )
+                                       ),
+                                      # Respondent reason graph
                               fluidRow(box(width = 8, 
                                            plotlyOutput("resp_reason_graph_report") %>%
                                              withSpinner()
-                              ),
-                              # Respondent reason text
-                              box(width = 4,
-                                  style = "font-size:18px",
-                                  textOutput("respondent_reason_text_report") %>%
-                                    withSpinner()
-                              )
-                              ),
-                              # KPO4 over time graph
+                                           ),
+                                       # Respondent reason text
+                                       box(width = 4,
+                                           style = "font-size:18px",
+                                           textOutput("respondent_reason_text_report") %>%
+                                             withSpinner()
+                                           )
+                                       ),
+                                      # KPO4 over time graph
                               fluidRow(box(width = 8, 
                                            plotlyOutput("ovrPerfLine") %>%
                                              withSpinner()
-                              ),
-                              # KPO4 over time text
-                              box(width = 4, 
-                                  style = "font-size:18px",
-                                  textOutput("quarter_text") %>%
-                                    withSpinner()
-                              )
-                              ),
-                              # Q1 - Satisfaction with time graph
+                                           ),
+                                       # KPO4 over time text
+                                       box(width = 4, 
+                                           style = "font-size:18px",
+                                           textOutput("quarter_text") %>%
+                                             withSpinner()
+                                           )
+                                       ),
+                                      # Q1 - Satisfaction with time graph
                               fluidRow(box(width = 8, 
                                            plotlyOutput("question_time_report") %>%
                                              withSpinner()
-                              ),
-                              # Q1 - Satisfaction with time text
-                              box(width = 4, 
-                                  style = "font-size:18px",
-                                  textOutput("question_time_report_text") %>%
-                                    withSpinner()
-                              )
-                              ),
-                              # Q2 - Standard of communication graph
+                                           ),
+                                       # Q1 - Satisfaction with time text
+                                       box(width = 4, 
+                                           style = "font-size:18px",
+                                           textOutput("question_time_report_text") %>%
+                                             withSpinner()
+                                           )
+                                       ),
+                                      # Q2 - Standard of communication graph
                               fluidRow(box(width = 8, 
                                            plotlyOutput("question_comms_report") %>%
                                              withSpinner()
-                              ),
-                              # Q2 - Standard of communication text
-                              box(width = 4, 
-                                  style = "font-size:18px",
-                                  textOutput("question_comms_report_text") %>%
-                                    withSpinner()
-                              )
-                              ),
-                              # Q3 - Quality of information graph
+                                           ),
+                                       # Q2 - Standard of communication text
+                                       box(width = 4, 
+                                           style = "font-size:18px",
+                                           textOutput("question_comms_report_text") %>%
+                                             withSpinner()
+                                           )
+                                       ),
+                                       # Q3 - Quality of information graph
                               fluidRow(box(width = 8, 
                                            plotlyOutput("question_info_report") %>%
                                              withSpinner()
-                              ),
-                              # Q3 - Quality of information text
-                              box(width = 4, 
-                                  style = "font-size:18px",
-                                  textOutput("question_info_report_text") %>%
-                                    withSpinner()
-                              )
-                              ),
-                              # Q4 - Service offered by staff graph
+                                           ),
+                                       # Q3 - Quality of information text
+                                       box(width = 4, 
+                                           style = "font-size:18px",
+                                           textOutput("question_info_report_text") %>%
+                                             withSpinner()
+                                           )
+                                       ),
+                                      # Q4 - Service offered by staff graph
                               fluidRow(box(width = 8, 
                                            plotlyOutput("question_staff_report") %>%
                                              withSpinner()
-                              ),
-                              # Q4 - Service offered by staff text
-                              box(width = 4, 
-                                  style = "font-size:18px",
-                                  textOutput("question_staff_report_text") %>%
-                                    withSpinner()
-                              )
-                              ),
-                              # Q5 - Responsiveness to queries or issues graph
+                                           ),
+                                       # Q4 - Service offered by staff text
+                                       box(width = 4, 
+                                           style = "font-size:18px",
+                                           textOutput("question_staff_report_text") %>%
+                                             withSpinner()
+                                           )
+                                       ),
+                                      # Q5 - Responsiveness to queries or issues graph
                               fluidRow(box(width = 8, 
                                            plotlyOutput("question_responsiveness_report") %>%
                                              withSpinner()
-                              ),
-                              # Q5 - Responsiveness to queries or issues text
-                              box(width = 4, 
-                                  style = "font-size:18px",
-                                  textOutput("question_responsiveness_report_text") %>%
-                                    withSpinner()
-                              )
-                              ),
-                              # Q6 - Treated fairly graph
+                                           ),
+                                       # Q5 - Responsiveness to queries or issues text
+                                       box(width = 4, 
+                                           style = "font-size:18px",
+                                           textOutput("question_responsiveness_report_text") %>%
+                                             withSpinner()
+                                           )
+                                       ),
+                                      # Q6 - Treated fairly graph
                               fluidRow(box(width = 8, 
                                            plotlyOutput("question_fair_report") %>%
                                              withSpinner()
-                              ),
-                              # Q6 - Treated fairly text
-                              box(width = 4, 
-                                  style = "font-size:18px",
-                                  textOutput("question_fair_report_text") %>%
-                                    withSpinner()
-                              )
-                              ),
-                              # Q7 - Overall satisfaction graph
+                                           ),
+                                       # Q6 - Treated fairly text
+                                       box(width = 4, 
+                                           style = "font-size:18px",
+                                           textOutput("question_fair_report_text") %>%
+                                             withSpinner()
+                                           )
+                                       ),
+                                      # Q7 - Overall satisfaction graph
                               fluidRow(box(width = 8, 
                                            plotlyOutput("question_overall_report") %>%
                                              withSpinner()
+                                           ),
+                                       # Q7 - Overall satisfaction text
+                                       box(width = 4,  
+                                           style = "font-size:18px", 
+                                           textOutput("question_overall_report_text") %>%
+                                             withSpinner()
+                                           )
+                                       )
                               ),
-                              # Q7 - Overall satisfaction text
-                              box(width = 4,  
-                                  style = "font-size:18px", 
-                                  textOutput("question_overall_report_text") %>%
-                                    withSpinner()
-                              )
-                              )
-                      ),
-                      # Data Download Tab ----------------------------------------------------------
+# Data Download Tab ----------------------------------------------------------
                       tabItem(tabName = "DtDl",
                               div(style = "margin-bottom: 5px",
                                   # Data download button
                                   downloadBttn("all_data_dl", 
-                                               label = "Download selected data", 
+                                               label = "Download all data", 
                                                style = "jelly"
-                                  )
-                              ),
-                              # Data table
+                                               )
+                                  ),
+                                      # Data table
                               box(div(DT::dataTableOutput("tableDisp", 
                                                           height = "75vh"
+                                                          ),
+                                      style = "font-size:80%; line-height:75%; width:100%; padding-left:0px"
+                                      ),
+                                  width = 12, height = "80vh"
+                                  )
                               ),
-                              style = "font-size:80%; line-height:75%; width:100%; padding-left:0px"
-                              ),
-                              width = 12, height = "80vh"
-                              )
-                      ),
-                      # Open Text Tab ---------------------------------------------------------------
+# Open Text Tab ---------------------------------------------------------------
                       tabItem(tabName = "OpTxt",
                               fluidRow(column(4,
                                               # Comment selection drop down
@@ -352,59 +373,59 @@ ui <- dashboardPage(skin = "blue",
                                                                       "Treated fairly",
                                                                       "Overall",
                                                                       "Other comments"
+                                                                      )
                                                           )
-                                              )
-                              ),
-                              column(4,
-                                     # Respondent type selection
-                                     prettyCheckboxGroup(inputId = "cmnts_resp_input",
-                                                         label = "Respondent", 
-                                                         choices = c("Agent/Designer", 
-                                                                     "Applicant", 
-                                                                     "Contractor", 
-                                                                     "Other respondent"
-                                                         ),
-                                                         selected = c("Agent/Designer", 
-                                                                      "Applicant", 
-                                                                      "Contractor", 
-                                                                      "Other respondent"
-                                                         ),
-                                                         inline = TRUE,
-                                                         icon = icon("check"),
-                                                         status = "danger",
-                                                         animation = "rotate"
-                                     )
-                              ),
-                              column(4,
-                                     # Respondent reason selection
-                                     prettyCheckboxGroup(inputId = "cmnts_reason_input",
-                                                         label = "Reasons", 
-                                                         choices = c("To discuss your proposal", 
-                                                                     "Make an application", 
-                                                                     "During construction", 
-                                                                     "Other reason"
-                                                         ),
-                                                         selected = c("To discuss your proposal", 
-                                                                      "Make an application", 
-                                                                      "During construction", 
-                                                                      "Other reason"
-                                                         ),
-                                                         inline = TRUE,
-                                                         icon = icon("check"),
-                                                         status = "info",
-                                                         animation = "pulse"
-                                     )
-                              ),
-                              # Comments Data Table
-                              box(DT::dataTableOutput("cmnt_table"), 
-                                  width = 12, 
-                                  height = "70vh"
+                                              ),
+                                       column(4,
+                                              # Respondent type selection
+                                              prettyCheckboxGroup(inputId = "cmnts_resp_input",
+                                                                  label = "Respondent", 
+                                                                  choices = c("Agent/Designer", 
+                                                                              "Applicant", 
+                                                                              "Contractor", 
+                                                                              "Other respondent"
+                                                                              ),
+                                                                  selected = c("Agent/Designer", 
+                                                                               "Applicant", 
+                                                                               "Contractor", 
+                                                                               "Other respondent"
+                                                                               ),
+                                                                  inline = TRUE,
+                                                                  icon = icon("check"),
+                                                                  status = "danger",
+                                                                  animation = "rotate"
+                                                                  )
+                                              ),
+                                       column(4,
+                                              # Respondent reason selection
+                                              prettyCheckboxGroup(inputId = "cmnts_reason_input",
+                                                                  label = "Reasons", 
+                                                                  choices = c("To discuss your proposal", 
+                                                                              "Make an application", 
+                                                                              "During construction", 
+                                                                              "Other reason"
+                                                                              ),
+                                                                  selected = c("To discuss your proposal", 
+                                                                               "Make an application", 
+                                                                               "During construction", 
+                                                                               "Other reason"
+                                                                               ),
+                                                                  inline = TRUE,
+                                                                  icon = icon("check"),
+                                                                  status = "info",
+                                                                  animation = "pulse"
+                                                                  )
+                                              ),
+                                       # Comments Data Table
+                                       box(DT::dataTableOutput("cmnt_table"), 
+                                           width = 12, 
+                                           height = "70vh"
+                                           )
+                                       )
                               )
-                              )
-                      )
-                      # Closing bracket for Tab Items in dashboard body
+# Closing bracket for Tab Items in dashboard body
+                                  )
+# Closing bracket for dashboard body
+                                  )
+# Closing bracket for dashboard page
                     )
-                    # Closing bracket for dashboard body
-                    )
-                    # Closing bracket for dashboard page
-)

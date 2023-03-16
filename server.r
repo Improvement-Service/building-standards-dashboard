@@ -15,7 +15,7 @@ function(input, output, session) {
   user <- reactive({
     session$user
   })
-  
+
   # LA selection generated for IS & SG users
   output$la_select <- renderUI({
     user <- user()
@@ -33,7 +33,7 @@ function(input, output, session) {
       return()
     }
   })
-  
+
   # If statement to determine local authority filter.
   # Will use either LA name if LA log in or LA drop down selection if 
   # IS or SG
@@ -366,7 +366,6 @@ function(input, output, session) {
     dl_all_data
   })
   
-  
   # Respondent type & Reasons data ---------------------------------------------- 
   
   # Generate another dataframe with respondent types
@@ -382,6 +381,17 @@ function(input, output, session) {
     # Change these columns to numeric so they can be combined with the other columns
     dl_all_data$`Q1.4. Other (please specify):` <- as.numeric(dl_all_data$`Q1.4. Other (please specify):`)
     dl_all_data$`Q2.4. Other (please specify):` <- as.numeric(dl_all_data$`Q2.4. Other (please specify):`)
+
+    # Calculates within each LA, the number of respondents answering yes to 
+    # the different respondent options. Then calculates as a % of all responses
+    # within the financial year.
+    resp_dta <- dl_all_data %>% 
+     group_by(`Local Authority Name`) %>% 
+     select(1:12) %>%
+     pivot_longer(cols = 5:12, names_to = "Question", values_to = "value") %>% 
+     group_by(`Financial Year`,`Local Authority Name`, Question) %>%
+     count(value) %>%
+     mutate(perc = round((n/sum(n)) * 100, 1))
     
     # Quarter responses
     # Calculates within each LA, the number of respondents answering yes to 
@@ -604,6 +614,53 @@ function(input, output, session) {
       # Generate the KPO score (out of 10)    
       mutate(KPO_score = round((1 - KPO4_weighted/maxAvailable) * 10, 1))
   })
+ 
+   ##KPO4 per respondent type
+  
+  #function to get KPO by respondent type at Scotland level
+  scot_resp_kpo <- function(resp_col){
+    resp_col <- enquo(resp_col)
+    scot_max_sum_resp <- scot_max %>% 
+      filter(!!resp_col == 1) %>%
+      group_by(`Tracking Link`,`Financial Year`) %>%
+      summarise(across(c(maxAvailable,KPO4_weighted),sum, na.rm = T)) %>% 
+      ungroup() %>%
+      group_by(`Financial Year`)%>%
+      bind_rows(summarise(.,across(where(is.numeric), sum),
+                          across(where(is.character), ~"Total")))  %>%
+      ##generate the KPO score (out of 10)    
+      mutate(KPO_score = (1-KPO4_weighted/maxAvailable)*10)
+    
+    return(scot_max_sum_resp)
+  }
+  
+  ##calculate KPO4 for quarter for all results   
+  scot_kpo_agent <- scot_resp_kpo(resp_col = `Q1.1. Agent/Designer`)
+  scot_kpo_applicant <- scot_resp_kpo(resp_col = `Q1.2. Applicant`)
+  scot_kpo_contractor <- scot_resp_kpo(resp_col = `Q1.3. Contractor`)
+  scot_kpo_other <- scot_resp_kpo(resp_col = `Q1.4. Other respondent`)
+  
+  #function to get KPO by respondent type at local authority level
+  la_resp_kpo <- function(resp_col){
+    council_fltr = local_authority()
+    resp_col <- enquo(resp_col)
+    la_max_sum <- scot_max %>% 
+      filter(!!resp_col == 1) %>%
+      filter(`Local Authority Name` == council_fltr) %>%     
+      group_by(`Tracking Link`, `Financial Year`) %>%
+      summarise(across(c(maxAvailable,KPO4_weighted),sum, na.rm = T)) %>% 
+      ungroup()%>%
+      group_by(`Financial Year`)%>%
+      bind_rows(summarise(.,across(where(is.numeric), sum),
+                          across(where(is.character), ~"Total")))  %>%
+      ##generate the KPO score (out of 10)    
+      mutate(KPO_score = round((1-KPO4_weighted/maxAvailable)*10,1))
+  }
+  ##calculate KPO4 for quarter for selected local authority    
+  la_kpo_agent <- reactive({ la_resp_kpo(resp_col = `Q1.1. Agent/Designer`) })
+  la_kpo_applicant <- reactive({ la_resp_kpo(resp_col = `Q1.2. Applicant`)  })
+  la_kpo_contractor <- reactive({ la_resp_kpo(resp_col = `Q1.3. Contractor`) })
+  la_kpo_other <- reactive({ la_resp_kpo(resp_col = `Q1.4. Other respondent`)  })
   
   # Create KPO4 download ---------------------------------------------------
   
@@ -897,6 +954,255 @@ function(input, output, session) {
       theme(plot.title = element_text(size = 12))
     
     ggplotly(plot, tooltip = "text")
+  })
+  # KPO4 by Respondent Graphs -------------------------------
+  
+  output$kpo_resp_graph_agent <- renderPlotly({
+    la_max_sum <- la_kpo_agent()
+    #rename Total as year to date
+    la_max_sum$`Tracking Link` <- recode(la_max_sum$`Tracking Link`, 
+                                         "Total" = "YTD"
+    )
+    # Filter to only include the Quarters for current year
+    la_max_sum <- la_max_sum %>% 
+      filter(`Tracking Link` == "YTD" | (`Tracking Link` != "YTD" & `Financial Year` == fin_yr()))
+    # Add Financial year to quarter labels
+    la_max_sum$`Tracking Link` <- gsub("Quarter\\ ",
+                                       "Q",
+                                       la_max_sum$`Tracking Link`, 
+                                       perl = TRUE
+    )
+    la_max_sum$Label <- paste(la_max_sum$`Tracking Link`, 
+                              la_max_sum$`Financial Year`, 
+                              sep = " "
+    )
+    # Store the number of YTD values to determine the colours for these bars
+    YTD <- length(la_max_sum$`Tracking Link`[la_max_sum$`Tracking Link` == "YTD"])
+    
+    # Set colours for quarter by kpo4
+    kpo_clrs <- la_max_sum %>% 
+      filter(`Tracking Link` != "YTD") %>% 
+      pull(KPO_score)
+    clrs <- ifelse(kpo_clrs > 7.5, 
+                   "forestgreen", 
+                   ifelse(kpo_clrs < 6.5, 
+                          "firebrick", 
+                          "darkorange"
+                   )
+    )
+    
+    p <- ggplot(data = la_max_sum) +
+      geom_bar(aes(x = Label, 
+                   y = KPO_score,
+                   text = paste(paste("Quarter:", Label),
+                                paste("KPO 4 Score", KPO_score),
+                                sep = "\n"
+                   )
+      ), 
+      stat = "identity",
+      position = "dodge", 
+      fill = c(clrs, rep("grey13", YTD)), 
+      width = 0.7, 
+      colour = "black"
+      ) +
+      theme_classic() +
+      scale_y_continuous(limits = c(0, 10), 
+                         expand = expansion(mult = c(0, 0.1))
+      ) +
+      ggtitle(paste("KPO4 performance by quarter and Year to Date", "Agent", sep = " - ")) +
+      ylab("KPO 4 Score") +
+      xlab("Response period") +
+      theme(axis.text.x = element_text(size = 10),
+            axis.title = element_text(size = 13)
+      )
+    
+    ggplotly(p, tooltip = "text")    
+  })
+  
+  output$kpo_resp_graph_applicant <- renderPlotly({
+    la_max_sum <- la_kpo_applicant()
+    #rename Total as year to date
+    la_max_sum$`Tracking Link` <- recode(la_max_sum$`Tracking Link`, 
+                                         "Total" = "YTD"
+    )
+    # Filter to only include the Quarters for current year
+    la_max_sum <- la_max_sum %>% 
+      filter(`Tracking Link` == "YTD" | (`Tracking Link` != "YTD" & `Financial Year` == fin_yr()))
+    # Add Financial year to quarter labels
+    la_max_sum$`Tracking Link` <- gsub("Quarter\\ ",
+                                       "Q",
+                                       la_max_sum$`Tracking Link`, 
+                                       perl = TRUE
+    )
+    la_max_sum$Label <- paste(la_max_sum$`Tracking Link`, 
+                              la_max_sum$`Financial Year`, 
+                              sep = " "
+    )
+    # Store the number of YTD values to determine the colours for these bars
+    YTD <- length(la_max_sum$`Tracking Link`[la_max_sum$`Tracking Link` == "YTD"])
+    
+    # Set colours for quarter by kpo4
+    kpo_clrs <- la_max_sum %>% 
+      filter(`Tracking Link` != "YTD") %>% 
+      pull(KPO_score)
+    clrs <- ifelse(kpo_clrs > 7.5, 
+                   "forestgreen", 
+                   ifelse(kpo_clrs < 6.5, 
+                          "firebrick", 
+                          "darkorange"
+                   )
+    )
+    
+    p <- ggplot(data = la_max_sum) +
+      geom_bar(aes(x = Label, 
+                   y = KPO_score,
+                   text = paste(paste("Quarter:", Label),
+                                paste("KPO 4 Score", KPO_score),
+                                sep = "\n"
+                   )
+      ), 
+      stat = "identity",
+      position = "dodge", 
+      fill = c(clrs, rep("grey13", YTD)), 
+      width = 0.7, 
+      colour = "black"
+      ) +
+      theme_classic() +
+      scale_y_continuous(limits = c(0, 10), 
+                         expand = expansion(mult = c(0, 0.1))
+      ) +
+      ggtitle(paste("KPO4 performance by quarter and Year to Date", "Applicant", sep = " - ")) +
+      ylab("KPO 4 Score") +
+      xlab("Response period") +
+      theme(axis.text.x = element_text(size = 10),
+            axis.title = element_text(size = 13)
+      )
+    
+    ggplotly(p, tooltip = "text")    
+  })
+  
+  output$kpo_resp_graph_contr <- renderPlotly({
+    la_max_sum <- la_kpo_contractor()
+    #rename Total as year to date
+    la_max_sum$`Tracking Link` <- recode(la_max_sum$`Tracking Link`, 
+                                         "Total" = "YTD"
+    )
+    # Filter to only include the Quarters for current year
+    la_max_sum <- la_max_sum %>% 
+      filter(`Tracking Link` == "YTD" | (`Tracking Link` != "YTD" & `Financial Year` == fin_yr()))
+    # Add Financial year to quarter labels
+    la_max_sum$`Tracking Link` <- gsub("Quarter\\ ",
+                                       "Q",
+                                       la_max_sum$`Tracking Link`, 
+                                       perl = TRUE
+    )
+    la_max_sum$Label <- paste(la_max_sum$`Tracking Link`, 
+                              la_max_sum$`Financial Year`, 
+                              sep = " "
+    )
+    # Store the number of YTD values to determine the colours for these bars
+    YTD <- length(la_max_sum$`Tracking Link`[la_max_sum$`Tracking Link` == "YTD"])
+    
+    # Set colours for quarter by kpo4
+    kpo_clrs <- la_max_sum %>% 
+      filter(`Tracking Link` != "YTD") %>% 
+      pull(KPO_score)
+    clrs <- ifelse(kpo_clrs > 7.5, 
+                   "forestgreen", 
+                   ifelse(kpo_clrs < 6.5, 
+                          "firebrick", 
+                          "darkorange"
+                   )
+    )
+    
+    p <- ggplot(data = la_max_sum) +
+      geom_bar(aes(x = Label, 
+                   y = KPO_score,
+                   text = paste(paste("Quarter:", Label),
+                                paste("KPO 4 Score", KPO_score),
+                                sep = "\n"
+                   )
+      ), 
+      stat = "identity",
+      position = "dodge", 
+      fill = c(clrs, rep("grey13", YTD)), 
+      width = 0.7, 
+      colour = "black"
+      ) +
+      theme_classic() +
+      scale_y_continuous(limits = c(0, 10), 
+                         expand = expansion(mult = c(0, 0.1))
+      ) +
+      ggtitle(paste("KPO4 performance by quarter and Year to Date", "Contractor", sep = " - ")) +
+      ylab("KPO 4 Score") +
+      xlab("Response period") +
+      theme(axis.text.x = element_text(size = 10),
+            axis.title = element_text(size = 13)
+      )
+    
+    ggplotly(p, tooltip = "text")    
+  })
+  
+  output$kpo_resp_graph_other <- renderPlotly({
+    la_max_sum <- la_kpo_other()
+    #rename Total as year to date
+    la_max_sum$`Tracking Link` <- recode(la_max_sum$`Tracking Link`, 
+                                         "Total" = "YTD"
+    )
+    # Filter to only include the Quarters for current year
+    la_max_sum <- la_max_sum %>% 
+      filter(`Tracking Link` == "YTD" | (`Tracking Link` != "YTD" & `Financial Year` == fin_yr()))
+    # Add Financial year to quarter labels
+    la_max_sum$`Tracking Link` <- gsub("Quarter\\ ",
+                                       "Q",
+                                       la_max_sum$`Tracking Link`, 
+                                       perl = TRUE
+    )
+    la_max_sum$Label <- paste(la_max_sum$`Tracking Link`, 
+                              la_max_sum$`Financial Year`, 
+                              sep = " "
+    )
+    # Store the number of YTD values to determine the colours for these bars
+    YTD <- length(la_max_sum$`Tracking Link`[la_max_sum$`Tracking Link` == "YTD"])
+    
+    # Set colours for quarter by kpo4
+    kpo_clrs <- la_max_sum %>% 
+      filter(`Tracking Link` != "YTD") %>% 
+      pull(KPO_score)
+    clrs <- ifelse(kpo_clrs > 7.5, 
+                   "forestgreen", 
+                   ifelse(kpo_clrs < 6.5, 
+                          "firebrick", 
+                          "darkorange"
+                   )
+    )
+    
+    p <- ggplot(data = la_max_sum) +
+      geom_bar(aes(x = Label, 
+                   y = KPO_score,
+                   text = paste(paste("Quarter:", Label),
+                                paste("KPO 4 Score", KPO_score),
+                                sep = "\n"
+                   )
+      ), 
+      stat = "identity",
+      position = "dodge", 
+      fill = c(clrs, rep("grey13", YTD)), 
+      width = 0.7, 
+      colour = "black"
+      ) +
+      theme_classic() +
+      scale_y_continuous(limits = c(0, 10), 
+                         expand = expansion(mult = c(0, 0.1))
+      ) +
+      ggtitle(paste("KPO4 performance by quarter and Year to Date", "Other", sep = " - ")) +
+      ylab("KPO 4 Score") +
+      xlab("Response period") +
+      theme(axis.text.x = element_text(size = 10),
+            axis.title = element_text(size = 13)
+      )
+    
+    ggplotly(p, tooltip = "text")    
   })
   
   # Questions results tab (Data filtering)--------------------------------
@@ -1744,7 +2050,6 @@ function(input, output, session) {
   })
   
   # Report Download tab (functions for individual questions)-------------------
-  
   # Create a function for generating formatted data for individual questions
   
   format_qstn_dta <- function(question, 
@@ -1822,7 +2127,7 @@ function(input, output, session) {
   }
   
   # Create a function for generating text for individual questions
-  
+
   create_qstn_text <- function(data, 
                                question, 
                                named_value_1, 
@@ -1876,7 +2181,6 @@ function(input, output, session) {
     } else {
       max_perc <- paste0(max_perc, " percent.")
     }
-    
     # Get second highest value
     sec_val <- sort(qstnDta_LA$n, partial = 3)[3]
     # Filter for second highest value's name
@@ -1897,7 +2201,6 @@ function(input, output, session) {
     } else {
       sec_perc <- paste0(sec_perc, " percent.")
     }
-    
     # Get most frequent response for Scotland
     scot_max_name <- as.character(qstnDta_scot %>% 
                                     filter(n == max(n)) %>% 
@@ -1970,7 +2273,7 @@ function(input, output, session) {
                     named_value_4 = "very dissatisfied"
     )
   })
-  
+
   # Render plot 
   output$question_time_report <- renderPlotly({
     # Call function to create plot
@@ -1978,7 +2281,7 @@ function(input, output, session) {
                      title = "Satisfaction with time taken -" 
                      )
   })
-  
+
   # Render text
   output$question_time_report_text <- renderText({
     # Call function to create text
@@ -2036,7 +2339,7 @@ function(input, output, session) {
                     named_value_4 = "very poor"
     )
   })
-  
+
   # Render plot 
   output$question_info_report <- renderPlotly({
     # Call function to create plot
@@ -2044,7 +2347,6 @@ function(input, output, session) {
                      title = "Quality of information -"
                      )
   })
-  
   # Render text
   output$question_info_report_text <- renderText({
     # Call function to create text
@@ -2069,7 +2371,7 @@ function(input, output, session) {
                     named_value_4 = "very poor"
     )
   })
-  
+
   # Render plot 
   output$question_staff_report <- renderPlotly({
     # Call function to create plot
@@ -2102,7 +2404,7 @@ function(input, output, session) {
                     named_value_4 = "very poor"
     )
   })
-  
+
   # Render plot 
   output$question_responsiveness_report <- renderPlotly({
     # Call function to create plot
@@ -2110,7 +2412,7 @@ function(input, output, session) {
                      title = "Responsiveness to queries or issues -"
                      )
   })
-  
+
   # Render text
   output$question_responsiveness_report_text <- renderText({
     # Call function to create text
@@ -2135,7 +2437,7 @@ function(input, output, session) {
                     named_value_4 = "strongly disagree"
     )
   })
-  
+
   # Render plot 
   output$question_fair_report <- renderPlotly({
     # Call function to create plot
@@ -2143,7 +2445,7 @@ function(input, output, session) {
                      title = "Would you agree you were treated fairly -"
                      )
   })
-  
+
   # Render text
   output$question_fair_report_text <- renderText({
     # Call function to create text
@@ -2189,7 +2491,7 @@ function(input, output, session) {
   })
   
   # Report download tab (Report download)-----------------------------------
-  
+
   # Create pdf report
   output$report <- downloadHandler(
     filename = "report.pdf",
@@ -2218,7 +2520,7 @@ function(input, output, session) {
                      fair_data = question_fairly_data_report(),
                      overall_data = question_overall_data_report()
       )
-      
+
       # Knit the markdown document, passing in the `params` list, and eval 
       # it in a child of the global environment (this isolates the code in 
       # the document from the code in this app).
@@ -2231,7 +2533,6 @@ function(input, output, session) {
   )
   
   # Data download tab (Data download button)-----------------------------------
-  
   # Create excel download
   output$all_data_dl <- downloadHandler(
     filename = paste("All_Data", ".csv", sep = ""),
@@ -2335,6 +2636,7 @@ function(input, output, session) {
         ~recode(., "1" = "Yes", "0" = "No")
         )
         ) %>%
+
         select(-LA)
       
       # Final tidy up of column names by removing SmartSurvey variable
@@ -2349,7 +2651,7 @@ function(input, output, session) {
   )
   
   # Data download tab (Data table)--------------------------------------------    
-  
+
   # Create data table for full dataset
   output$tableDisp <- DT::renderDataTable({
     unpivot_data <- unpivot_data()
@@ -2387,6 +2689,7 @@ function(input, output, session) {
                            "}")
                        )
                        ),
+
                        dom = "t",
                        deferRender = TRUE,
                        scrollY = "320px",
@@ -2397,7 +2700,7 @@ function(input, output, session) {
   })
   
   # Open Text tab-------------------------------------------------------------
-  
+
   # Create table to show comments for selected question 
   output$cmnt_table <- DT::renderDataTable({
     unpivot_data <- unpivot_data()
