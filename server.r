@@ -13,9 +13,9 @@ function(input, output, session) {
   
   # Set up reactive council selection based on log in -------------------------
   user <- reactive({
-    session$user
+    "improvementservice.org.uk"
   })
-
+  
   # LA selection generated for IS & SG users
   output$la_select <- renderUI({
     user <- user()
@@ -33,7 +33,7 @@ function(input, output, session) {
       return()
     }
   })
-
+  
   # If statement to determine local authority filter.
   # Will use either LA name if LA log in or LA drop down selection if 
   # IS or SG
@@ -235,10 +235,10 @@ function(input, output, session) {
   
   # Create select button for quarter - default YTD
   output$qrtr <- renderUI({
-   # council_fltr <- local_authority()
+    # council_fltr <- local_authority()
     pivot_dta <- pivot_dta %>% 
       filter(`Financial Year` == fin_yr() &
-        `Local Authority Name` == local_authority())
+               `Local Authority Name` == local_authority())
     quarters <- unique(pivot_dta$`Tracking Link`)
     quarters <- str_sort(quarters)
     
@@ -246,7 +246,7 @@ function(input, output, session) {
                    label = "Select Quarter",
                    choices = c("Year to Date", quarters), 
                    selected = "Year to Date"
-                   )
+    )
   })
   
   # Reactive expression to store quarter selected
@@ -381,17 +381,17 @@ function(input, output, session) {
     # Change these columns to numeric so they can be combined with the other columns
     dl_all_data$`Q1.4. Other (please specify):` <- as.numeric(dl_all_data$`Q1.4. Other (please specify):`)
     dl_all_data$`Q2.4. Other (please specify):` <- as.numeric(dl_all_data$`Q2.4. Other (please specify):`)
-
+    
     # Calculates within each LA, the number of respondents answering yes to 
     # the different respondent options. Then calculates as a % of all responses
     # within the financial year.
     resp_dta <- dl_all_data %>% 
-     group_by(`Local Authority Name`) %>% 
-     select(1:12) %>%
-     pivot_longer(cols = 5:12, names_to = "Question", values_to = "value") %>% 
-     group_by(`Financial Year`,`Local Authority Name`, Question) %>%
-     count(value) %>%
-     mutate(perc = round((n/sum(n)) * 100, 1))
+      group_by(`Local Authority Name`) %>% 
+      select(1:12) %>%
+      pivot_longer(cols = 5:12, names_to = "Question", values_to = "value") %>% 
+      group_by(`Financial Year`,`Local Authority Name`, Question) %>%
+      count(value) %>%
+      mutate(perc = round((n/sum(n)) * 100, 1))
     
     # Quarter responses
     # Calculates within each LA, the number of respondents answering yes to 
@@ -418,7 +418,7 @@ function(input, output, session) {
     # Combine quarter and YTD data
     resp_dta <- rbind(qrtr_resp_dta, fin_yr_resp_dta)
     resp_dta$`Tracking Link`[is.na(resp_dta$`Tracking Link`)] <- "Year to Date" 
-
+    
     # Differentiates questions by whether they ask about respondent types or reasons
     resp_dta$question_type <- ifelse(grepl("Q1", resp_dta$Question), 
                                      "Type", 
@@ -614,8 +614,8 @@ function(input, output, session) {
       # Generate the KPO score (out of 10)    
       mutate(KPO_score = round((1 - KPO4_weighted/maxAvailable) * 10, 1))
   })
- 
-   ##KPO4 per respondent type
+  
+  ##KPO4 per respondent type
   
   #function to get KPO by respondent type at Scotland level
   scot_resp_kpo <- function(resp_col){
@@ -779,9 +779,9 @@ function(input, output, session) {
     # Use the most recent quarter as the default quarter when YTD is selected
     qrtr <- if (input$qrtr_selection == "Year to Date") {
       crnt_qtr
-      } else {
-        input$qrtr_selection
-      }
+    } else {
+      input$qrtr_selection
+    }
     
     # Counts the number of rows (responses) in the given quarter & financial year
     # data is already filtered to selected council
@@ -1230,6 +1230,19 @@ function(input, output, session) {
     filter_data
   })
   
+  # Questions results tab Create valuebox for number of responses ---------------------------------
+  output$respBoxYTD <- renderValueBox({
+    unpivot_data <- unpivot_data()
+
+    # Counts the number of rows (responses) in the given quarter & financial year
+    # data is already filtered to selected council
+    valueBox(value = paste(nrow(filter(unpivot_data, `Financial Year` == fin_yr())), "Responses"),
+             subtitle =  paste("Year to Date", fin_yr()),
+    icon = icon("user-friends"), 
+    color = "light-blue"
+    )
+  })
+
   # Questions Results tab (YTD plot)---------------------------------------
   
   # First graph for full breakdown of responses in year to date  
@@ -2127,7 +2140,7 @@ function(input, output, session) {
   }
   
   # Create a function for generating text for individual questions
-
+  
   create_qstn_text <- function(data, 
                                question, 
                                named_value_1, 
@@ -2273,15 +2286,15 @@ function(input, output, session) {
                     named_value_4 = "very dissatisfied"
     )
   })
-
+  
   # Render plot 
   output$question_time_report <- renderPlotly({
     # Call function to create plot
     create_qstn_plot(data = question_time_data_report(),
                      title = "Satisfaction with time taken -" 
-                     )
+    )
   })
-
+  
   # Render text
   output$question_time_report_text <- renderText({
     # Call function to create text
@@ -2312,7 +2325,7 @@ function(input, output, session) {
     # Call function to create plot
     create_qstn_plot(data = question_comms_data_report(),
                      title = "Standard of communication -" 
-                     )
+    )
   })
   
   # Render text
@@ -2339,13 +2352,13 @@ function(input, output, session) {
                     named_value_4 = "very poor"
     )
   })
-
+  
   # Render plot 
   output$question_info_report <- renderPlotly({
     # Call function to create plot
     create_qstn_plot(data = question_info_data_report(),
                      title = "Quality of information -"
-                     )
+    )
   })
   # Render text
   output$question_info_report_text <- renderText({
@@ -2371,13 +2384,13 @@ function(input, output, session) {
                     named_value_4 = "very poor"
     )
   })
-
+  
   # Render plot 
   output$question_staff_report <- renderPlotly({
     # Call function to create plot
     create_qstn_plot(data = question_staff_data_report(),
                      title = "Service offered by staff -"
-                     )
+    )
   })
   
   # Render text
@@ -2404,15 +2417,15 @@ function(input, output, session) {
                     named_value_4 = "very poor"
     )
   })
-
+  
   # Render plot 
   output$question_responsiveness_report <- renderPlotly({
     # Call function to create plot
     create_qstn_plot(data = question_responsiveness_data_report(),
                      title = "Responsiveness to queries or issues -"
-                     )
+    )
   })
-
+  
   # Render text
   output$question_responsiveness_report_text <- renderText({
     # Call function to create text
@@ -2437,15 +2450,15 @@ function(input, output, session) {
                     named_value_4 = "strongly disagree"
     )
   })
-
+  
   # Render plot 
   output$question_fair_report <- renderPlotly({
     # Call function to create plot
     create_qstn_plot(data = question_fairly_data_report(),
                      title = "Would you agree you were treated fairly -"
-                     )
+    )
   })
-
+  
   # Render text
   output$question_fair_report_text <- renderText({
     # Call function to create text
@@ -2476,7 +2489,7 @@ function(input, output, session) {
     # Call function to create plot
     create_qstn_plot(data = question_overall_data_report(),
                      title = "Overall satisfaction -"
-                     )
+    )
   })    
   
   # Render text
@@ -2491,7 +2504,7 @@ function(input, output, session) {
   })
   
   # Report download tab (Report download)-----------------------------------
-
+  
   # Create pdf report
   output$report <- downloadHandler(
     filename = "report.pdf",
@@ -2520,7 +2533,7 @@ function(input, output, session) {
                      fair_data = question_fairly_data_report(),
                      overall_data = question_overall_data_report()
       )
-
+      
       # Knit the markdown document, passing in the `params` list, and eval 
       # it in a child of the global environment (this isolates the code in 
       # the document from the code in this app).
@@ -2636,7 +2649,7 @@ function(input, output, session) {
         ~recode(., "1" = "Yes", "0" = "No")
         )
         ) %>%
-
+        
         select(-LA)
       
       # Final tidy up of column names by removing SmartSurvey variable
@@ -2651,7 +2664,7 @@ function(input, output, session) {
   )
   
   # Data download tab (Data table)--------------------------------------------    
-
+  
   # Create data table for full dataset
   output$tableDisp <- DT::renderDataTable({
     unpivot_data <- unpivot_data()
@@ -2689,7 +2702,7 @@ function(input, output, session) {
                            "}")
                        )
                        ),
-
+                       
                        dom = "t",
                        deferRender = TRUE,
                        scrollY = "320px",
@@ -2700,7 +2713,7 @@ function(input, output, session) {
   })
   
   # Open Text tab-------------------------------------------------------------
-
+  
   # Create table to show comments for selected question 
   output$cmnt_table <- DT::renderDataTable({
     unpivot_data <- unpivot_data()

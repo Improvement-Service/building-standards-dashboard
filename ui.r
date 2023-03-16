@@ -115,7 +115,7 @@ ui <- dashboardPage(skin = "blue",
                       ),
 # Question Results Tab -------------------------------------------------------
                       tabItem(tabName = "Qstns",
-                              fluidRow(column(4,
+                              fluidRow(column(3, style = "display:inline-block",
                                               # Question drop down
                                               selectInput(inputId = "Qstn_tab2", 
                                                           label = "Select Question",
@@ -126,8 +126,11 @@ ui <- dashboardPage(skin = "blue",
                                                           )#,
                                               # Financial year selection
                                               #uiOutput("fin_yr")
+                                               ),
+                                      column(3,        
+                                              valueBoxOutput("respBoxYTD", width = 12)
                                               ),
-                                       column(4,
+                                       column(3,
                                               # Respondent type selection
                                               prettyCheckboxGroup(inputId = "Qs_resp_input",
                                                                   label = "Respondent", 
@@ -147,7 +150,7 @@ ui <- dashboardPage(skin = "blue",
                                                                   animation = "rotate"
                                                                   )
                                               ),
-                                       column(4,
+                                       column(3,
                                               # Respondent reason selection
                                               prettyCheckboxGroup(inputId = "Qs_reason_input",
                                                                   label = "Reasons", 
