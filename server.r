@@ -1232,8 +1232,9 @@ function(input, output, session) {
   
   # Questions results tab Create valuebox for number of responses ---------------------------------
   output$respBoxYTD <- renderValueBox({
-    unpivot_data <- unpivot_data()
-
+    unpivot_data <- qstn_dataset_filtered()
+  ##Only want to count each respondent once, so only keep the overall question response
+    unpivot_data <- unpivot_data %>% filter(Indicator == "Overall, how satisfied were you with the service provided?")
     # Counts the number of rows (responses) in the given quarter & financial year
     # data is already filtered to selected council
     valueBox(value = paste(nrow(filter(unpivot_data, `Financial Year` == fin_yr())), "Responses"),
@@ -1455,6 +1456,24 @@ function(input, output, session) {
       )
     ggplotly(plot)
   })
+  
+##Questions Results Tab: Table with respondent number per Quarter--------------------------------------
+  output$resp_qrts <- renderDataTable({
+    # Filter dataset based on selected question & set responses as factors
+    qstn_dataset_filtered <- qstn_dataset_filtered()
+    
+    ##Only want to count each respondent once, so only keep the question selected by user on page 2
+    qst_ind <- ifelse(input$Qstn_tab2 == "All Questions", "Overall, how satisfied were you with the service provided?", input$Qstn_tab2)
+    qstn_dataset_filtered <- qstn_dataset_filtered %>% filter(Indicator == qst_ind) %>% filter(value != "-")
+
+    # Calculate count per quarter
+    qstnDta_responses <- qstn_dataset_filtered %>% count(`Tracking Link`, .drop = FALSE) %>%
+      pivot_wider(names_from = `Tracking Link`, values_from = n)
+    
+    datatable(qstnDta_responses, rownames = FALSE,options = list(pageLength = 5, dom = 'tip'))
+  })
+  
+  
   
   # Report Download Tab (KPO4 YTD)------------------------------------------
   
