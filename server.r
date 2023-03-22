@@ -1468,9 +1468,14 @@ function(input, output, session) {
 
     # Calculate count per quarter
     qstnDta_responses <- qstn_dataset_filtered %>% count(`Tracking Link`, .drop = FALSE) %>%
-      pivot_wider(names_from = `Tracking Link`, values_from = n)
+    add_row(`Tracking Link` = "Year to Date", n = sum(.$n)) %>%
+      rename(Quarter = `Tracking Link`, Number = n)
     
-    datatable(qstnDta_responses, rownames = FALSE,options = list(pageLength = 5, dom = 'tip'))
+          #%>%
+      #pivot_wider(names_from = `Tracking Link`, values_from = n)
+    
+    datatable(qstnDta_responses, rownames = FALSE,options = list(pageLength = 5, dom = 't')) %>%
+      formatStyle('Quarter', fontWeight = "bold")
   })
   
   

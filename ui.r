@@ -127,10 +127,10 @@ ui <- dashboardPage(skin = "blue",
                                               # Financial year selection
                                               #uiOutput("fin_yr")
                                                ),
-                                      column(3,        
-                                              valueBoxOutput("respBoxYTD", width = 12)
-                                              ),
-                                       column(3,
+                                      # column(3,        
+                                      #         valueBoxOutput("respBoxYTD", width = 12)
+                                      #         ),
+                                       column(4,
                                               # Respondent type selection
                                               prettyCheckboxGroup(inputId = "Qs_resp_input",
                                                                   label = "Respondent", 
@@ -150,7 +150,7 @@ ui <- dashboardPage(skin = "blue",
                                                                   animation = "rotate"
                                                                   )
                                               ),
-                                       column(3,
+                                       column(5,
                                               # Respondent reason selection
                                               prettyCheckboxGroup(inputId = "Qs_reason_input",
                                                                   label = "Reasons", 
@@ -172,7 +172,9 @@ ui <- dashboardPage(skin = "blue",
                                               )
                                        ),
                               # Response overview graphs tabs
-                              tabBox(width = 12, 
+                              fluidRow(
+                                column(10,
+                                  tabBox(width = 12, 
                                      height = "66vh",
                                      # YTD graph
                                      tabPanel("Year to Date",
@@ -184,10 +186,16 @@ ui <- dashboardPage(skin = "blue",
                                      tabPanel("Summary by Quarter", 
                                               plotlyOutput("qrtsQsplot", 
                                                            height = "60vh"
-                                                           ),
-                                              dataTableOutput("resp_qrts")
+                                                           )#,
+ 
                                               )
                                      )
+                                  ),
+                                column(2,
+                                       h3("Respondents by Quarter"),
+                                       dataTableOutput("resp_qrts")
+                                       )
+                              )
                               ),
 # Report Download Tab -----------------------------------------------------
                       tabItem(tabName = "RptDl",
