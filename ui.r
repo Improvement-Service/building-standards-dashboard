@@ -178,14 +178,14 @@ ui <- dashboardPage(skin = "blue",
                                      tabPanel("Year to Date",
                                               plotlyOutput("YTDqstsPlot", 
                                                            height = "60vh"
-                                                           ),
-                                              dataTableOutput("resp_qrts")
+                                                           )
                                               ),
                                      # Summary by quarter graph
                                      tabPanel("Summary by Quarter", 
                                               plotlyOutput("qrtsQsplot", 
                                                            height = "60vh"
-                                                           )
+                                                           ),
+                                              dataTableOutput("resp_qrts")
                                               )
                                      )
                               ),
