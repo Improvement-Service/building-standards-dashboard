@@ -1,7 +1,10 @@
 ---
 title: "National Customer Survey Performance Overview Report"
-output: pdf_document
-fontsize: 13pt
+output: 
+  pdf_document:
+    latex_engine: xelatex
+mainfont: "Arial"
+fontsize: 11pt
 params:
   time_data: NA
   la: NA
