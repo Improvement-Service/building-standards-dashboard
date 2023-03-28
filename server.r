@@ -844,10 +844,12 @@ function(input, output, session) {
       colour = "black"
       ) +
       theme_classic() +
+      # Span x axis labels over multiple lines
+      scale_x_discrete(labels = function(x) str_wrap(x, width = 8)) +
       scale_y_continuous(limits = c(0, 10), 
                          expand = expansion(mult = c(0, 0.1))
       ) +
-      ggtitle(plot_title) +
+      ggtitle(str_wrap(plot_title, width = 45)) +
       ylab("KPO 4 Score") +
       xlab("Response period") +
       theme(axis.text.x = element_text(size = 10),
@@ -1097,6 +1099,8 @@ function(input, output, session) {
       ggtitle(input$Qstn_tab2) +
       xlab("Response") +
       ylab(paste("% of responses", fin_yr())) +
+      # Span x axis labels over multiple lines
+      scale_x_discrete(labels = function(x) str_wrap(x, width = 10)) +
       scale_y_continuous(expand = expansion(mult = c(0, 0.1))) +
       theme_classic()
     
@@ -1596,7 +1600,8 @@ function(input, output, session) {
         ),
         lwd = 1
         ) +
-        scale_x_discrete(breaks = function(x){x[c(TRUE, FALSE)]}) +
+        # Span x axis labels over multiple lines
+        scale_x_discrete(labels = function(x) str_wrap(x, width = 8)) +
         scale_color_manual(values = c("cadetblue3", "dimgrey"), name = "") +
         ggtitle("KPO 4 score - over time") +
         ylim(0, 10) +
