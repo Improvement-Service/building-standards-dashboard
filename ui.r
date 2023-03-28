@@ -102,17 +102,12 @@ ui <- dashboardPage(skin = "blue",
 
 # KPO4 by Respondent Tab ------------------------------------
                       tabItem(tabName  = "KPO_resp",
-                            div(
-                              fluidRow(style = "margin-bottom:0px;margin-right:10px; padding-right:5px; width:50%; display:inline-block",
-                                      plotlyOutput("kpo_resp_graph_agent"),
-                                      plotlyOutput("kpo_resp_graph_applicant")
-                                ),
-                              fluidRow(style = "margin-bottom:0px;margin-right:1px;width:50%;display:inline-block",
-                                       plotlyOutput("kpo_resp_graph_contr"),
-                                       plotlyOutput("kpo_resp_graph_other")
-                               )
-                            )
-                              
+                              fluidRow(box(width = 6, plotlyOutput("kpo_resp_graph_agent")),
+                                       box(width = 6, plotlyOutput("kpo_resp_graph_contr"))
+                                       ),
+                              fluidRow(box(width = 6, plotlyOutput("kpo_resp_graph_applicant")),
+                                       box(width = 6, plotlyOutput("kpo_resp_graph_other"))
+                              )
                       ),
 # Question Results Tab -------------------------------------------------------
                       tabItem(tabName = "Qstns",
