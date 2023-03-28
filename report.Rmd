@@ -3,7 +3,10 @@ title: "National Customer Survey Performance Overview Report"
 output: 
   pdf_document:
     latex_engine: xelatex
-mainfont: "Arial"
+header-includes:
+  - \usepackage{helvet}
+  - \usepackage[T1]{fontenc}
+  - \renewcommand\familydefault{\sfdefault} 
 fontsize: 11pt
 params:
   time_data: NA
