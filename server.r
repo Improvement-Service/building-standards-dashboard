@@ -1,19 +1,9 @@
 function(input, output, session) {
-  # Version history popup ---------------------------------------------------
-  observeEvent(input$version_link, {
-    showModal(modalDialog(
-      title = "Version History",
-      div(tags$li(tags$b("Version 2.2 - March 2023"), " - Dropdown added to sidebar to allow selection of quarters. This filters the data throughout the tool to match the selection. Added KPO4 breakdown by respondent tab. Added detailed respondent details by quarter to question page.")),
-      div(tags$li(tags$b("Version 2.1 - February 2023")," - Dropdown added to sidebar to allow selection of financial year when more than one is available. This filters the data throughout the tool to match the selection.")),
-      div(tags$li(tags$b("Version 1.2 - August 2022"), " - Submission dates added to data download and data table on data download tab.")),
-      div(tags$li(tags$b("Version 1.1 - April 2022"), " - Initial publication of tool.")),
-      easyClose = TRUE
-    ))
-  })
   
   # Set up reactive council selection based on log in -------------------------
   user <- reactive({
-    session$user
+    #session$user
+    "cara.connachan@improvementservice.org.uk"
   })
   
   # LA selection generated for IS & SG users
