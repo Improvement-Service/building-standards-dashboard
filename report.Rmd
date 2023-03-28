@@ -532,7 +532,8 @@ ggplot(data = line_data,
             position = position_dodge(width = 0),
             show.legend = FALSE
             ) +
-  scale_x_discrete(breaks = function(x){x[c(TRUE, FALSE)]}) +
+  # Span x axis labels over multiple lines
+  scale_x_discrete(labels = function(x) str_wrap(x, width = 10)) +
   scale_color_manual(values = c("cadetblue3", "dimgrey"), name = "") +
   ggtitle("KPO 4 score - over time") +
   xlab("") +

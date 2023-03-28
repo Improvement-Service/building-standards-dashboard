@@ -1,19 +1,9 @@
 function(input, output, session) {
-  # Version history popup ---------------------------------------------------
-  observeEvent(input$version_link, {
-    showModal(modalDialog(
-      title = "Version History",
-      div(tags$li(tags$b("Version 2.2 - March 2023"), " - Dropdown added to sidebar to allow selection of quarters. This filters the data throughout the tool to match the selection. Added KPO4 breakdown by respondent tab. Added detailed respondent details by quarter to question page.")),
-      div(tags$li(tags$b("Version 2.1 - February 2023")," - Dropdown added to sidebar to allow selection of financial year when more than one is available. This filters the data throughout the tool to match the selection.")),
-      div(tags$li(tags$b("Version 1.2 - August 2022"), " - Submission dates added to data download and data table on data download tab.")),
-      div(tags$li(tags$b("Version 1.1 - April 2022"), " - Initial publication of tool.")),
-      easyClose = TRUE
-    ))
-  })
   
   # Set up reactive council selection based on log in -------------------------
   user <- reactive({
-    session$user
+    #session$user
+    "cara.connachan@improvementservice.org.uk"
   })
   
   # LA selection generated for IS & SG users
@@ -804,10 +794,10 @@ function(input, output, session) {
   
   # Performance Overview tab (KPO4 bar plot) -----------------------------------
   
-  # Create bar plot for overall performance
-  output$ovrPerfBar <- renderPlotly({
-    la_max_sum <- la_max_sum()
-    #rename Total as year to date
+  # Create function for creating KPO4 plot
+  create_KPO4_plot <- function(dataset, plot_title) {
+    la_max_sum <- dataset
+    # Rename Total as year to date
     la_max_sum$`Tracking Link` <- recode(la_max_sum$`Tracking Link`, 
                                          "Total" = "YTD"
     )
@@ -832,10 +822,10 @@ function(input, output, session) {
       filter(`Tracking Link` != "YTD") %>% 
       pull(KPO_score)
     clrs <- ifelse(kpo_clrs > 7.5, 
-                   "forestgreen", 
+                   "palegreen3", 
                    ifelse(kpo_clrs < 6.5, 
-                          "firebrick", 
-                          "darkorange"
+                          "tomato", 
+                          "tan1"
                    )
     )
     
@@ -849,15 +839,17 @@ function(input, output, session) {
       ), 
       stat = "identity",
       position = "dodge", 
-      fill = c(clrs, rep("grey13", YTD)), 
+      fill = c(clrs, rep("dimgrey", YTD)), 
       width = 0.7, 
       colour = "black"
       ) +
       theme_classic() +
+      # Span x axis labels over multiple lines
+      scale_x_discrete(labels = function(x) str_wrap(x, width = 8)) +
       scale_y_continuous(limits = c(0, 10), 
                          expand = expansion(mult = c(0, 0.1))
       ) +
-      ggtitle("KPO4 performance by quarter and Year to Date") +
+      ggtitle(str_wrap(plot_title, width = 45)) +
       ylab("KPO 4 Score") +
       xlab("Response period") +
       theme(axis.text.x = element_text(size = 10),
@@ -865,6 +857,13 @@ function(input, output, session) {
       )
     
     ggplotly(p, tooltip = "text")
+  }
+  
+  # Run function to create bar plot for overall performance
+  output$ovrPerfBar <- renderPlotly({
+    create_KPO4_plot(dataset = la_max_sum(), 
+                     plot_title = "KPO4 performance by quarter and Year to Date"
+                     )
   })
   
   # Performance Overview tab (respondent type & reason plots)------------------
@@ -955,254 +954,35 @@ function(input, output, session) {
     
     ggplotly(plot, tooltip = "text")
   })
-  # KPO4 by Respondent Graphs -------------------------------
+
+# KPO4 by Respondent Graphs -------------------------------
   
+  # Run function to create KPO4 plot for agents
   output$kpo_resp_graph_agent <- renderPlotly({
-    la_max_sum <- la_kpo_agent()
-    #rename Total as year to date
-    la_max_sum$`Tracking Link` <- recode(la_max_sum$`Tracking Link`, 
-                                         "Total" = "YTD"
-    )
-    # Filter to only include the Quarters for current year
-    la_max_sum <- la_max_sum %>% 
-      filter(`Tracking Link` == "YTD" | (`Tracking Link` != "YTD" & `Financial Year` == fin_yr()))
-    # Add Financial year to quarter labels
-    la_max_sum$`Tracking Link` <- gsub("Quarter\\ ",
-                                       "Q",
-                                       la_max_sum$`Tracking Link`, 
-                                       perl = TRUE
-    )
-    la_max_sum$Label <- paste(la_max_sum$`Tracking Link`, 
-                              la_max_sum$`Financial Year`, 
-                              sep = " "
-    )
-    # Store the number of YTD values to determine the colours for these bars
-    YTD <- length(la_max_sum$`Tracking Link`[la_max_sum$`Tracking Link` == "YTD"])
-    
-    # Set colours for quarter by kpo4
-    kpo_clrs <- la_max_sum %>% 
-      filter(`Tracking Link` != "YTD") %>% 
-      pull(KPO_score)
-    clrs <- ifelse(kpo_clrs > 7.5, 
-                   "forestgreen", 
-                   ifelse(kpo_clrs < 6.5, 
-                          "firebrick", 
-                          "darkorange"
-                   )
-    )
-    
-    p <- ggplot(data = la_max_sum) +
-      geom_bar(aes(x = Label, 
-                   y = KPO_score,
-                   text = paste(paste("Quarter:", Label),
-                                paste("KPO 4 Score", KPO_score),
-                                sep = "\n"
-                   )
-      ), 
-      stat = "identity",
-      position = "dodge", 
-      fill = c(clrs, rep("grey13", YTD)), 
-      width = 0.7, 
-      colour = "black"
-      ) +
-      theme_classic() +
-      scale_y_continuous(limits = c(0, 10), 
-                         expand = expansion(mult = c(0, 0.1))
-      ) +
-      ggtitle(paste("KPO4 performance by quarter and Year to Date", "Agent", sep = " - ")) +
-      ylab("KPO 4 Score") +
-      xlab("Response period") +
-      theme(axis.text.x = element_text(size = 10),
-            axis.title = element_text(size = 13)
-      )
-    
-    ggplotly(p, tooltip = "text")    
+    create_KPO4_plot(dataset = la_kpo_agent(),
+                     plot_title = "KPO4 performance by quarter and Year to Date - Agent"
+                     )
   })
   
+  # Run function to create KPO4 plot for applicants
   output$kpo_resp_graph_applicant <- renderPlotly({
-    la_max_sum <- la_kpo_applicant()
-    #rename Total as year to date
-    la_max_sum$`Tracking Link` <- recode(la_max_sum$`Tracking Link`, 
-                                         "Total" = "YTD"
-    )
-    # Filter to only include the Quarters for current year
-    la_max_sum <- la_max_sum %>% 
-      filter(`Tracking Link` == "YTD" | (`Tracking Link` != "YTD" & `Financial Year` == fin_yr()))
-    # Add Financial year to quarter labels
-    la_max_sum$`Tracking Link` <- gsub("Quarter\\ ",
-                                       "Q",
-                                       la_max_sum$`Tracking Link`, 
-                                       perl = TRUE
-    )
-    la_max_sum$Label <- paste(la_max_sum$`Tracking Link`, 
-                              la_max_sum$`Financial Year`, 
-                              sep = " "
-    )
-    # Store the number of YTD values to determine the colours for these bars
-    YTD <- length(la_max_sum$`Tracking Link`[la_max_sum$`Tracking Link` == "YTD"])
-    
-    # Set colours for quarter by kpo4
-    kpo_clrs <- la_max_sum %>% 
-      filter(`Tracking Link` != "YTD") %>% 
-      pull(KPO_score)
-    clrs <- ifelse(kpo_clrs > 7.5, 
-                   "forestgreen", 
-                   ifelse(kpo_clrs < 6.5, 
-                          "firebrick", 
-                          "darkorange"
-                   )
-    )
-    
-    p <- ggplot(data = la_max_sum) +
-      geom_bar(aes(x = Label, 
-                   y = KPO_score,
-                   text = paste(paste("Quarter:", Label),
-                                paste("KPO 4 Score", KPO_score),
-                                sep = "\n"
-                   )
-      ), 
-      stat = "identity",
-      position = "dodge", 
-      fill = c(clrs, rep("grey13", YTD)), 
-      width = 0.7, 
-      colour = "black"
-      ) +
-      theme_classic() +
-      scale_y_continuous(limits = c(0, 10), 
-                         expand = expansion(mult = c(0, 0.1))
-      ) +
-      ggtitle(paste("KPO4 performance by quarter and Year to Date", "Applicant", sep = " - ")) +
-      ylab("KPO 4 Score") +
-      xlab("Response period") +
-      theme(axis.text.x = element_text(size = 10),
-            axis.title = element_text(size = 13)
-      )
-    
-    ggplotly(p, tooltip = "text")    
+    create_KPO4_plot(dataset = la_kpo_applicant(),
+                     plot_title = "KPO4 performance by quarter and Year to Date - Applicant"
+                     )
   })
   
+  # Run function to create KPO4 plot for contractors
   output$kpo_resp_graph_contr <- renderPlotly({
-    la_max_sum <- la_kpo_contractor()
-    #rename Total as year to date
-    la_max_sum$`Tracking Link` <- recode(la_max_sum$`Tracking Link`, 
-                                         "Total" = "YTD"
-    )
-    # Filter to only include the Quarters for current year
-    la_max_sum <- la_max_sum %>% 
-      filter(`Tracking Link` == "YTD" | (`Tracking Link` != "YTD" & `Financial Year` == fin_yr()))
-    # Add Financial year to quarter labels
-    la_max_sum$`Tracking Link` <- gsub("Quarter\\ ",
-                                       "Q",
-                                       la_max_sum$`Tracking Link`, 
-                                       perl = TRUE
-    )
-    la_max_sum$Label <- paste(la_max_sum$`Tracking Link`, 
-                              la_max_sum$`Financial Year`, 
-                              sep = " "
-    )
-    # Store the number of YTD values to determine the colours for these bars
-    YTD <- length(la_max_sum$`Tracking Link`[la_max_sum$`Tracking Link` == "YTD"])
-    
-    # Set colours for quarter by kpo4
-    kpo_clrs <- la_max_sum %>% 
-      filter(`Tracking Link` != "YTD") %>% 
-      pull(KPO_score)
-    clrs <- ifelse(kpo_clrs > 7.5, 
-                   "forestgreen", 
-                   ifelse(kpo_clrs < 6.5, 
-                          "firebrick", 
-                          "darkorange"
-                   )
-    )
-    
-    p <- ggplot(data = la_max_sum) +
-      geom_bar(aes(x = Label, 
-                   y = KPO_score,
-                   text = paste(paste("Quarter:", Label),
-                                paste("KPO 4 Score", KPO_score),
-                                sep = "\n"
-                   )
-      ), 
-      stat = "identity",
-      position = "dodge", 
-      fill = c(clrs, rep("grey13", YTD)), 
-      width = 0.7, 
-      colour = "black"
-      ) +
-      theme_classic() +
-      scale_y_continuous(limits = c(0, 10), 
-                         expand = expansion(mult = c(0, 0.1))
-      ) +
-      ggtitle(paste("KPO4 performance by quarter and Year to Date", "Contractor", sep = " - ")) +
-      ylab("KPO 4 Score") +
-      xlab("Response period") +
-      theme(axis.text.x = element_text(size = 10),
-            axis.title = element_text(size = 13)
-      )
-    
-    ggplotly(p, tooltip = "text")    
+    create_KPO4_plot(dataset = la_kpo_contractor(),
+                     plot_title = "KPO4 performance by quarter and Year to Date - Contractor"
+                     )
   })
   
+  # Run function to create KPO4 plot for "other"
   output$kpo_resp_graph_other <- renderPlotly({
-    la_max_sum <- la_kpo_other()
-    #rename Total as year to date
-    la_max_sum$`Tracking Link` <- recode(la_max_sum$`Tracking Link`, 
-                                         "Total" = "YTD"
-    )
-    # Filter to only include the Quarters for current year
-    la_max_sum <- la_max_sum %>% 
-      filter(`Tracking Link` == "YTD" | (`Tracking Link` != "YTD" & `Financial Year` == fin_yr()))
-    # Add Financial year to quarter labels
-    la_max_sum$`Tracking Link` <- gsub("Quarter\\ ",
-                                       "Q",
-                                       la_max_sum$`Tracking Link`, 
-                                       perl = TRUE
-    )
-    la_max_sum$Label <- paste(la_max_sum$`Tracking Link`, 
-                              la_max_sum$`Financial Year`, 
-                              sep = " "
-    )
-    # Store the number of YTD values to determine the colours for these bars
-    YTD <- length(la_max_sum$`Tracking Link`[la_max_sum$`Tracking Link` == "YTD"])
-    
-    # Set colours for quarter by kpo4
-    kpo_clrs <- la_max_sum %>% 
-      filter(`Tracking Link` != "YTD") %>% 
-      pull(KPO_score)
-    clrs <- ifelse(kpo_clrs > 7.5, 
-                   "forestgreen", 
-                   ifelse(kpo_clrs < 6.5, 
-                          "firebrick", 
-                          "darkorange"
-                   )
-    )
-    
-    p <- ggplot(data = la_max_sum) +
-      geom_bar(aes(x = Label, 
-                   y = KPO_score,
-                   text = paste(paste("Quarter:", Label),
-                                paste("KPO 4 Score", KPO_score),
-                                sep = "\n"
-                   )
-      ), 
-      stat = "identity",
-      position = "dodge", 
-      fill = c(clrs, rep("grey13", YTD)), 
-      width = 0.7, 
-      colour = "black"
-      ) +
-      theme_classic() +
-      scale_y_continuous(limits = c(0, 10), 
-                         expand = expansion(mult = c(0, 0.1))
-      ) +
-      ggtitle(paste("KPO4 performance by quarter and Year to Date", "Other", sep = " - ")) +
-      ylab("KPO 4 Score") +
-      xlab("Response period") +
-      theme(axis.text.x = element_text(size = 10),
-            axis.title = element_text(size = 13)
-      )
-    
-    ggplotly(p, tooltip = "text")    
+    create_KPO4_plot(dataset = la_kpo_other(),
+                     plot_title = "KPO4 performance by quarter and Year to Date - Other"
+                     )
   })
   
   # Questions results tab (Data filtering)--------------------------------
@@ -1319,6 +1099,8 @@ function(input, output, session) {
       ggtitle(input$Qstn_tab2) +
       xlab("Response") +
       ylab(paste("% of responses", fin_yr())) +
+      # Span x axis labels over multiple lines
+      scale_x_discrete(labels = function(x) str_wrap(x, width = 10)) +
       scale_y_continuous(expand = expansion(mult = c(0, 0.1))) +
       theme_classic()
     
@@ -1818,7 +1600,8 @@ function(input, output, session) {
         ),
         lwd = 1
         ) +
-        scale_x_discrete(breaks = function(x){x[c(TRUE, FALSE)]}) +
+        # Span x axis labels over multiple lines
+        scale_x_discrete(labels = function(x) str_wrap(x, width = 8)) +
         scale_color_manual(values = c("cadetblue3", "dimgrey"), name = "") +
         ggtitle("KPO 4 score - over time") +
         ylim(0, 10) +

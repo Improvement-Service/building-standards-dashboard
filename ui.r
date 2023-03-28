@@ -38,10 +38,11 @@ ui <- dashboardPage(skin = "blue",
                                               tabName = "OpTxt", 
                                               icon = icon("comments")
                                      ),
+                                     menuItem("Version History",
+                                              tabName = "version",
+                                              icon = icon("clone")
+                                     ),
                                      uiOutput("userpanel"),
-                                     actionLink(inputId = "version_link", 
-                                                label = "Version 2.2"
-                                                ),
                                      tags$footer(a("Contact us", 
                                                    href = "mailto:research@improvementservice.org.uk"
                                      ), 
@@ -101,17 +102,12 @@ ui <- dashboardPage(skin = "blue",
 
 # KPO4 by Respondent Tab ------------------------------------
                       tabItem(tabName  = "KPO_resp",
-                            div(
-                              fluidRow(style = "margin-bottom:0px;margin-right:10px; padding-right:5px; width:50%; display:inline-block",
-                                      plotlyOutput("kpo_resp_graph_agent"),
-                                      plotlyOutput("kpo_resp_graph_applicant")
-                                ),
-                              fluidRow(style = "margin-bottom:0px;margin-right:1px;width:50%;display:inline-block",
-                                       plotlyOutput("kpo_resp_graph_contr"),
-                                       plotlyOutput("kpo_resp_graph_other")
-                               )
-                            )
-                              
+                              fluidRow(box(width = 6, plotlyOutput("kpo_resp_graph_agent")),
+                                       box(width = 6, plotlyOutput("kpo_resp_graph_contr"))
+                                       ),
+                              fluidRow(box(width = 6, plotlyOutput("kpo_resp_graph_applicant")),
+                                       box(width = 6, plotlyOutput("kpo_resp_graph_other"))
+                              )
                       ),
 # Question Results Tab -------------------------------------------------------
                       tabItem(tabName = "Qstns",
@@ -434,6 +430,48 @@ ui <- dashboardPage(skin = "blue",
                                            height = "70vh"
                                            )
                                        )
+                              ),
+# Version History Tab ---------------------------------------------------------
+                      tabItem(tabName = "version",
+                              h1("Version History"),
+                              tags$br(),
+                              h4(div(tags$li(tags$b("Version 2.2 - March 2023"), 
+                                             tags$br(),
+                                             "- Dropdown added to sidebar to allow selection of quarters. This filters the data throughout the tool to match the selection.",
+                                             tags$br(),
+                                             "- New tab ", 
+                                             tags$i("KPO4 by Respondent"),
+                                             "added.",
+                                             tags$br(),
+                                             "- Table with respondent numbers per quarter added to ",
+                                             tags$i("Question Results"),
+                                             "tab. "
+                                             )
+                                     )
+                                 ),
+                              tags$br(),
+                              h4(div(tags$li(tags$b("Version 2.1 - February 2023"),
+                                             tags$br(),
+                                             " - Dropdown added to sidebar to allow selection of financial year when more than one is available. This filters the data throughout the tool to match the selection."
+                                             )
+                                     )
+                                 ),
+                              tags$br(),
+                              h4(div(tags$li(tags$b("Version 1.2 - August 2022"), 
+                                             tags$br(),
+                                             " - Submission dates added to data download and data table on ",
+                                             tags$i("Data Download"),
+                                             "tab."
+                                             )
+                                     )
+                                 ),
+                              tags$br(),
+                              h4(div(tags$li(tags$b("Version 1.1 - April 2022"),
+                                             tags$br(),
+                                             " - Initial publication of tool."
+                                             )
+                                     )
+                                 )
                               )
 # Closing bracket for Tab Items in dashboard body
                                   )
