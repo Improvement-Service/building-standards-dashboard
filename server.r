@@ -160,10 +160,17 @@ function(input, output, session) {
                                                                   if (grepl("westlothian.gov.uk", user, ignore.case = TRUE)) {
                                                                     return("West Lothian")
                                                                   } else {
-                                                                    # IS or SG                                                                
+                                                                    # IS or SG 
+                                                                    # Validation - will show nice error message before LA is selected
+                                                                    validate(
+                                                                      need(input$LA_selection != "",
+                                                                           "Local Authority selection needed"
+                                                                           )
+                                                                      )
                                                                     input$LA_selection
-                                                                  } 
+                                                                    } 
   })
+
   
   # Creates a heading with the selected council name
   output$LA_KPO4_Heading <- renderUI({
@@ -187,13 +194,20 @@ function(input, output, session) {
       )
     }
   })
+
   
   # Financial Year Selection---------------------------------------------------
   
   # Create select button for financial year if there is more than 1 year available
   output$fin_yr <- renderUI({
     council_fltr <- local_authority()
-    pivot_dta <- pivot_dta %>% filter(`Local Authority Name` == council_fltr) 
+    pivot_dta <- pivot_dta %>% filter(`Local Authority Name` == council_fltr)
+    # Will show a nice error message if there is no data for that council
+    validate(
+      need(row(pivot_dta) > 0,
+           "No data available"
+           )
+    )
     years <- unique(pivot_dta$`Financial Year`)
     no_years <- length(unique(pivot_dta$`Financial Year`))
     if (no_years > 1) {
@@ -211,7 +225,14 @@ function(input, output, session) {
   # Either selected year if more than 1 available, otherwise year available
   fin_yr <- reactive({
     council_fltr <- local_authority()
-    pivot_dta <- pivot_dta %>% filter(`Local Authority Name` == council_fltr) 
+    pivot_dta <- pivot_dta %>% filter(`Local Authority Name` == council_fltr)
+    # Will show a nice error message for any graphs that reference fin_yr 
+    # if there is no data for that council
+    validate(
+      need(nrow(pivot_dta) > 0,
+           "No data available"
+      )
+    )
     years <- unique(pivot_dta$`Financial Year`)
     no_years <- length(unique(pivot_dta$`Financial Year`))
     fin_yr <- if (no_years > 1) {
@@ -229,6 +250,12 @@ function(input, output, session) {
     pivot_dta <- pivot_dta %>% 
       filter(`Financial Year` == fin_yr() &
                `Local Authority Name` == local_authority())
+    # Will show a nice error message if there is no data for that council
+    validate(
+      need(row(pivot_dta) > 0,
+           "No data available"
+      )
+    )
     quarters <- unique(pivot_dta$`Tracking Link`)
     quarters <- str_sort(quarters)
     
@@ -246,6 +273,13 @@ function(input, output, session) {
     pivot_dta <- pivot_dta %>% 
       filter(`Financial Year` == fin_yr() &
                `Local Authority Name` == local_authority())
+    # Will show a nice error message for any graphs that reference qrtr
+    # if there is no data for that council
+    validate(
+      need(nrow(pivot_dta) > 0,
+           "No data available"
+      )
+    )
     quarters <- unique(pivot_dta$`Tracking Link`)
     no_quarters <- length(unique(pivot_dta$`Tracking Link`))
     qrtr <- if (no_quarters < 2) {
@@ -422,6 +456,7 @@ function(input, output, session) {
     )
     # Remove "(please specify):" from "Other" question value
     resp_dta$Question[resp_dta$Question == "Other (please specify):"] <- "Other"
+
     # Filter to selected council & selected financial year
     resp_dta <- resp_dta %>% 
       filter(`Tracking Link` == input$qrtr_selection & `Financial Year` == fin_yr() & `Local Authority Name` == council_fltr)
@@ -603,6 +638,13 @@ function(input, output, session) {
       ) %>%
       # Generate the KPO score (out of 10)    
       mutate(KPO_score = round((1 - KPO4_weighted/maxAvailable) * 10, 1))
+    # Will show a nice error message if there is no data for that council
+    validate(
+      need(nrow(la_max_sum) > 0,
+           "No data available"
+           )
+    )
+    la_max_sum
   })
   
   ##KPO4 per respondent type
@@ -745,7 +787,11 @@ function(input, output, session) {
   
   # Create performance box for Scotland
   output$scotPerfBox<- renderValueBox({
-    
+    # Will show a nice error message if there is no data for that council
+    validate(
+      need(input$qrtr_selection != "",
+           "No data available")
+    )
     fltr_qrtr <- if (input$qrtr_selection == "Year to Date") {
       "Total"
     } else {
@@ -765,7 +811,11 @@ function(input, output, session) {
   # Create valuebox for number of responses 
   output$respBox <- renderValueBox({
     unpivot_data <- unpivot_data()
-    
+    # Will show a nice error message if there is no data for that council
+    validate(
+      need(input$qrtr_selection != "",
+           "No data available")
+    )
     # Use the most recent quarter as the default quarter when YTD is selected
     qrtr <- if (input$qrtr_selection == "Year to Date") {
       crnt_qtr
