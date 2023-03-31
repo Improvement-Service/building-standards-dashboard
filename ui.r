@@ -119,13 +119,8 @@ ui <- dashboardPage(skin = "blue",
                                                                       unique(pivot_dta$Indicator)
                                                                       ),
                                                           selected = "All Questions"
-                                                          )#,
-                                              # Financial year selection
-                                              #uiOutput("fin_yr")
+                                                          )
                                                ),
-                                      # column(3,        
-                                      #         valueBoxOutput("respBoxYTD", width = 12)
-                                      #         ),
                                        column(4,
                                               # Respondent type selection
                                               prettyCheckboxGroup(inputId = "Qs_resp_input",
@@ -169,7 +164,7 @@ ui <- dashboardPage(skin = "blue",
                                        ),
                               # Response overview graphs tabs
                               fluidRow(
-                                column(10,
+                                column(9,
                                   tabBox(width = 12, 
                                      height = "66vh",
                                      # YTD graph
@@ -187,10 +182,12 @@ ui <- dashboardPage(skin = "blue",
                                               )
                                      )
                                   ),
-                                column(2,
-                                       h3("Respondents by Quarter"),
-                                       dataTableOutput("resp_qrts")
+                                column(3,
+                                       box(title = "Respondents by Quarter",
+                                           width = 12,
+                                           tableOutput("resp_qrts")
                                        )
+                                )
                               )
                               ),
 # Report Download Tab -----------------------------------------------------

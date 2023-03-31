@@ -1087,20 +1087,6 @@ function(input, output, session) {
     filter_data <- filter(filter_data, `Financial Year` == fin_yr())
     filter_data
   })
-  
-  # Questions results tab Create valuebox for number of responses ---------------------------------
-  output$respBoxYTD <- renderValueBox({
-    unpivot_data <- qstn_dataset_filtered()
-  ##Only want to count each respondent once, so only keep the overall question response
-    unpivot_data <- unpivot_data %>% filter(Indicator == "Overall, how satisfied were you with the service provided?")
-    # Counts the number of rows (responses) in the given quarter & financial year
-    # data is already filtered to selected council
-    valueBox(value = paste(nrow(filter(unpivot_data, `Financial Year` == fin_yr())), "Responses"),
-             subtitle =  paste("Year to Date", fin_yr()),
-    icon = icon("user-friends"), 
-    color = "light-blue"
-    )
-  })
 
   # Questions Results tab (YTD plot)---------------------------------------
   
@@ -1317,8 +1303,8 @@ function(input, output, session) {
     ggplotly(plot)
   })
   
-##Questions Results Tab: Table with respondent number per Quarter--------------------------------------
-  output$resp_qrts <- renderDataTable({
+# Questions Results Tab (Table with respondent number per Quarter)--------------------------------------
+  output$resp_qrts <- renderTable({
     # Filter dataset based on selected question & set responses as factors
     qstn_dataset_filtered <- qstn_dataset_filtered()
     
@@ -1330,15 +1316,8 @@ function(input, output, session) {
     qstnDta_responses <- qstn_dataset_filtered %>% count(`Tracking Link`, .drop = FALSE) %>%
     add_row(`Tracking Link` = "Year to Date", n = sum(.$n)) %>%
       rename(Quarter = `Tracking Link`, Number = n)
-    
-          #%>%
-      #pivot_wider(names_from = `Tracking Link`, values_from = n)
-    
-    datatable(qstnDta_responses, rownames = FALSE,options = list(pageLength = 5, dom = 't')) %>%
-      formatStyle('Quarter', fontWeight = "bold")
+
   })
-  
-  
   
   # Report Download Tab (KPO4 YTD)------------------------------------------
   
