@@ -2,7 +2,8 @@ function(input, output, session) {
   
   # Set up reactive council selection based on log in -------------------------
   user <- reactive({
-    session$user
+    #session$user
+    "cara.connachan@improvementservice.org.uk"
   })
   
   # LA selection generated for IS & SG users
@@ -794,8 +795,20 @@ function(input, output, session) {
   # Performance Overview tab (KPO4 bar plot) -----------------------------------
   
   # Create function for creating KPO4 plot
-  create_KPO4_plot <- function(dataset, plot_title) {
+  create_KPO4_plot <- function(dataset, 
+                               plot_title,
+                               title_width,
+                               label_size,
+                               text_size
+                               ) {
     la_max_sum <- dataset
+    
+    validate(
+      need(nrow(la_max_sum) > 0,
+           "No respondents of this type"
+           )
+      )
+    
     # Rename Total as year to date
     la_max_sum$`Tracking Link` <- recode(la_max_sum$`Tracking Link`, 
                                          "Total" = "YTD"
@@ -848,11 +861,12 @@ function(input, output, session) {
       scale_y_continuous(limits = c(0, 10), 
                          expand = expansion(mult = c(0, 0.1))
       ) +
-      ggtitle(str_wrap(plot_title, width = 45)) +
+      ggtitle(str_wrap(plot_title, width = title_width)) +
       ylab("KPO 4 Score") +
       xlab("Response period") +
-      theme(axis.text.x = element_text(size = 10),
-            axis.title = element_text(size = 13)
+      theme(axis.text.x = element_text(size = text_size),
+            axis.title = element_text(size = label_size),
+            plot.title = element_text(size = label_size)
       )
     
     ggplotly(p, tooltip = "text")
@@ -861,7 +875,10 @@ function(input, output, session) {
   # Run function to create bar plot for overall performance
   output$ovrPerfBar <- renderPlotly({
     create_KPO4_plot(dataset = la_max_sum(), 
-                     plot_title = "KPO4 performance by quarter and Year to Date"
+                     plot_title = "KPO4 Performance by Quarter and Year to Date",
+                     title_width = 45,
+                     label_size = 12,
+                     text_size = 10
                      )
   })
   
@@ -959,28 +976,40 @@ function(input, output, session) {
   # Run function to create KPO4 plot for agents
   output$kpo_resp_graph_agent <- renderPlotly({
     create_KPO4_plot(dataset = la_kpo_agent(),
-                     plot_title = "KPO4 performance by quarter and Year to Date - Agent"
+                     plot_title = "KPO4 by Quarter & Year to Date - Agent",
+                     title_width = 31,
+                     label_size = 10,
+                     text_size = 8
                      )
   })
   
   # Run function to create KPO4 plot for applicants
   output$kpo_resp_graph_applicant <- renderPlotly({
     create_KPO4_plot(dataset = la_kpo_applicant(),
-                     plot_title = "KPO4 performance by quarter and Year to Date - Applicant"
+                     plot_title = "KPO4 by Quarter & Year to Date - Applicant",
+                     title_width = 31,
+                     label_size = 10,
+                     text_size = 8
                      )
   })
   
   # Run function to create KPO4 plot for contractors
   output$kpo_resp_graph_contr <- renderPlotly({
     create_KPO4_plot(dataset = la_kpo_contractor(),
-                     plot_title = "KPO4 performance by quarter and Year to Date - Contractor"
+                     plot_title = "KPO4 by Quarter & Year to Date - Contractor",
+                     title_width = 31,
+                     label_size = 10,
+                     text_size = 8
                      )
   })
   
   # Run function to create KPO4 plot for "other"
   output$kpo_resp_graph_other <- renderPlotly({
     create_KPO4_plot(dataset = la_kpo_other(),
-                     plot_title = "KPO4 performance by quarter and Year to Date - Other"
+                     plot_title = "KPO4 by Quarter & Year to Date - Other",
+                     title_width = 31,
+                     label_size = 10,
+                     text_size = 8
                      )
   })
   

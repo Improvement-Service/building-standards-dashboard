@@ -18,7 +18,7 @@ ui <- dashboardPage(skin = "blue",
                                                           tabName = "PrfOvr", 
                                                           icon = icon("dashboard")
                                      ),
-                                     menuItem("KPO by Respondent",
+                                     menuItem("Annual KPO4 by Respondent",
                                               tabName = "KPO_resp",
                                               icon = icon("user")
                                      ),
