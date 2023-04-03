@@ -198,7 +198,7 @@ function(input, output, session) {
   
   # Financial Year Selection---------------------------------------------------
   
-  # Create select button for financial year if there is more than 1 year available
+  # Create select button for financial year - will only show years where there is data available
   output$fin_yr <- renderUI({
     council_fltr <- local_authority()
     pivot_dta <- pivot_dta %>% filter(`Local Authority Name` == council_fltr)
@@ -210,15 +210,12 @@ function(input, output, session) {
     )
     years <- unique(pivot_dta$`Financial Year`)
     no_years <- length(unique(pivot_dta$`Financial Year`))
-    if (no_years > 1) {
-      selectizeInput(inputId = "fin_yr_selection", 
-                     label = "Select Financial Year",
-                     choices = years, 
-                     selected = crnt_fin_yr
-      )
-    } else {
-      return()
-    }
+    
+    selectizeInput(inputId = "fin_yr_selection", 
+                   label = "Select Financial Year",
+                   choices = years, 
+                   selected = crnt_fin_yr
+                   )
   })
   
   # Reactive expression to store financial year selected

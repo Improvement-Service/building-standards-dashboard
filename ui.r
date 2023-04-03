@@ -9,7 +9,7 @@ ui <- dashboardPage(skin = "blue",
                                      # LA selection (IS & SG only)
                                      uiOutput("la_select"),
                                      # Financial Year selection.
-                                     # Will only show if more than 1 year available
+                                     # Will only show years available
                                      uiOutput("fin_yr"),
                                      # Quarter selection.
                                      # Will only show quarters available in selected year
