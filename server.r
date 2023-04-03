@@ -813,31 +813,43 @@ function(input, output, session) {
       need(input$qrtr_selection != "",
            "No data available")
     )
-    # Use the most recent quarter as the default quarter when YTD is selected
-    qrtr <- if (input$qrtr_selection == "Year to Date") {
-      crnt_qtr
-    } else {
-      input$qrtr_selection
-    }
     
-    # Counts the number of rows (responses) in the given quarter & financial year
+    # Store number of responses in each quarter of the selected financial year
+    q1_response <- nrow(filter(unpivot_data, 
+                               Quarter == "Quarter 1" & `Financial Year` == fin_yr()
+                               )
+                        )
+    q2_response <- nrow(filter(unpivot_data, 
+                               Quarter == "Quarter 2" & `Financial Year` == fin_yr()
+                               )
+                        )
+    q3_response <- nrow(filter(unpivot_data, 
+                               Quarter == "Quarter 3" & `Financial Year` == fin_yr()
+                               )
+                        )
+    q4_response <- nrow(filter(unpivot_data, 
+                               Quarter == "Quarter 4" & `Financial Year` == fin_yr()
+                               )
+                        )
+    
+    # Counts the number of rows (responses) for the full year
     # data is already filtered to selected council
-    valueBox(value = paste(nrow(filter(unpivot_data, 
-                                       Quarter == qrtr & `Financial Year` == fin_yr()
-    )
-    ), 
-    paste("Responses", 
-          gsub("Quarter\\ ", "Q", qrtr, perl = TRUE)
-    )
-    ),
-    # Counts the rows (responses) for the full year
-    subtitle = paste(nrow(filter(unpivot_data, `Financial Year` == fin_yr())),
-                     paste("Year to Date", fin_yr())
-    ), 
-    icon = icon("user-friends"), 
-    color = "light-blue"
-    )
-  })
+    valueBox(value = tags$p(style = "font-size:18px; line-height:0px; margin-bottom:0px;",
+                            paste(nrow(filter(unpivot_data, `Financial Year` == fin_yr())),
+                                  paste("Responses Year to Date", fin_yr())
+                                  )
+                            ),
+             subtitle = tags$p(style = "font-size:14px; line-height:1.1;",
+                               # Uses response numbers for each of the quarters
+                               HTML(sprintf("%s - Quarter 1<br/>%s - Quarter 2<br/>%s - Quarter 3<br/>%s - Quarter 4",
+                                            q1_response, q2_response, q3_response, q4_response
+                                            )
+                                    )
+                               ),
+             icon = icon("user-friends"), 
+             color = "light-blue"
+             )
+    })
   
   # Performance Overview tab (KPO4 bar plot) -----------------------------------
   
