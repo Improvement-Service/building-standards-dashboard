@@ -1392,15 +1392,9 @@ function(input, output, session) {
     # Store the number of financial years available for council
     Years <- all_kpo_data %>% filter(id == council_fltr)
     Years <- length(unique(Years$`Financial Year`))
-    # Filter the data depending on number of years
-    # If only one use year available, otherwise use current financial year
-    all_kpo_data <- if (Years > 1) {
-      all_kpo_data %>% 
-        filter(`Tracking Link` == "Total" & `Financial Year` == crnt_fin_yr)
-    } else {
-      all_kpo_data %>% 
-        filter(`Tracking Link` == "Total" & `Financial Year` == fin_yr())
-    }
+    # Filter to selected financial year
+    all_kpo_data <- all_kpo_data %>%
+      filter(`Tracking Link` == "Total" & `Financial Year` == fin_yr())
     
     # Compare council KPO4 values with Scotland and target to create 
     # reactive text values
@@ -1429,16 +1423,20 @@ function(input, output, session) {
                          )
     )
     
-    # Store value for previous financial year
-    KPO4_prev <- report_kpo_data() %>% 
-      filter(`Tracking Link` == "Total" & `Financial Year` == prev_fin_yr)
-    KPO4_prev <- KPO4_prev %>% 
+    # Store value for other financial year if there is one
+    other_fin_yr <- report_kpo_data() %>% 
+      filter(id == council_fltr & `Financial Year` != fin_yr()) %>%
+      pull(`Financial Year`)
+    KPO4_other <- report_kpo_data() %>%
+      filter(`Tracking Link` == "Total" & `Financial Year` != fin_yr())
+    KPO4_other <- KPO4_other %>% 
       filter(id == council_fltr) %>% 
       pull(KPO_score)
     
-    # Create current KPO4 with previous year
-    change_value <- KPO4_ytd - KPO4_prev
-    change_text <- if_else(change_value < 0, "a decrease", "an increase")
+    # Create comparison of KPO4 for selected year with other year available
+    diff_value <- KPO4_ytd - KPO4_other
+    diff_text <- if_else(diff_value < 0, "lower", "higher")
+    diff_value <- abs(diff_value)
     
     # Text for when there is only 1 financial year
     text_kpo <- paste0("This indicator summarises performance across all questions, with differential weightings based on importance. For ", 
@@ -1461,21 +1459,21 @@ function(input, output, session) {
     text_multiple_kpo <- paste0("This indicator summarises performance across all questions, with differential weightings based on importance. For ", 
                                 council_fltr,
                                 " in ",
-                                crnt_fin_yr, 
+                                fin_yr(), 
                                 " overall performance is at ", 
                                 KPO4_ytd, 
-                                " for the year to date. This reflects ", 
-                                change_text,
-                                " of ", 
-                                change_value, 
-                                " points from the performance of ", 
-                                KPO4_prev, 
+                                " for the year to date. This is ", 
+                                diff_value,
+                                " points ",
+                                diff_text,
+                                " than the performance of ", 
+                                KPO4_other, 
                                 " in ", 
-                                prev_fin_yr, 
+                                other_fin_yr, 
                                 ". The year to date performance of ", 
                                 council_fltr, 
                                 " in ", 
-                                crnt_fin_yr, 
+                                fin_yr(), 
                                 " is ", 
                                 abbel_kpo4,
                                 " the Scotland average of ", 

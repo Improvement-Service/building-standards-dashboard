@@ -61,15 +61,9 @@ all_kpo_data <- kpo_data
 Years <- all_kpo_data %>% filter(id == la)
 Years <- length(unique(Years$`Financial Year`))
 
-# Filter the data depending on number of years
-# If only one use year available, otherwise use current financial year
-kpo_data1 <- if (Years > 1) {
-  kpo_data %>% 
-  filter(`Tracking Link` == "Total" & `Financial Year` == crnt_fin_yr)
-} else {
-  kpo_data %>% 
+# Filter to selected financial year
+kpo_data1 <- kpo_data %>% 
     filter(`Tracking Link` == "Total" & `Financial Year` == year)
-}
 
 # Council KPO4
 KPO4_ytd <- kpo_data1 %>% filter(id == la) %>% pull(KPO_score)
@@ -90,13 +84,20 @@ abbel_kpo4 <- ifelse(KPO4_ytd > scotAv_kpo4,
                             )
                      )
 
-# Store value for previous financial year
-KPO4_prev <- all_kpo_data %>% 
-  filter(`Tracking Link` == "Total" & `Financial Year` == prev_fin_yr)
-KPO4_prev <- KPO4_prev %>% filter(id == la) %>% pull(KPO_score)
-# Create text for comparison with previous year
-change_value <- KPO4_ytd - KPO4_prev
-change_text <- if_else(change_value < 0, "a decrease", "an increase")
+# Store value for other financial year if there is one
+other_fin_yr <- all_kpo_data %>%       
+  filter(id == la & `Financial Year` != year) %>%
+    pull(`Financial Year`)
+KPO4_other <- all_kpo_data %>%
+  filter(`Tracking Link` == "Total" & `Financial Year` != year)
+KPO4_other <- KPO4_other %>% 
+  filter(id == la) %>% 
+  pull(KPO_score)
+ 
+# Create comparison of KPO4 for selected year with other year available
+diff_value <- KPO4_ytd - KPO4_other
+diff_text <- if_else(diff_value < 0, "lower", "higher")
+diff_value <- abs(diff_value)
      
 # Text for when there is only 1 financial year
 text_kpo <- paste0("This indicator summarises performance across all questions, with differential weightings based on importance. For ",
@@ -118,21 +119,21 @@ hilow_kpo4,
 text_multiple_kpo <- paste0("This indicator summarises performance across all questions, with differential weightings based on importance. For ", 
 la,
 " in ",
-crnt_fin_yr, 
+year, 
 " overall performance is at ", 
 KPO4_ytd, 
-" for the year to date. This reflects ", 
-change_text,
-" of ", 
-change_value, 
-" points from the performance of ", 
-KPO4_prev, 
+" for the year to date. This is ", 
+diff_value,
+" points ", 
+diff_text, 
+" than the performance of ", 
+KPO4_other, 
 " in ", 
-prev_fin_yr, 
+other_fin_yr, 
 ". The year to date performance of ", 
 la, 
 " in ", 
-crnt_fin_yr, 
+year, 
 " is ", 
 abbel_kpo4,
 " the Scotland average of ", 
