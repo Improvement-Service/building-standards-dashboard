@@ -301,15 +301,11 @@ ggplot(data = reason_data,aes(x = Question, y = perc)) +
 
 # KPO 4 Over Time
 ```{r echo = FALSE, comment = ""}
-# Store the number of financial years available for council
-Years <- kpo_data %>% filter(id == la)
-Years <- length(unique(Years$`Financial Year`))
-Years <- if_else(Years > 1, crnt_fin_yr, year)
 
-# Filter to quarters, selected council and current financial year
+# Filter to quarters, selected council and year
 kpo_data1 <- kpo_data %>% 
   filter(`Tracking Link` != "Total",
-         `Financial Year` == Years,  
+         `Financial Year` == year,  
          id == la
          ) %>% 
   ungroup()
@@ -347,7 +343,7 @@ Q1_kpo <- kpo_data1 %>%
 Q1_text <- paste0("In ", 
                   first_Q,
                   " ",
-                  Years,
+                  year,
                   " performance for KPO 4 calculated across all responses for all questions was ",
                   Q1_kpo,
                   " for ", 
@@ -439,32 +435,36 @@ main_text <- ifelse(length(QLabels) == 1,
                                   )
                            )
                     )
-# If there is data for more than 1 financial year compare most recent quarter with same quarter in previous year
+# If there is data for more than 1 financial year compare selected quarter (or most recent if YTD is selected) with same quarter in previous year
 extra_data <- kpo_data
-# Filter to current quarter and selected council
-extra_data <- extra_data %>% 
-  filter(`Tracking Link` == crnt_qtr, id == la)
-# Store values for current financial year and previous financial year
-first_fin_yr <- if (length(extra_data$`Tracking Link`) > 1) {
-  filter(extra_data, `Financial Year` == prev_fin_yr) %>%
-    ungroup() %>%
-    select(KPO_score)
-  } else {
-    0
-    }
-second_fin_yr <- if (length(extra_data$`Tracking Link`) > 1) {
-  filter(extra_data, `Financial Year` == Years) %>%
-    ungroup() %>%
-    select(KPO_score)
+
+qrtr <- if (named_qrtr == "Year to Date") {
+  crnt_qtr
 } else {
-    0
-  }
+  named_qrtr
+}
+
+# Filter to selected quarter and selected council
+extra_data <- extra_data %>% 
+  filter(`Tracking Link` == qrtr, id == la)
+# Store values for current financial year and previous financial year
+other_fin_yr <- extra_data %>%
+  filter(`Financial Year` != year) %>%
+  pull(`Financial Year`)
+KPO4_other <- extra_data %>%
+  filter(`Financial Year` != year) %>%
+  pull(KPO_score)
+
+selected_fin_yr <- extra_data %>%
+  filter(`Financial Year` == year) %>%
+  pull(KPO_score)
+
 # Compare values and create text
 extra_comp <- tryCatch({
-  ifelse(second_fin_yr > first_fin_yr + 0.2, 
-         " higher than in ", 
-         ifelse(second_fin_yr < first_fin_yr - 0.2, 
-                " lower than in ",
+  ifelse(selected_fin_yr > KPO4_other + 0.2, 
+         " points higher than in ", 
+         ifelse(selected_fin_yr < KPO4_other - 0.2, 
+                " points lower than in ",
                 " the same as in "
                 )
          )
@@ -472,26 +472,28 @@ extra_comp <- tryCatch({
   )
 extra_comp_value <- ifelse(extra_comp == " the same as in ",
                            "", 
-                           second_fin_yr - first_fin_yr
+                           abs(selected_fin_yr - KPO4_other)
                            )
 extra_text <- paste0("KPO 4 performance in ", 
-                     crnt_qtr, 
+                     qrtr, 
                      " ", 
-                     Years, 
+                     year, 
                      " was ", 
                      extra_comp_value, 
                      extra_comp,
-                     crnt_qtr, 
+                     qrtr, 
                      " ",
-                     prev_fin_yr,
+                     other_fin_yr,
                      "."
                      )
 # Number of years
 no_years <- length(unique(extra_data$`Financial Year`))
+# Number of quarters
+no_qrtrs <- length(extra_data$`Tracking Link`)
 # Select which text is shown based on the no. of years available
 ```    
     
-`r ifelse(no_years > 1, paste(main_text, extra_text), main_text)`
+`r ifelse(no_years > 1 & no_qrtrs > 1, paste(main_text, extra_text), main_text)`
     
 ```{r echo = FALSE}
 # Set the council values as a factor so the data can be arranged to have the council first regardless of alphabetical order

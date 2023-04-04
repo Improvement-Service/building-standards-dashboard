@@ -1723,15 +1723,11 @@ function(input, output, session) {
   output$quarter_text <- renderText({
     council_fltr <- local_authority()
     all_kpo_data <- report_kpo_data()
-    # Store the number of financial years available for council
-    Years <- all_kpo_data %>% filter(id == council_fltr)
-    Years <- length(unique(Years$`Financial Year`))
-    Years <- if_else(Years > 1, crnt_fin_yr, fin_yr())
-    
+
     # Filter to quarters, selected council and year 
     all_kpo_data <- all_kpo_data %>% 
       filter(`Tracking Link` != "Total",
-             `Financial Year` == Years,  
+             `Financial Year` == fin_yr(),  
              id == council_fltr
       ) %>% 
       ungroup()
@@ -1769,7 +1765,7 @@ function(input, output, session) {
     Q1_text <- paste0("In ", 
                       first_Q,
                       " ",
-                      Years,
+                      fin_yr(),
                       " performance for KPO 4 calculated across all responses for all questions was ",
                       Q1_kpo,
                       " for ", 
@@ -1872,37 +1868,40 @@ function(input, output, session) {
                         )
     )
     
-    # If there is data for more than 1 financial year compare most 
-    # recent quarter with same quarter in previous year
+    # If there is data for more than 1 financial year compare selected 
+    # quarter (or most recent if YTD is selected) with same quarter in 
+    # previous year
     extra_data <- report_kpo_data()
+    
+    qrtr <- if (input$qrtr_selection == "Year to Date") {
+      crnt_qtr
+    } else {
+      input$qrtr_selection
+    }
+    
     # filter to current quarter and selected council
     extra_data <- extra_data %>% 
-      filter(`Tracking Link` == crnt_qtr, 
+      filter(`Tracking Link` == qrtr, 
              id == council_fltr
       )
     # Store values for current financial year and previous financial year
-    first_fin_yr <- if (length(extra_data$`Tracking Link`) > 1) {
-      filter(extra_data, `Financial Year` == prev_fin_yr) %>%
-        ungroup() %>%
-        select(KPO_score)
-    } else {
-      0
-    }
+    other_fin_yr <- extra_data %>% 
+      filter(`Financial Year` != fin_yr()) %>%
+      pull(`Financial Year`)
+    KPO4_other <- extra_data %>%
+      filter(`Financial Year` != fin_yr()) %>%
+      pull(KPO_score)
     
-    second_fin_yr <- if (length(extra_data$`Tracking Link`) > 1) {
-      filter(extra_data, `Financial Year` == Years) %>%
-        ungroup() %>%
-        select(KPO_score)
-    } else {
-      0
-    }
+    selected_fin_yr <- extra_data %>%
+      filter(`Financial Year` == fin_yr()) %>%
+      pull(KPO_score)
     
     # Compare values and create text
     extra_comp <- tryCatch({
-      ifelse(second_fin_yr > first_fin_yr + 0.2, 
-             " higher than in ", 
-             ifelse(second_fin_yr < first_fin_yr - 0.2, 
-                    " lower than in ", 
+      ifelse(selected_fin_yr > KPO4_other + 0.2, 
+             " points higher than in ", 
+             ifelse(selected_fin_yr < KPO4_other - 0.2, 
+                    " points lower than in ", 
                     " the same as in "
              )
       )
@@ -1910,27 +1909,29 @@ function(input, output, session) {
     )
     extra_comp_value <- ifelse(extra_comp == " the same as in ", 
                                "", 
-                               second_fin_yr - first_fin_yr
+                               abs(selected_fin_yr - KPO4_other)
     )
     
     extra_text <- paste0("KPO 4 performance in ", 
-                         crnt_qtr, 
+                         qrtr, 
                          " ", 
-                         Years, 
+                         fin_yr(), 
                          " was ", 
                          extra_comp_value, 
                          extra_comp,
-                         crnt_qtr, 
+                         qrtr, 
                          " ",
-                         prev_fin_yr,
+                         other_fin_yr,
                          "."
     )
     
     # Select which text is shown based on the no. of years available
-    final_text <- ifelse(length(unique(extra_data$`Financial Year`)) > 1,
-                         paste(main_text, extra_text),
-                         main_text
-    )
+    final_text <- if (length(unique(extra_data$`Financial Year`)) > 1 & length(extra_data$`Tracking Link`) > 1) {
+      paste(main_text, extra_text)
+    } else {
+      main_text
+      }
+    
     final_text
   })
   
