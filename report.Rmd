@@ -539,6 +539,7 @@ ggplot(data = line_data,
   scale_x_discrete(labels = function(x) str_wrap(x, width = 8)) +
   scale_color_manual(values = c("cadetblue3", "dimgrey"), name = "") +
   ggtitle("KPO 4 score - over time") +
+  ylim(0, 10) +
   xlab("") +
   ylab("KPO 4 Score") +
   theme_classic()
