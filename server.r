@@ -1435,7 +1435,7 @@ function(input, output, session) {
     # Create comparison of KPO4 for selected year with other year available
     diff_value <- KPO4_ytd - KPO4_other
     diff_text <- if_else(diff_value < 0, "lower", "higher")
-    diff_value <- abs(diff_value)
+    diff_value <- round(abs(diff_value), 1)
     
     # Text for when there is only 1 financial year
     text_kpo <- paste0("This indicator summarises performance across all questions, with differential weightings based on importance. For ", 
@@ -1908,7 +1908,7 @@ function(input, output, session) {
     )
     extra_comp_value <- ifelse(extra_comp == " the same as in ", 
                                "", 
-                               abs(selected_fin_yr - KPO4_other)
+                               round(abs(selected_fin_yr - KPO4_other), 1)
     )
     
     extra_text <- paste0("KPO 4 performance in ", 
