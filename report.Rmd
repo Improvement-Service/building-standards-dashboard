@@ -524,7 +524,7 @@ line_data$Label <- factor(line_data$Label, levels = QLabels)
 ```
   
   
-```{r, eval = length(line_data$LA[line_data$LA == la]) > 1, echo = FALSE}
+```{r, eval = length(line_data$LA[line_data$LA == la]) > 1, warning = FALSE, echo = FALSE}
 # The above test whether there is more than one data point available for the council and will only evaluate the code below if this is TRUE
 ggplot(data = line_data,
        aes(x = Label, y = KPO_score, group = LA, colour = LA)
