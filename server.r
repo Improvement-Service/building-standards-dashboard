@@ -1168,7 +1168,7 @@ function(input, output, session) {
       width = 0.7, 
       colour = "black"
       ) +
-      ggtitle(input$Qstn_tab2) +
+      ggtitle(str_wrap(input$Qstn_tab2, width = 60)) +
       xlab("Response") +
       ylab(paste("% of responses", fin_yr())) +
       # Span x axis labels over multiple lines
@@ -1296,7 +1296,7 @@ function(input, output, session) {
       colour = "black"
       ) +
       scale_y_continuous(expand = expansion(mult = c(0, 0.1))) +
-      ggtitle(input$Qstn_tab2) +
+      ggtitle(str_wrap(input$Qstn_tab2, width = 60)) +
       xlab("") +
       ylab(paste("% of responses", fin_yr())) +
       theme_classic() +
