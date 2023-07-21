@@ -1140,7 +1140,7 @@
     },
     "rsconnect": {
       "Package": "rsconnect",
-      "Version": "0.8.27",
+      "Version": "0.8.29",
       "Source": "Repository",
       "Repository": "CRAN",
       "Hash": "114103fbb50af041e93921ee67db8fa0",
