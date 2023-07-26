@@ -56,7 +56,7 @@ jobs:
           cache-version: 1
         
       - name: install rsconnect
-        run: install.packages("rsconnect")
+        run: remotes::install_version("rsconnect", "0.8.29")
         shell: Rscript {0}
       
       # creates config file for python script
