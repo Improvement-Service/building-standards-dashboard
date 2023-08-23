@@ -59,7 +59,7 @@ jobs:
         run: |
             install.packages("remotes")
             library(remotes)
-            remotes::install_version("rsconnect", "1.0.2")
+            remotes::install_version("rsconnect", "1.0.0")
         shell: Rscript {0}
       
       # creates config file for python script
