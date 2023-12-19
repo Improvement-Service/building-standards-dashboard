@@ -293,6 +293,11 @@ dwnld_table_dta$`Ended date` <- as.Date(dwnld_table_dta$`Ended date`,
 dwnld_table_dta$`Q. Please select a local authority` <- as.character(dwnld_table_dta$`Q. Please select a local authority`)
 dwnld_table_dta$`Q. Please select the local authority that your response relates to` <- as.character(dwnld_table_dta$`Q. Please select the local authority that your response relates to`)
 
+##an additional entry for "West Lothian;" was created causing an issue for their dashboard - fix this
+dwnld_table_dta[dwnld_table_dta$`Q. Please select the local authority that your response relates to` == "33","Q. Please select the local authority that your response relates to" ] <- "32"
+dwnld_table_dta[dwnld_table_dta$`Q. Please select a local authority` == "33","Q. Please select a local authority" ] <- "32"
+
+
 # Add in columns with Quarter Info and Financial Year info
 # Formats the ended date as a year and quarter value
 dwnld_table_dta$`Tracking Link` <- as.yearqtr(dwnld_table_dta$`Ended date`,
