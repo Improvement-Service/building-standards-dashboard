@@ -86,20 +86,20 @@ jobs:
         shell: Rscript {0}
         
       # messages for teams channel
-#      - name: Notify dedicated teams channel success
-  #      if: success()
-   #     uses: jdcargile/ms-teams-notification@v1.3
-   #     with:
-   #       github-token: ${{ github.token }} # this will use the runner's token.
-   #       ms-teams-webhook-uri: ${{ secrets.MS_TEAMS_WEBHOOK_URI }}
-   #       notification-summary: ${{ github.repository }} has been ran successfully. 
-   #       notification-color: 06ab00
-   #       
-   #   - name: Notify dedicated teams channel failure
-   #     if: failure()
-   #     uses: jdcargile/ms-teams-notification@v1.3
-   #     with:
-   #       github-token: ${{ github.token }} # this will use the runner's token.
-   #       ms-teams-webhook-uri: ${{ secrets.MS_TEAMS_WEBHOOK_URI }}
-   #       notification-summary: ${{ github.repository }} has workflow has failed.
-   #       notification-color: FF0000
+      - name: Notify dedicated teams channel success
+        if: success()
+        uses: jdcargile/ms-teams-notification@v1.3
+        with:
+          github-token: ${{ github.token }} # this will use the runner's token.
+          ms-teams-webhook-uri: ${{ secrets.MS_TEAMS_WEBHOOK_URI }}
+          notification-summary: ${{ github.repository }} has been ran successfully. 
+          notification-color: 06ab00
+          
+      - name: Notify dedicated teams channel failure
+        if: failure()
+        uses: jdcargile/ms-teams-notification@v1.3
+        with:
+          github-token: ${{ github.token }} # this will use the runner's token.
+          ms-teams-webhook-uri: ${{ secrets.MS_TEAMS_WEBHOOK_URI }}
+          notification-summary: ${{ github.repository }} has workflow has failed.
+          notification-color: FF0000
