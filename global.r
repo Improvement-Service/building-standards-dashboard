@@ -102,14 +102,15 @@ pivot_dta <- read_csv("survey_data.csv", col_types = "c") %>%
 
 pivot_dta$`Ended date` <- as.Date(pivot_dta$`Ended date`, format = "%d/%m/%Y")
 
-##an additional entry for "West Lothian;" was created causing an issue for their dashboard - fix this
-pivot_dta[pivot_dta$`Q. Please select the local authority that your response relates to` == "33","Q. Please select the local authority that your response relates to" ] <- "32"
-pivot_dta[pivot_dta$`Q. Please select a local authority` == "33","Q. Please select a local authority" ] <- "32"
-
 # Need to code these as characters because when all responses are in the first column, 
 # this is numeric and the other column is character, meaning when the code combines them later it won't work
 pivot_dta$`Q. Please select a local authority` <- as.character(pivot_dta$`Q. Please select a local authority`)
 pivot_dta$`Q. Please select the local authority that your response relates to` <- as.character(pivot_dta$`Q. Please select the local authority that your response relates to`)
+
+##an additional entry for "West Lothian;" was created causing an issue for their dashboard - fix this
+pivot_dta[pivot_dta$`Q. Please select the local authority that your response relates to` == "33","Q. Please select the local authority that your response relates to" ] <- "32"
+pivot_dta[pivot_dta$`Q. Please select a local authority` == "33","Q. Please select a local authority" ] <- "32"
+
 
 # Where the question has not been answered this needs to be changed to NA 
 # These are currently "-" but need to be recoded to distinguish where the 
