@@ -76,14 +76,9 @@ prev_fin_yr <- paste(prev_fin_yr, crnt_yr, sep = "/")
 # a wide un-pivoted format. In the server it is filtered to the selected council
 # and is formatted. It keeps the additional questions for applicable councils.
 fresh_dta <- read_csv("survey_data.csv", col_types = "c") %>% 
-  select(-"Tracking Link")
-fresh_dta[is.na(fresh_dta$`Local Authority Name`), "Local Authority Name"] <- "-"
+  select(-"Tracking Link") %>%
+  replace_na(list("Local Authority Name" = "-"))
 fresh_dta$`Ended date` <- as.Date(fresh_dta$`Ended date`, format = "%d/%m/%Y")
-
-# Need to code these as characters because when all responses are in the first column, 
-# this is numeric and the other column is character, meaning when the code combines them later it won't work
-fresh_dta$`Q. Please select a local authority` <- as.character(fresh_dta$`Q. Please select a local authority`)
-fresh_dta$`Q. Please select the local authority that your response relates to` <- as.character(fresh_dta$`Q. Please select the local authority that your response relates to`)
 
 ##an additional entry for "West Lothian;" was created causing an issue for their dashboard - fix this
 fresh_dta[fresh_dta$`Q. Please select the local authority that your response relates to` == "33","Q. Please select the local authority that your response relates to" ] <- "32"
