@@ -63,7 +63,7 @@ Years <- length(unique(Years$`Financial Year`))
 
 # Filter to selected financial year
 kpo_data1 <- kpo_data %>% 
-    filter(`Tracking Link` == "Total" & `Financial Year` == year)
+    filter(Quarter == "Total" & `Financial Year` == year)
 
 # Council KPO4
 KPO4_ytd <- kpo_data1 %>% filter(id == la) %>% pull(KPO_score)
@@ -89,7 +89,7 @@ other_fin_yr <- all_kpo_data %>%
   filter(id == la & `Financial Year` != year) %>%
     pull(`Financial Year`)
 KPO4_other <- all_kpo_data %>%
-  filter(`Tracking Link` == "Total" & `Financial Year` != year)
+  filter(Quarter == "Total" & `Financial Year` != year)
 KPO4_other <- KPO4_other %>% 
   filter(id == la) %>% 
   pull(KPO_score)
@@ -150,7 +150,7 @@ hilow_kpo4,
 ```{r echo = FALSE}
 # Create graph for KPO4 YTD
      
-kpo_data1 <- kpo_data %>% filter(`Tracking Link` == "Total")
+kpo_data1 <- kpo_data %>% filter(Quarter == "Total")
 # Set the council values as a factor so the data can be arranged to have the council first regardless of alphabetical order
 kpo_data1$id <- factor(kpo_data1$id, levels = c(la, "Scotland"))
 kpo_data1 <- arrange(kpo_data1, id)
@@ -304,40 +304,40 @@ ggplot(data = reason_data,aes(x = Question, y = perc)) +
 
 # Filter to quarters, selected council and year
 kpo_data1 <- kpo_data %>% 
-  filter(`Tracking Link` != "Total",
+  filter(Quarter != "Total",
          `Financial Year` == year,  
          id == la
          ) %>% 
   ungroup()
      
 # Set the quarter labels as a factor to ensure they stay in order
-QLabels <- unique(kpo_data1$`Tracking Link`)
-kpo_data1$`Tracking Link` <- factor(kpo_data1$`Tracking Link`, 
+QLabels <- unique(kpo_data1$Quarter)
+kpo_data1$Quarter <- factor(kpo_data1$Quarter, 
                                     levels = QLabels
                                     )
      
 # Store the names of the quarters by position (can't just reference by quarter number as some councils may have data missing).
 # If there is a quarter missing the position will be empty
-first_Q <- kpo_data1$`Tracking Link`[[1]]
+first_Q <- kpo_data1$Quarter[[1]]
 second_Q <- if (length(QLabels) > 1) {
-  kpo_data1$`Tracking Link`[[2]]
+  kpo_data1$Quarter[[2]]
 } else {
     0
   }
 third_Q <- if (length(QLabels) > 2) {
-  kpo_data1$`Tracking Link`[[3]]
+  kpo_data1$Quarter[[3]]
 } else {
     0
   }
 fourth_Q <- if (length(QLabels) > 3) {
-  kpo_data1$`Tracking Link`[[4]]
+  kpo_data1$Quarter[[4]]
 } else {
     0
   }
     
 # Filter to get KPO for first quarter available
 Q1_kpo <- kpo_data1 %>% 
-  filter(`Tracking Link` == first_Q) %>%
+  filter(Quarter == first_Q) %>%
   select(KPO_score)
 # Render text for quarter 1
 Q1_text <- paste0("In ", 
@@ -352,7 +352,7 @@ Q1_text <- paste0("In ",
                   )
 # Filter to get KPO for second quarter available
 Q2_kpo <- kpo_data1 %>% 
-  filter(`Tracking Link` == second_Q) %>%
+  filter(Quarter == second_Q) %>%
   select(KPO_score)
 # Compare quarter 2 and quarter 1
 comp_Q12 <- tryCatch({
@@ -375,7 +375,7 @@ Q2_text <- paste0(Q1_text,
                   )
 # Filter to get KPO for third quarter available
 Q3_kpo <- kpo_data1 %>% 
-  filter(`Tracking Link` == third_Q) %>%
+  filter(Quarter == third_Q) %>%
   select(KPO_score)
 # Compare third & second quarter available - ignore if error occurs
 comp_Q23 <- tryCatch({
@@ -400,7 +400,7 @@ Q3_text <- paste0(Q2_text,
                   )
 # Filter to get KPO for fourth quarter available  
 Q4_kpo <- kpo_data1 %>% 
-  filter(`Tracking Link` == fourth_Q) %>%
+  filter(Quarter == fourth_Q) %>%
   select(KPO_score)
 # Compare fourth and third quarter available - ignore if error occurs
 comp_Q34 <- tryCatch({
@@ -446,7 +446,7 @@ qrtr <- if (named_qrtr == "Year to Date") {
 
 # Filter to selected quarter and selected council
 extra_data <- extra_data %>% 
-  filter(`Tracking Link` == qrtr, id == la)
+  filter(Quarter == qrtr, id == la)
 # Store values for current financial year and previous financial year
 other_fin_yr <- extra_data %>%
   filter(`Financial Year` != year) %>%
@@ -489,7 +489,7 @@ extra_text <- paste0("KPO 4 performance in ",
 # Number of years
 no_years <- length(unique(extra_data$`Financial Year`))
 # Number of quarters
-no_qrtrs <- length(extra_data$`Tracking Link`)
+no_qrtrs <- length(extra_data$Quarter)
 # Select which text is shown based on the no. of years available
 ```    
     
@@ -500,23 +500,23 @@ no_qrtrs <- length(extra_data$`Tracking Link`)
 line_data$LA <- factor(line_data$LA, levels = c(la, "Scotland"))
 
 # Add Financial year to quarter labels
-line_data$`Tracking Link` <- gsub("Quarter\\ ",
+line_data$Quarter <- gsub("Quarter\\ ",
                                   "Q",
-                                  line_data$`Tracking Link`, 
+                                  line_data$Quarter, 
                                   perl = TRUE
                                   )
-line_data$Label <- paste(line_data$`Tracking Link`, 
+line_data$Label <- paste(line_data$Quarter, 
                          line_data$`Financial Year`, 
                          sep = " "
                          )
-line_data$`Tracking Link` <- gsub("Q",
+line_data$Quarter <- gsub("Q",
                                   "",
-                                  line_data$`Tracking Link`, 
+                                  line_data$Quarter, 
                                   perl = TRUE
                                   )
 
 # Arrange the data to set the order of colours
-line_data <- arrange(line_data, `Financial Year`, `Tracking Link`, LA)
+line_data <- arrange(line_data, `Financial Year`, Quarter, LA)
       
 # Set the date labels as a factor to ensure they stay in order
 QLabels <- unique(line_data$Label)
@@ -551,16 +551,16 @@ ggplot(data = line_data,
 
 # Pulls out quarter and financial year available for selected council
 # There may be more than one quarter for Scotland so need to filter so that's not included
-qrtr_available <- line_data$`Tracking Link`[line_data$LA == la]
+qrtr_available <- line_data$Quarter[line_data$LA == la]
 year_available <- line_data$`Financial Year`[line_data$LA == la]
       
 line_data <- line_data %>% 
-  filter(`Tracking Link` == qrtr_available, 
+  filter(Quarter == qrtr_available, 
          `Financial Year` == year_available
          )
 
 ggplot(data = line_data,
-       aes(x = `Tracking Link`, 
+       aes(x = Quarter, 
            y = KPO_score, 
            fill = LA
            )
