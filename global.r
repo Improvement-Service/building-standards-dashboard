@@ -80,8 +80,10 @@ fresh_dta <- read_csv("survey_data.csv", col_types = "c") %>%
   replace_na(list("Local Authority Name" = "-"))
 fresh_dta$`Ended date` <- as.Date(fresh_dta$`Ended date`, format = "%d/%m/%Y")
 
-##an additional entry for "West Lothian;" was created causing an issue for their dashboard - fix this
-fresh_dta[fresh_dta$`Q. Please select the local authority that your response relates to` == "33","Q. Please select the local authority that your response relates to" ] <- "32"
+# An additional entry for "West Lothian;" was created causing an issue for their dashboard - fix this
+fresh_dta[fresh_dta$`Local Authority Name` == "West Lothian;" &
+             fresh_dta$`Q. Please select the local authority that your response relates to` == "10",
+          "Q. Please select the local authority that your response relates to" ] <- "32"
 fresh_dta[fresh_dta$`Q. Please select a local authority` == "33","Q. Please select a local authority" ] <- "32"
 
 # Pivoted Data --------------------------------------------------------------
@@ -99,114 +101,223 @@ pivot_dta$`Ended date` <- as.Date(pivot_dta$`Ended date`, format = "%d/%m/%Y")
 
 # Need to code these as characters because when all responses are in the first column, 
 # this is numeric and the other column is character, meaning when the code combines them later it won't work
-pivot_dta$`Q. Please select a local authority` <- as.character(pivot_dta$`Q. Please select a local authority`)
-pivot_dta$`Q. Please select the local authority that your response relates to` <- as.character(pivot_dta$`Q. Please select the local authority that your response relates to`)
+#pivot_dta$`Q. Please select a local authority` <- as.character(pivot_dta$`Q. Please select a local authority`)
+#pivot_dta$`Q. Please select the local authority that your response relates to` <- as.character(pivot_dta$`Q. Please select the local authority that your response relates to`)
 
-##an additional entry for "West Lothian;" was created causing an issue for their dashboard - fix this
-pivot_dta[pivot_dta$`Q. Please select the local authority that your response relates to` == "33","Q. Please select the local authority that your response relates to" ] <- "32"
+# An additional entry for "West Lothian;" was created causing an issue for their dashboard - fix this
+pivot_dta[pivot_dta$`Local Authority Name` == "West Lothian;" &
+            pivot_dta$`Q. Please select the local authority that your response relates to` == "10",
+          "Q. Please select the local authority that your response relates to" ] <- "32"
 pivot_dta[pivot_dta$`Q. Please select a local authority` == "33","Q. Please select a local authority" ] <- "32"
-
 
 # Where the question has not been answered this needs to be changed to NA 
 # These are currently "-" but need to be recoded to distinguish where the 
 # question is skipped vs when it is not applicable to the council
 
+pivot_dta <- pivot_dta %>%
+  pivot_longer(cols = -(1:21), names_to = "col_names", values_to = "value") %>%
+  # pivot to combine both LA columns, rename, then remove duplicates
+  pivot_longer(cols = c(`Q. Please select a local authority`, 
+                        `Q. Please select the local authority that your response relates to`
+                        ), names_to = "extra", values_to = "LA") %>%
+  filter(LA != "-") %>% 
+  select(-extra)
+
+# Code local authority name for councils completing survey without login
+pivot_dta <- merge(pivot_dta, LA_names_dta)
+pivot_dta$`Local Authority Name` <- pivot_dta$LA_names
+pivot_dta <- pivot_dta %>% select(-LA_names) 
+
+# Create a second data set with new column names
+new_col_names_dta <- pivot_dta %>% 
+  # These next two steps mean there is one council associated with each column name
+  # For councils with additional questions, only that council will have non "-" 
+  # responses so the council name will match up
+  filter(value != "-") %>%
+  distinct(col_names, .keep_all = TRUE) %>%
+  mutate("new_col_names" = col_names) %>%
+  # Where questions are duplicated numbers are added to column name - remove these
+  mutate(new_col_names = str_remove_all(new_col_names, "\\.\\.\\.[:digit:]*$")) %>%
+  # Add council name to additional questions so these can be referenced easily
+  mutate(new_col_names = if_else(`Local Authority Name` %in% c("Angus",
+                                                               "City of Edinburgh",
+                                                               "North Lanarkshire",
+                                                               "Orkney Islands",
+                                                               "West Lothian"),
+                                   paste0(new_col_names, "_", `Local Authority Name`),
+                                   new_col_names)) %>%
+  select(col_names, new_col_names)
+ 
+# Match the new column names to the old ones 
+pivot_dta <- merge(pivot_dta, new_col_names_dta) %>%
+  select(-col_names) %>%
+  # pivot back to wide format to continue tidying indicator columns
+  pivot_wider(names_from = new_col_names, values_from = value)
+
+# Replace blanks for respondents who completed Angus specific questions
+pivot_dta <- pivot_dta %>% 
+  mutate(across(contains("_Angus"),
+                ~ ifelse(.=="-" & `Local Authority Name` == "Angus", 
+                         NA, 
+                         .)))
+
+# Replace blanks for respondents who completed Edinburgh specific questions
+pivot_dta <- pivot_dta %>% 
+  mutate(across(contains("_City of Edinburgh"),
+                ~ ifelse(.=="-" & `Local Authority Name` == "City of Edinburgh", 
+                         NA, 
+                         .)))
+
+# Replace blanks for respondents who completed North Lanarkshire specific questions
+pivot_dta <- pivot_dta %>% 
+  mutate(across(contains("_North Lanarkshire"),
+                ~ ifelse(.=="-" & `Local Authority Name` == "North Lanarkshire", 
+                         NA, 
+                         .)))
+
+# Replace blanks for respondents who completed Orkney specific questions
+pivot_dta <- pivot_dta %>% 
+  mutate(across(contains("_Orkney Islands"),
+                ~ ifelse(.=="-" & `Local Authority Name` == "Orkney Islands", 
+                         NA, 
+                         .)))
+
 # For West Lothian questions replace blank values with NA
-pivot_dta[c(29:38)] <- replace(
-  pivot_dta[c(29:38)], 
-  (pivot_dta$`Q. Please select a local authority` == 32 | pivot_dta$`Q. Please select the local authority that your response relates to` == 32) & 
-    pivot_dta[c(29:38)] == "-",
-  NA)
+# (West Lothian had a few responses where respondents answered the standard
+# question set rather than the specific West Lothian set, so need to account for
+# both of these scenarios). If the response is "-" in both the West Lothian specific
+# questions and the standard questions this is a genuine NA, but if it is only 
+# "-" in that's because the question was skipped. Don't want to record as NA in 
+# this scenario as respondent will be counted twice
 
-# For North Lanarkshire questions replace blank values with NA
-pivot_dta[c(39:41)] <- replace(
-  pivot_dta[c(39:41)], 
-  (pivot_dta$`Q. Please select a local authority` == 22 | pivot_dta$`Q. Please select the local authority that your response relates to` == 22) &
-    pivot_dta[c(39:41)] == "-",
-  NA)
+# Replace blanks for respondents who completed West Lothian specific questions
+pivot_dta <- pivot_dta %>% 
+  mutate(`Q8. Thinking of your engagement with [question(16082428)][variable(la)] Building Standards from beginning to end, how satisfied were you that the time taken to deal with your application or enquiry met the timescales that you were promised?_West Lothian` = 
+         if_else(`Local Authority Name` == "West Lothian" &
+                   `Q8. Thinking of your engagement with [question(16082428)][variable(la)] Building Standards from beginning to end, how satisfied were you that the time taken to deal with your application or enquiry met the timescales that you were promised?_West Lothian` == "-" &
+                   `Q3. Thinking of your engagement with [question(16082428)][variable(la)] Building Standards from beginning to end, how satisfied were you that the time taken to deal with your application or enquiry met the timescales that you were promised?` == "-", 
+                 NA, 
+                 `Q8. Thinking of your engagement with [question(16082428)][variable(la)] Building Standards from beginning to end, how satisfied were you that the time taken to deal with your application or enquiry met the timescales that you were promised?_West Lothian`)) %>%
+  mutate(`Q9. How would you rate the standard of communication provided by [question(16082428)][variable(la)] Building Standards service following your initial contact or once your application had been submitted?_West Lothian` = 
+         if_else(`Local Authority Name` == "West Lothian" &
+                   `Q9. How would you rate the standard of communication provided by [question(16082428)][variable(la)] Building Standards service following your initial contact or once your application had been submitted?_West Lothian` == "-" &
+                   `Q4. How would you rate the standard of communication provided by [question(16082428)][variable(la)] Building Standards service following your initial contact or once your application had been submitted?` == "-", 
+                 NA, 
+                 `Q9. How would you rate the standard of communication provided by [question(16082428)][variable(la)] Building Standards service following your initial contact or once your application had been submitted?_West Lothian`)) %>%
+  mutate(`Q.1. Quality of the information provided_West Lothian` = 
+         if_else(`Local Authority Name` == "West Lothian" &
+                   `Q.1. Quality of the information provided_West Lothian` == "-" &
+                   `Q.1. Quality of the information provided` == "-", 
+                 NA, 
+                 `Q.1. Quality of the information provided_West Lothian`)) %>%
+  mutate(`Q.5. Overall service offered by staff_West Lothian` = 
+         if_else(`Local Authority Name` == "West Lothian" &
+                   `Q.5. Overall service offered by staff_West Lothian` == "-" &
+                   `Q.2. Service offered by staff` == "-", 
+                 NA, 
+                 `Q.5. Overall service offered by staff_West Lothian`)) %>%
+  mutate(`Q.6. Time taken to respond to any queries or issues raised_West Lothian` = 
+         if_else(`Local Authority Name` == "West Lothian" &
+                   `Q.6. Time taken to respond to any queries or issues raised_West Lothian` == "-" &
+                   `Q.3. Time taken to respond to any queries or issues raised` == "-", 
+                 NA, 
+                 `Q.6. Time taken to respond to any queries or issues raised_West Lothian`)) %>%
+  mutate(`Q10. To what extent would you agree that you were treated fairly by [question(16082428)][variable(la)] Building Standards?_West Lothian` = 
+         if_else(`Local Authority Name` == "West Lothian" &
+                   `Q10. To what extent would you agree that you were treated fairly by [question(16082428)][variable(la)] Building Standards?_West Lothian` == "-" &
+                   `Q5. To what extent would you agree that you were treated fairly by [question(16082428)][variable(la)] Building Standards?` == "-", 
+                 NA, 
+                 `Q10. To what extent would you agree that you were treated fairly by [question(16082428)][variable(la)] Building Standards?_West Lothian`)) %>%
+  # For the additional questions check whether other responses have been coded as NA as this suggests
+  # a genuine NA response given the rules above
+  mutate(`Q.2. Accuracy of the information provided as relevant to your needs_West Lothian` = 
+         if_else(`Local Authority Name` == "West Lothian" &
+                   `Q.2. Accuracy of the information provided as relevant to your needs_West Lothian` == "-" &
+                   is.na(`Q8. Thinking of your engagement with [question(16082428)][variable(la)] Building Standards from beginning to end, how satisfied were you that the time taken to deal with your application or enquiry met the timescales that you were promised?_West Lothian`), 
+                 NA, 
+                 `Q.2. Accuracy of the information provided as relevant to your needs_West Lothian`)) %>%
+  mutate(`Q.3. Professionalism in terms of the knowledge and skills of our staff_West Lothian` = 
+         if_else(`Local Authority Name` == "West Lothian" &
+                   `Q.3. Professionalism in terms of the knowledge and skills of our staff_West Lothian` == "-" &
+                   is.na(`Q8. Thinking of your engagement with [question(16082428)][variable(la)] Building Standards from beginning to end, how satisfied were you that the time taken to deal with your application or enquiry met the timescales that you were promised?_West Lothian`), 
+                 NA, 
+                 `Q.3. Professionalism in terms of the knowledge and skills of our staff_West Lothian`)) %>%
+  mutate(`Q.4. Attitude in terms of friendliness and helpfulness of our staff_West Lothian` = 
+         if_else(`Local Authority Name` == "West Lothian" &
+                   `Q.4. Attitude in terms of friendliness and helpfulness of our staff_West Lothian` == "-" &
+                   is.na(`Q8. Thinking of your engagement with [question(16082428)][variable(la)] Building Standards from beginning to end, how satisfied were you that the time taken to deal with your application or enquiry met the timescales that you were promised?_West Lothian`), 
+                 NA, 
+                 `Q.4. Attitude in terms of friendliness and helpfulness of our staff_West Lothian`)) 
 
-# For Orkney Islands questions replace blank values with NA
-pivot_dta[c(42:56)] <- replace(
-  pivot_dta[c(42:56)], 
-  (pivot_dta$`Q. Please select a local authority` == 23 | pivot_dta$`Q. Please select the local authority that your response relates to` == 23) &
-    pivot_dta[c(42:56)] == "-",
-  NA)
-
-# For City of Edinburgh questions replace blank values with NA
-pivot_dta[c(57:63)] <- replace(
-  pivot_dta[c(57:63)], 
-  (pivot_dta$`Q. Please select a local authority` == 12 | pivot_dta$`Q. Please select the local authority that your response relates to` == 12) &
-    pivot_dta[c(57:63)] == "-",
-  NA)
-
-# For Angus questions replace blank values with NA
-pivot_dta[64] <- replace(
-  pivot_dta[64], 
-  (pivot_dta$`Q. Please select a local authority` == 3 | pivot_dta$`Q. Please select the local authority that your response relates to` == 3) &
-    pivot_dta[64] == "-",
-  NA)
-
-# For standard council questions replace blank values with NA
-pivot_dta[c(22:28)] <- replace(
-  pivot_dta[c(22:28)], 
-  (pivot_dta$`Q. Please select a local authority` %in% c(
-    1, 2, 3, 4, 5, 6, 7, 8, 9, 10 ,11, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 24, 25, 26, 27, 28, 29, 30, 31) | 
-     pivot_dta$`Q. Please select the local authority that your response relates to` %in% c(
-       1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 24, 25, 26, 27, 28, 29, 30, 31)) &
-    pivot_dta[c(22:28)] == "-",
-  NA)
-
-
-# The question set is duplicated across columns to account for skip logic
-# Rename the columns containing the same questions so they match
-colnames(pivot_dta)[c(29, 42, 57)] <- colnames(pivot_dta)[22]
-colnames(pivot_dta)[c(30, 43, 58)] <- colnames(pivot_dta)[23]
-# The column name of the question ("Quality of the information provided") is the same for the additional question council
-# Therefore the column name is repeated and when it is read in it adds a number to the end
-# Need to remove the number of change the names of each of these columns
-colnames(pivot_dta)[24] <- gsub("\\...[1-9]*$", 
-                                "", 
-                                colnames(pivot_dta)[24],
-                                perl = TRUE)
-colnames(pivot_dta)[25] <- gsub("\\...[1-9]*$", 
-                                "", 
-                                colnames(pivot_dta)[25],
-                                perl = TRUE)
-
-colnames(pivot_dta)[c(31,48,59)] <- colnames(pivot_dta)[24]
-colnames(pivot_dta)[c(35,54,60)] <- colnames(pivot_dta)[25]
-colnames(pivot_dta)[c(36,49,61)] <- colnames(pivot_dta)[26]
-colnames(pivot_dta)[c(37,55,62)] <- colnames(pivot_dta)[27]
-colnames(pivot_dta)[c(38,56,63)] <- colnames(pivot_dta)[28]
-
-# Remove columns containing additional questions
-pivot_dta <- pivot_dta[-c(32, 33, 34, 39, 40, 41, 44, 45, 46, 47, 50, 51, 52, 53, 64)]
-
-# Make sure all data columns are the same data type
-pivot_dta[, 22:28] <- sapply(pivot_dta[, 22:28], as.character)
+# Replace blanks for respondents who completed standard questions
+pivot_dta <- pivot_dta %>% 
+  mutate(across(c("Q3. Thinking of your engagement with [question(16082428)][variable(la)] Building Standards from beginning to end, how satisfied were you that the time taken to deal with your application or enquiry met the timescales that you were promised?",
+                  "Q4. How would you rate the standard of communication provided by [question(16082428)][variable(la)] Building Standards service following your initial contact or once your application had been submitted?",
+                  "Q.1. Quality of the information provided",
+                  "Q.2. Service offered by staff",
+                  "Q.3. Time taken to respond to any queries or issues raised",
+                  "Q5. To what extent would you agree that you were treated fairly by [question(16082428)][variable(la)] Building Standards?",
+                  "Q6. Overall, how satisfied were you with the service provided by [question(16082428)][variable(la)] Building Standards?"
+                  ),
+                ~ ifelse(.=="-" & !`Local Authority Name` %in% c("City of Edinburgh", 
+                                                                 "Orkney Islands", 
+                                                                 "West Lothian"), 
+                         NA, 
+                         .)))
 
 # Pivot indicator data 
 pivot_dta <- pivot_dta %>% 
-  pivot_longer(cols = 22:28, 
+  pivot_longer(cols = -(1:20), 
                names_to = "Indicator", 
                values_to = "value")
 
-# As the columns were duplicated there are "-" blank values where the question would be skipped
-# Need to remove these to get the complete data set
+# Remove the questions number prefix and council name suffix so duplicted questions
+# can be matched
+pivot_dta <- pivot_dta %>%
+  mutate(Indicator = str_remove_all(Indicator, "^[^\\s]*\\s")) %>%
+  mutate(Indicator = str_remove_all(Indicator, "_.*$"))
+
+# Some of the standard questions are worded differently for the councils with 
+# additional questions. Need to rename so these can be matched
+pivot_dta$Indicator[pivot_dta$Indicator == "Overall service offered by staff"] <- "Service offered by staff"
+pivot_dta$Indicator[pivot_dta$Indicator == "Overall, how would you rate the service offered by [question(16082428)][variable(la)] Council staff?"] <- "Service offered by staff"
+pivot_dta$Indicator[pivot_dta$Indicator == "Time taken to respond to any queries or issues raised. Our target response times are 10 days for emails and 2 days for phone calls"] <- "Time taken to respond to any queries or issues raised"
+
+# Remove additional questions
+pivot_dta <- pivot_dta %>%
+  filter(!Indicator %in% c("Accuracy of the information provided as relevant to your needs",
+                           "Professionalism in terms of the knowledge and skills of our staff",
+                           "Attitude in terms of friendliness and helpfulness of our staff",
+                           "Did you find it easy to contact the officer/inspector/administrator you were looking for?",
+                           "Easy to find",
+                           "Understandable",
+                           "Please provide further information about your answers:",
+                           "Finally, if you are responding in relation to a Completion Certificate did your experience include a Remote Verification Inspection (RVI) whereby the inspection is via live or pre-recorded video?",
+                           "How satisfied were you with the range of options provided by [question(16082428)][variable(la)] Council relating to inspections?",
+                           "How satisfied were you with the building warrant approval process?",
+                           "To what extent would you agree [question(16082428)][variable(la)] Council have used digital technology to make building standards processes easier for you (for example, around plan approval and site inspections)?",
+                           "Staff were polite and courteous",
+                           "Staff were helpful",
+                           "Staff were efficient",
+                           "Staff were knowledgeable"
+                           ))
+
+# Need to remove "-" blank values where questions were skipped
 pivot_dta <- pivot_dta %>% 
-  filter(is.na(pivot_dta$value) | value %in% c("1","2","3","4","5"))
+  filter(value != "-")
 
 # Add in columns with Quarter Info and Financial Year info
 # Formats the ended date as a year and quarter value
-pivot_dta$`Tracking Link` <- as.yearqtr(pivot_dta$`Ended date`, 
-                                        format = "%Y-%m-%d") 
+pivot_dta$Quarter <- as.yearqtr(pivot_dta$`Ended date`, 
+                                format = "%Y-%m-%d") 
 # This formatting uses calender year values rather than financial so need
 # to reduce by a quarter to format as financial years
-pivot_dta$`Financial Year` <- pivot_dta$`Tracking Link` -1/4
+pivot_dta$`Financial Year` <- pivot_dta$Quarter -1/4
 pivot_dta$`Financial Year` <- gsub("\\ ", 
                                    "-", 
                                    pivot_dta$`Financial Year`, 
                                    perl = TRUE)
+
 pivot_dta$`Financial Year` <- pivot_dta %>% 
   select(contains("Financial Year")) %>% 
   # extracts just the year value - 1st year in the financial year
@@ -224,33 +335,23 @@ pivot_dta$`Financial Year` <- pivot_dta %>%
 # Adds in column with quarter info
 # Original formatting uses calender year values rather than financial so need
 # to reduce by a quarter to format as financial years
-pivot_dta$`Tracking Link` <- pivot_dta$`Tracking Link`- 1/4
-pivot_dta$`Tracking Link` <- gsub("[0-9]*\\ Q", 
-                                  "Quarter ", 
-                                  pivot_dta$`Tracking Link`, 
-                                  perl = TRUE)
+pivot_dta$Quarter <- pivot_dta$Quarter- 1/4
+pivot_dta$Quarter <- gsub("[0-9]*\\ Q", 
+                          "Quarter ", 
+                          pivot_dta$Quarter, 
+                          perl = TRUE)
 
 # Remove redundant columns and reorder
-pivot_dta <- pivot_dta[-c(1:10)]
-pivot_dta <- pivot_dta[, c(14, 15, 1, 10, 11, 2:9, 12:13)]
+pivot_dta <- pivot_dta %>%
+  select("Local Authority Name", 
+         "Quarter", 
+         "Financial Year",
+         starts_with("Q1."),
+         starts_with("Q2."),
+         "Indicator",
+         "value")
 
-# pivot to combine both LA columns, rename, then remove duplicates
-pivot_dta <- pivot_dta %>% 
-  pivot_longer(cols = 4:5, names_to = "extra", values_to ="LA") %>%
-  filter(LA != "-") %>% 
-  select(-extra)
-pivot_dta <- pivot_dta[, c(1:3, 14, 4:13)]
-
-# Code local authority name for councils completing survey without login
-pivot_dta <- merge(pivot_dta, LA_names_dta)
-pivot_dta$`Local Authority Name` <- pivot_dta$LA_names
-pivot_dta <- pivot_dta %>% select(-LA_names)
-
-# Remove question numbers from Indicator column and tidy up questions
-pivot_dta$Indicator <- gsub("Q[\\.1-9]+\\s", 
-                            "", 
-                            pivot_dta$Indicator,
-                            perl = TRUE)
+# Tidy up questions
 pivot_dta$Indicator <- gsub(" by \\[question\\(16082428\\)\\]\\[variable\\(la\\)\\] Building Standards", 
                             "", 
                             pivot_dta$Indicator)
