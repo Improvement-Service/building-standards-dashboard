@@ -99,11 +99,6 @@ pivot_dta <- read_csv("survey_data.csv", col_types = "c") %>%
 
 pivot_dta$`Ended date` <- as.Date(pivot_dta$`Ended date`, format = "%d/%m/%Y")
 
-# Need to code these as characters because when all responses are in the first column, 
-# this is numeric and the other column is character, meaning when the code combines them later it won't work
-#pivot_dta$`Q. Please select a local authority` <- as.character(pivot_dta$`Q. Please select a local authority`)
-#pivot_dta$`Q. Please select the local authority that your response relates to` <- as.character(pivot_dta$`Q. Please select the local authority that your response relates to`)
-
 # An additional entry for "West Lothian;" was created causing an issue for their dashboard - fix this
 pivot_dta[pivot_dta$`Local Authority Name` == "West Lothian;" &
             pivot_dta$`Q. Please select the local authority that your response relates to` == "10",
@@ -385,27 +380,223 @@ dwnld_table_dta[is.na(dwnld_table_dta$`Local Authority Name`), "Local Authority 
 dwnld_table_dta$`Ended date` <- as.Date(dwnld_table_dta$`Ended date`, 
                                         format = "%d/%m/%Y")
 
-# Need to code these as characters because when all responses are in the first column, 
-# this is numeric and the other column is character, meaning when the code combines them later it won't work
-dwnld_table_dta$`Q. Please select a local authority` <- as.character(dwnld_table_dta$`Q. Please select a local authority`)
-dwnld_table_dta$`Q. Please select the local authority that your response relates to` <- as.character(dwnld_table_dta$`Q. Please select the local authority that your response relates to`)
-
-##an additional entry for "West Lothian;" was created causing an issue for their dashboard - fix this
-dwnld_table_dta[dwnld_table_dta$`Q. Please select the local authority that your response relates to` == "33","Q. Please select the local authority that your response relates to" ] <- "32"
+# An additional entry for "West Lothian;" was created causing an issue for their dashboard - fix this
+dwnld_table_dta[dwnld_table_dta$`Local Authority Name` == "West Lothian;" &
+                  dwnld_table_dta$`Q. Please select the local authority that your response relates to` == "10",
+                "Q. Please select the local authority that your response relates to" ] <- "32"
 dwnld_table_dta[dwnld_table_dta$`Q. Please select a local authority` == "33","Q. Please select a local authority" ] <- "32"
+# Add a column to code where West Lothian respondents have answered standard questions
+dwnld_table_dta <- dwnld_table_dta %>%
+  mutate("wl_standard_q" = if_else(`Q. Please select the local authority that your response relates to` == "32",
+                                   "Yes",
+                                   "No"))
+
+# pivot to combine both LA columns, rename, then remove duplicates
+dwnld_table_dta <- dwnld_table_dta %>%
+  pivot_longer(cols = c(`Q. Please select a local authority`, 
+                        `Q. Please select the local authority that your response relates to`), 
+               names_to = "extra", values_to = "LA") %>%
+  filter(LA != "-") %>% 
+  select(-extra)
+
+# Code local authority name for councils completing survey without login
+dwnld_table_dta <- merge(dwnld_table_dta, LA_names_dta)
+dwnld_table_dta$`Local Authority Name` <- dwnld_table_dta$LA_names
+dwnld_table_dta <- dwnld_table_dta %>% select(-LA_names) 
+
+# For text columns "Please explain your answer" want to distinguish these by 
+# adding a prefix of the question they refer to'
+# Create a new dataset for the column names
+new_comment_names <- tibble("original_names" = colnames(dwnld_table_dta))
+# Add a column with the names lagged so that the question relevant question 
+# lines up with the "please explain your answer" response
+new_comment_names <- new_comment_names %>%
+  mutate("lagged_names" = lag(original_names)) %>%
+  # Combine the question and please explain your answer into new name 
+  mutate("new_names" = if_else(grepl("Please explain your answer", original_names),
+                               paste(lagged_names, original_names),
+                               original_names))
+# Add new names to dataset
+colnames(dwnld_table_dta) <- new_comment_names$new_names
+
+# Add council names to columns 
+# Create a second data set with new column names
+new_col_names_dta_2 <- dwnld_table_dta %>% 
+  pivot_longer(cols = -c(`LA`:`Q2.4. Other (please specify):`, wl_standard_q), 
+               names_to = "col_names", 
+               values_to = "value") %>%
+  # These next two steps mean there is one council associated with each column name
+  # For councils with additional questions, only that council will have non "-" 
+  # responses so the council name will match up
+  filter(value != "-") %>%
+  distinct(col_names, .keep_all = TRUE) %>%
+  mutate("new_col_names" = col_names) %>%
+  # Add council name to additional questions so these can be referenced easily
+  mutate(new_col_names = if_else(`Local Authority Name` %in% c("Angus",
+                                                               "City of Edinburgh",
+                                                               "North Lanarkshire",
+                                                               "Orkney Islands",
+                                                               "West Lothian"),
+                                 paste0(new_col_names, "_", `Local Authority Name`),
+                                 new_col_names)) %>%
+  select(col_names, new_col_names)
 
 
-# Add in columns with Quarter Info and Financial Year info
-# Formats the ended date as a year and quarter value
-dwnld_table_dta$`Tracking Link` <- as.yearqtr(dwnld_table_dta$`Ended date`,
-                                              format = "%Y-%m-%d") 
-# This formatting uses calender year values rather than financial so need
-# to reduce by a quarter to format as financial years
-dwnld_table_dta$`Financial Year` <- dwnld_table_dta$`Tracking Link` - 1/4
-dwnld_table_dta$`Financial Year` <- gsub("\\ ",
-                                         "-", 
-                                         dwnld_table_dta$`Financial Year`, 
-                                         perl = TRUE)
+dwnld_table_dta <- dwnld_table_dta %>% 
+  pivot_longer(cols = -c(`LA`:`Q2.4. Other (please specify):`, wl_standard_q), 
+               names_to = "col_names", values_to = "value")
+
+# Match the new column names to the old ones 
+dwnld_table_dta <- merge(dwnld_table_dta, new_col_names_dta_2) %>%
+  select(-col_names) %>%
+  # Replace names for comments questions
+  mutate(new_col_names = str_replace_all(new_col_names, 
+                                         c("Thinking of your engagement with \\[question\\(16082428\\)\\]\\[variable\\(la\\)\\] Building Standards from beginning to end, how satisfied were you that the time taken to deal with your application or enquiry met the timescales that you were promised\\? Please explain your answer\\:" = 
+                                             "Time taken comments",
+                                           "How would you rate the standard of communication provided by \\[question\\(16082428\\)\\]\\[variable\\(la\\)\\] Building Standards service following your initial contact or once your application had been submitted\\? Please explain your answer\\:" = 
+                                             "Communication comments",
+                                           "Time taken to respond to any queries or issues raised Q\\.[1-9]\\. Please explain your answers\\:" = 
+                                             "Information, staff, responsiveness comments",
+                                           "Time taken to respond to any queries or issues raised\\. Our target response times are 10 days for emails and 2 days for phone calls Q\\.[0-9]\\. Please explain your answers\\:" = 
+                                             "Information, staff, responsiveness comments",
+                                           "Time taken to respond to any queries or issues raised Q\\.[1-9]\\. Please explain your answers\\:" = 
+                                             "Information, staff, responsiveness comments",
+                                           "To what extent would you agree that you were treated fairly by \\[question\\(16082428\\)\\]\\[variable\\(la\\)\\] Building Standards\\? Please explain your answer\\:" =
+                                             "Treated fairly comments",
+                                           "Overall, how satisfied were you with the service provided by \\[question\\(16082428\\)\\]\\[variable\\(la\\)\\] Building Standards\\? Please explain your answer\\:" = 
+                                             "Overall satisfaction comments",
+                                           "If you have any other comments about your experience, please use this space to leave these\\:\\sPlease note that we are unable to reply to specific cases, if you would like to discuss your experience further, please contact the Council directly\\." =
+                                             "Other comments",
+                                           "If you have any other comments about your experience, please use this space to leave these\\:" = 
+                                             "Other comments"))) %>%
+  # Remove question number from start of question
+  mutate(new_col_names = str_remove_all(new_col_names, "^[^\\s]*\\s")) %>%
+  # Remove numbers at end to note duplicate questions
+  mutate(new_col_names = str_remove_all(new_col_names, "\\.\\.\\.[0-9]*")) %>%
+  # Remove reference to unique link
+  mutate(new_col_names = str_remove_all(new_col_names, " by \\[question\\(16082428\\)\\]\\[variable\\(la\\)\\] Building Standards")) %>%
+  mutate(new_col_names = str_remove_all(new_col_names, " with \\[question\\(16082428\\)\\]\\[variable\\(la\\)\\] Building Standards from beginning to end")) %>%
+  # Some of the standard questions are worded differently for the councils with 
+  # additional questions. Need to rename so these can be matched
+  mutate(new_col_names = str_replace_all(new_col_names, 
+                                         c("Overall service offered by staff" = "Service offered by staff",
+                                           "Overall, how would you rate the service offered by \\[question\\(16082428\\)\\]\\[variable\\(la\\)\\] Council staff\\?" = "Service offered by staff",
+                                           "Time taken to respond to any queries or issues raised\\. Our target response times are 10 days for emails and 2 days for phone calls" = "Time taken to respond to any queries or issues raised")))
+
+
+
+# Where the question has not been answered this needs to be changed to NA 
+# These are currently "-" but need to be recoded to distinguish where the 
+# question is skipped vs when it is not applicable to the council
+
+# Replace blanks for respondents who completed Angus specific questions
+dwnld_table_dta <- dwnld_table_dta %>%
+  mutate(value = if_else(`Local Authority Name` == "Angus" & 
+                           value == "-" &
+                           grepl("_Angus", new_col_names),
+                         NA,
+                         value))
+
+# Replace blanks for respondents who completed Edinburgh specific questions
+dwnld_table_dta <- dwnld_table_dta %>%
+  mutate(value = if_else(`Local Authority Name` == "City of Edinburgh" & 
+                           value == "-" &
+                           grepl("_City of Edinburgh", new_col_names),
+                         NA,
+                         value))
+
+# Replace blanks for respondents who completed North Lanarkshire specific questions
+dwnld_table_dta <- dwnld_table_dta %>%
+  mutate(value = if_else(`Local Authority Name` == "North Lanarkshire" & 
+                           value == "-" &
+                           grepl("_North Lanarkshire", new_col_names),
+                         NA,
+                         value))
+
+# Replace blanks for respondents who completed Orkney specific questions
+dwnld_table_dta <- dwnld_table_dta %>%
+  mutate(value = if_else(`Local Authority Name` == "Orkney Islands" & 
+                           value == "-" &
+                           grepl("_Orkney Islands", new_col_names),
+                         NA,
+                         value))
+
+# For West Lothian questions replace blank values with NA
+# (West Lothian had a few responses where respondents answered the standard
+# question set rather than the specific West Lothian set, so need to account for
+# both of these scenarios). If the response is "-" in both the West Lothian specific
+# questions and the standard questions this is a genuine NA, but if it is only 
+# "-" in that's because the question was skipped. Don't want to record as NA in 
+# this scenario as respondent will be counted twice
+dwnld_table_dta <- dwnld_table_dta %>%
+  mutate(value = if_else(`Local Authority Name` == "West Lothian" & 
+                           wl_standard_q == "No" &
+                           value == "-" &
+                           grepl("_West Lothian", new_col_names),
+                         NA,
+                         value))
+# Replace blanks for respondents who completed standard questions
+dwnld_table_dta <- dwnld_table_dta %>%
+  mutate(value = if_else(!`Local Authority Name` %in% c("City of Edinburgh", 
+                                                        "Orkney Islands", 
+                                                        "West Lothian") & 
+                           value == "-" &
+                           # This pulls out standard questions
+                           !grepl("_Angus|_City of Edinburgh|_Orkney Islands|_North Lanarkshire|_West Lothian", 
+                                  new_col_names),
+                         NA,
+                         value))
+# Need to account for West Lothian respondents who answered standard questions
+dwnld_table_dta <- dwnld_table_dta %>%
+  mutate(value = if_else(`Local Authority Name` == "West Lothian" & 
+                           wl_standard_q == "Yes" &
+                           value == "-" &
+                           # This pulls out standard questions
+                           !grepl("_Angus|_City of Edinburgh|_Orkney Islands|_North Lanarkshire|_West Lothian", 
+                                  new_col_names),
+                         NA,
+                         value))
+
+# Remove council references so duplicated questions can be matched
+dwnld_table_dta <- dwnld_table_dta %>%
+  mutate(new_col_names = str_remove_all(new_col_names, "_.*$")) %>%
+  # Remove additional questions
+  filter(!new_col_names %in% c("Accuracy of the information provided as relevant to your needs",
+                               "Attitude in terms of friendliness and helpfulness of our staff",
+                               "Did you find it easy to contact the officer/inspector/administrator you were looking for?",
+                               "Easy to find",
+                               "Finally, if you are responding in relation to a Completion Certificate did your experience include a Remote Verification Inspection (RVI) whereby the inspection is via live or pre-recorded video?",
+                               "How satisfied were you with the building warrant approval process?",
+                               "How satisfied were you with the building warrant approval process? Please explain your answer:",
+                               "How satisfied were you with the range of options provided by [question(16082428)][variable(la)] Council relating to inspections?",
+                               "How satisfied were you with the range of options provided by [question(16082428)][variable(la)] Council relating to inspections? Please explain your answer:",
+                               "Please provide further information about your answers:",
+                               "Professionalism in terms of the knowledge and skills of our staff",
+                               "Service offered by staff Please explain your answers:",
+                               "To what extent would you agree [question(16082428)][variable(la)] Council have used digital technology to make building standards processes easier for you (for example, around plan approval and site inspections)?",
+                               "Staff were polite and courteous",
+                               "Staff were helpful",
+                               "Staff were efficient",
+                               "Staff were knowledgeable",
+                               "Understandable",
+                               "use the comments box below to provide more information, including your preferred method for contacting the Council.")) %>%
+  # Rename some indicator names
+  mutate(new_col_names = str_replace_all(new_col_names, 
+                                         c("How would you rate the standard of communication provided service following your initial contact or once your application had been submitted\\?" = "How would you rate the standard of communication provided?",
+                                           "Thinking of your engagement, how satisfied were you that the time taken to deal with your application or enquiry met the timescales that you were promised\\?" = "Thinking of your engagement, how satisfied were you with the time taken to complete the process?",
+                                           "Time taken to respond to any queries or issues raised" = "Responsiveness to any queries or issues raised"))) %>%
+  # NA values are coded as 5 by SmartSurvey - replace with NA
+  mutate(value = str_replace(value, "5", NA_character_))%>%
+  # Remove skipped values (-) then pivot back to wide format
+  filter(value != "-") %>%
+  pivot_wider(names_from = new_col_names, values_from = value) %>%
+  # Add in columns with Quarter Info and Financial Year info
+  # Formats the ended date as a year and quarter value
+  mutate(Quarter = as.yearqtr(`Ended date`, format = "%Y-%m-%d")) %>%
+  # This formatting uses calender year values rather than financial so need
+  # to reduce by a quarter to format as financial years
+  mutate("Financial Year" = Quarter -1/4) %>%
+  mutate(`Financial Year` = str_replace(`Financial Year`, "\\ ", "-"))
 
 dwnld_table_dta$`Financial Year` <- dwnld_table_dta %>% 
   select(contains("Financial Year")) %>% 
@@ -424,83 +615,34 @@ dwnld_table_dta$`Financial Year` <- dwnld_table_dta %>%
 # Adds in column with quarter info
 # Original formatting uses calender year values rather than financial so need
 # to reduce by a quarter to format as financial years
-dwnld_table_dta$`Tracking Link` <- dwnld_table_dta$`Tracking Link`- 1/4
-dwnld_table_dta$`Tracking Link` <- gsub("[0-9]*\\ Q", 
-                                        "Quarter ", 
-                                        dwnld_table_dta$`Tracking Link`, 
-                                        perl = TRUE)
+dwnld_table_dta <- dwnld_table_dta %>%
+  mutate(Quarter = Quarter -1/4) %>%
+  mutate(Quarter = str_replace(Quarter, "[0-9]*\\ Q", "Quarter ")) %>%
+  # Remove redundant columns and reorder
+  select("Ended date",
+         "Quarter", 
+         "Financial Year",
+         "Local Authority Name",
+         starts_with("Q1."),
+         starts_with("Q2."),
+         contains("Time taken"),
+         contains("Communication"),
+         contains("Quality"),
+         contains("Service offered"),
+         contains("issues raised"),
+         contains("Information"),
+         contains("treated fairly"),
+         contains("overall"),
+         contains("other comments"))
 
-# Remove redundant columns and reorder
-dwnld_table_dta <- dwnld_table_dta[-c(1:8, 10)]
-dwnld_table_dta <- dwnld_table_dta[, c((ncol(dwnld_table_dta) - 1),
-                                       ncol(dwnld_table_dta),
-                                       2, 
-                                       11, 
-                                       12, 
-                                       3:10, 
-                                       13:(ncol(dwnld_table_dta) - 2), 
-                                       1)]
-
-# Pivot to combine both LA columns, rename, then remove duplicates
+# Tidy up other column names for selecting data later
 dwnld_table_dta <- dwnld_table_dta %>% 
-  pivot_longer(cols = 4:5, names_to = "extra", values_to = "LA") %>%
-  filter(LA != "-") %>% 
-  select(-extra)
-dwnld_table_dta <- dwnld_table_dta[, c(1:3, 
-                                       ncol(dwnld_table_dta),
-                                       4:(ncol(dwnld_table_dta) - 1))]
+  rename("Q1.4. Other respondent" = "Q1.4. Other (please specify):", 
+         "Q2.4. Other reason" = "Q2.4. Other (please specify):") 
 
-# Code local authority name for councils completing survey without login
-dwnld_table_dta <- merge(dwnld_table_dta, LA_names_dta)
-dwnld_table_dta$`Local Authority Name` <- dwnld_table_dta$LA_names
-dwnld_table_dta <- dwnld_table_dta %>% select(-LA_names)
-dwnld_table_dta <- dwnld_table_dta[, c(2:4, 1, 5:ncol(dwnld_table_dta))]
-
-# Rename the columns containing the same questions so they match
-# Rename comments columns
-
-# Time Taken
-colnames(dwnld_table_dta)[c(26, 47, 70)] <- colnames(dwnld_table_dta)[13]
-colnames(dwnld_table_dta)[14] <- "Time taken comments"
-colnames(dwnld_table_dta)[c(27, 48, 71)] <- colnames(dwnld_table_dta)[14]
-
-# Communication
-colnames(dwnld_table_dta)[c(28, 49, 72)] <- colnames(dwnld_table_dta)[15]
-colnames(dwnld_table_dta)[16] <- "Communication comments"
-colnames(dwnld_table_dta)[c(29, 50, 73)] <- colnames(dwnld_table_dta)[16]
-
-# The column name of the question ("Quality of the information provided") is the same for the additional question council
-# Therefore the column name is repeated and when it is read in it adds a number to the end
-# Need to remove the number of change the names of each of these columns
-colnames(dwnld_table_dta)[17] <- gsub("\\...[1-9]*$", 
-                                      "", 
-                                      colnames(dwnld_table_dta)[17],
-                                      perl = TRUE)
-
-colnames(dwnld_table_dta)[c(30, 56, 74)] <- colnames(dwnld_table_dta)[17]
-
-colnames(dwnld_table_dta)[18] <- gsub("\\...[1-9]*$", 
-                                      "", 
-                                      colnames(dwnld_table_dta)[18],
-                                      perl = TRUE)
-
-colnames(dwnld_table_dta)[c(34, 63, 75)] <- colnames(dwnld_table_dta)[18]
-
-colnames(dwnld_table_dta)[c(35, 57, 76)] <- colnames(dwnld_table_dta)[19]
-
-colnames(dwnld_table_dta)[20] <- "Information, staff, responsiveness comments"
-colnames(dwnld_table_dta)[c(36, 58, 77)] <- colnames(dwnld_table_dta)[20]
-
-# Treated fairly
-colnames(dwnld_table_dta)[c(37, 65, 78)] <- colnames(dwnld_table_dta)[21]
-colnames(dwnld_table_dta)[22] <- "Treated fairly comments"
-colnames(dwnld_table_dta)[c(38, 66, 79)] <- colnames(dwnld_table_dta)[22]
-
-# Satisfaction
-colnames(dwnld_table_dta)[c(39, 67, 80)] <- colnames(dwnld_table_dta)[23]
-colnames(dwnld_table_dta)[24] <- "Overall satisfaction comments"
-colnames(dwnld_table_dta)[c(40, 68, 81)] <- colnames(dwnld_table_dta)[24]
-colnames(dwnld_table_dta)[c(41, 69,82)] <- colnames(dwnld_table_dta)[25]
+# Recode "other" respondents and reasons so it doesn't show text value
+dwnld_table_dta$`Q1.4. Other respondent`[dwnld_table_dta$`Q1.4. Other respondent` != "0"] <- "1"
+dwnld_table_dta$`Q2.4. Other reason`[dwnld_table_dta$`Q2.4. Other reason` != "0"] <- "1"
 
 # Additional info ------------------------------------------------------------
 
