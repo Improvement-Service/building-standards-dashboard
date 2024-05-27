@@ -320,12 +320,12 @@ function(input, output, session) {
     
     # Add in columns with Financial Year info
     # Formats the ended date as a year and quarter value
-    dl_all_data$`Tracking Link` <- as.yearqtr(dl_all_data$`Ended date`, 
+    dl_all_data$Quarter <- as.yearqtr(dl_all_data$`Ended date`, 
                                               format = "%Y-%m-%d"
     ) 
     # This formatting uses calender year values rather than financial so need
     # to reduce by a quarter to format as financial years
-    dl_all_data$`Financial Year` <- dl_all_data$`Tracking Link`- 1/4
+    dl_all_data$`Financial Year` <- dl_all_data$Quarter- 1/4
     dl_all_data$`Financial Year` <- gsub("\\ ", 
                                          "-", 
                                          dl_all_data$`Financial Year`, 
@@ -348,10 +348,10 @@ function(input, output, session) {
     # Adds in column with quarter info
     # Original formatting uses calender year values rather than financial so need
     # to reduce by a quarter to format as financial years
-    dl_all_data$`Tracking Link` <- dl_all_data$`Tracking Link`- 1/4
-    dl_all_data$`Tracking Link` <- gsub("[0-9]*\\ Q", 
+    dl_all_data$Quarter <- dl_all_data$Quarter- 1/4
+    dl_all_data$Quarter <- gsub("[0-9]*\\ Q", 
                                         "Quarter ", 
-                                        dl_all_data$`Tracking Link`, 
+                                        dl_all_data$Quarter, 
                                         perl = TRUE
     )
     
@@ -422,7 +422,7 @@ function(input, output, session) {
       group_by(`Local Authority Name`) %>% 
       select(1:12) %>%
       pivot_longer(cols = 5:12, names_to = "Question", values_to = "value") %>% 
-      group_by(`Tracking Link`, `Financial Year`,`Local Authority Name`, Question) %>%
+      group_by(Quarter, `Financial Year`,`Local Authority Name`, Question) %>%
       count(value) %>%
       mutate(perc = round((n/sum(n)) * 100, 1)) 
     
@@ -438,7 +438,7 @@ function(input, output, session) {
     
     # Combine quarter and YTD data
     resp_dta <- rbind(qrtr_resp_dta, fin_yr_resp_dta)
-    resp_dta$`Tracking Link`[is.na(resp_dta$`Tracking Link`)] <- "Year to Date" 
+    resp_dta$Quarter[is.na(resp_dta$Quarter)] <- "Year to Date" 
     
     # Differentiates questions by whether they ask about respondent types or reasons
     resp_dta$question_type <- ifelse(grepl("Q1", resp_dta$Question), 
@@ -456,7 +456,7 @@ function(input, output, session) {
 
     # Filter to selected council & selected financial year
     resp_dta <- resp_dta %>% 
-      filter(`Tracking Link` == input$qrtr_selection & `Financial Year` == fin_yr() & `Local Authority Name` == council_fltr)
+      filter(Quarter == input$qrtr_selection & `Financial Year` == fin_yr() & `Local Authority Name` == council_fltr)
     resp_dta
   })
   
@@ -464,118 +464,43 @@ function(input, output, session) {
   # This is used in the data download table and the respondent no. value box
   unpivot_data <- reactive({
     council_fltr <- local_authority()
-    # Select columns based on council (ensures duplicate columns and 
-    # additional questions are filtered out)
-    unpivot_data <- if (council_fltr == "City of Edinburgh") {
-      dwnld_table_dta[, c(1:12, 70:82, 84)]
-    } else
-      if (council_fltr == "Orkney Islands") {
-        dwnld_table_dta[, c(1:12, 47:50, 56:58, 63, 65:69, 84)] 
-      } else
-        if (council_fltr == "West Lothian") {
-          dwnld_table_dta[, c(1:12, 26:30, 34:41, 84)]
-        } else
-          if(council_fltr == "Angus") {
-            dwnld_table_dta[, c(1:25, 83, 84)]
-          } else {
-            dwnld_table_dta[, c(1:25, 84)]
-          }
-    
-    # Tidy up question names
-    unpivot_data <- unpivot_data %>% 
-      rename("Quarter" = "Tracking Link") %>%
-      rename("Q3. How satisfied were you with the time taken?" = "Q3. Thinking of your engagement with [question(16082428)][variable(la)] Building Standards from beginning to end, how satisfied were you that the time taken to deal with your application or enquiry met the timescales that you were promised?") %>%
-      rename("Q4. How would you rate the standard of communication?" = "Q4. How would you rate the standard of communication provided by [question(16082428)][variable(la)] Building Standards service following your initial contact or once your application had been submitted?") %>%
-      rename("Q.3. Responsiveness to any queries or issues raised" = "Q.3. Time taken to respond to any queries or issues raised") %>%
-      rename("Q5. To what extent would you agree that you were treated fairly" = "Q5. To what extent would you agree that you were treated fairly by [question(16082428)][variable(la)] Building Standards?") %>%
-      rename("Q6. How satisfied were you, overall?" = "Q6. Overall, how satisfied were you with the service provided by [question(16082428)][variable(la)] Building Standards?")%>%
-      rename("Q1.4. Other respondent" = "Q1.4. Other (please specify):") %>%
-      rename("Q2.4. Other reason" = "Q2.4. Other (please specify):") %>%
-      rename("Submission date" = "Ended date") %>%
-      mutate(across(contains(c("Q1.1. Agent/Designer", 
-                               "Q1.2. Applicant", 
-                               "Q1.3. Contractor",
-                               "Q1.4. Other respondent",
-                               "Q2.1. To discuss your proposal",
-                               "Q2.2. To make an application", 
-                               "Q2.3. During construction",
-                               "Q2.4. Other reason"
-      )
-      ),
-      ~recode(., "1" = "Yes", "0" = "No")
-      )
-      ) %>%
-      select(-LA)
-    
-    # Recode responses for download and to show in table
-    unpivot_data$`Q3. How satisfied were you with the time taken?` <-  dplyr::recode(
-      unpivot_data$`Q3. How satisfied were you with the time taken?`,
-      "1" = "very satisfied",
-      "2" ="satisfied",
-      "3" = "dissatisfied",
-      "4" = "very dissatisfied",
-      "5" = "NA"
-    )
-    
-    unpivot_data$`Q4. How would you rate the standard of communication?` <-  dplyr::recode(
-      unpivot_data$`Q4. How would you rate the standard of communication?`,
-      "1" = "very good",
-      "2" ="good",
-      "3" = "poor",
-      "4" = "very poor",
-      "5" = "NA"
-    )
-    
-    unpivot_data$`Q.1. Quality of the information provided` <-  dplyr::recode(
-      unpivot_data$`Q.1. Quality of the information provided`,
-      "1" = "very good",
-      "2" ="good",
-      "3" = "poor",
-      "4" = "very poor",
-      "5" = "NA"
-    )
-    
-    unpivot_data$`Q.2. Service offered by staff` <-  dplyr::recode(
-      unpivot_data$`Q.2. Service offered by staff`,
-      "1" = "very good",
-      "2" ="good",
-      "3" = "poor",
-      "4" = "very poor",
-      "5" = "NA"
-    )
-    
-    unpivot_data$`Q.3. Responsiveness to any queries or issues raised` <-  dplyr::recode(
-      unpivot_data$`Q.3. Responsiveness to any queries or issues raised`,
-      "1" = "very good",
-      "2" ="good",
-      "3" = "poor",
-      "4" = "very poor",
-      "5" = "NA"
-    )
-    
-    unpivot_data$`Q5. To what extent would you agree that you were treated fairly`<-  dplyr::recode(
-      unpivot_data$`Q5. To what extent would you agree that you were treated fairly`,
-      "1" = "very satisfied",
-      "2" ="satisfied",
-      "3" = "dissatisfied",
-      "4" = "very dissatisfied",
-      "5" = "NA"
-    )
-    
-    unpivot_data$`Q6. How satisfied were you, overall?`<-  dplyr::recode(
-      unpivot_data$`Q6. How satisfied were you, overall?`,
-      "1" = "very satisfied",
-      "2" ="satisfied",
-      "3" = "dissatisfied",
-      "4" = "very dissatisfied",
-      "5" = "NA"
-    )
-    
-    # Filter this data for selected council
-    unpivot_data <- unpivot_data %>% 
-      filter(`Local Authority Name` == council_fltr)
-    unpivot_data
-  })
+   unpivot_data <- dwnld_table_dta %>%
+     # Recode responses for download and to show in table
+      mutate(across(contains(c("Agent/Designer", 
+                               "Applicant", 
+                               "Contractor",
+                               "Other respondent",
+                               "To discuss your proposal",
+                               "To make an application", 
+                               "During construction",
+                               "Other reason")),
+                    ~str_replace_all(., c("1" = "Yes", "0" = "No")))) %>%
+     mutate(across(c("How satisfied were you with the time taken?",
+                     "How satisfied were you overall?"),
+                     ~str_replace_all(.,
+                                      c("1" = "Very satisfied",
+                                        "2" ="Satisfied",
+                                        "3" = "Dissatisfied",
+                                        "4" = "Very dissatisfied")))) %>% 
+     mutate(across(c("How would you rate the standard of communication?",
+                     "Quality of the information provided",
+                     "Service offered by staff",
+                     "Responsiveness to any queries or issues raised"),
+                     ~str_replace_all(.,
+                                      c("1" = "Very good",
+                                        "2" ="Good",
+                                        "3" = "Poor",
+                                        "4" = "Very poor")))) %>%
+     mutate(`To what extent would you agree that you were treated fairly?` =
+              str_replace_all(`To what extent would you agree that you were treated fairly?`,
+                              c("1" = "Strongly agree",
+                                "2" ="Agree",
+                                "3" = "Disagree",
+                                "4" = "Strongly disagree"))) %>%
+     # Filter this data for selected council
+     filter(`Local Authority Name` == council_fltr)
+   unpivot_data
+   })
   
   # Create KPO4 Score Data ---------------------------------------------------
   
@@ -2436,7 +2361,7 @@ function(input, output, session) {
       # Recode all responses for the download from a number to text, remove LA column
       dl_all_data <- dl_all_data %>% 
         # Filter to selected financial year and selected quarter
-        filter(`Tracking Link` %in% qrtr() & `Financial Year` == fin_yr() & `Local Authority Name` == council_fltr) %>%
+        filter(Quarter %in% qrtr() & `Financial Year` == fin_yr() & `Local Authority Name` == council_fltr) %>%
         mutate(across(contains("how satisfied"),
                       ~recode(., 
                               "1" = "Very satisfied", 
@@ -2542,17 +2467,6 @@ function(input, output, session) {
   # Create data table for full dataset
   output$tableDisp <- DT::renderDataTable({
     unpivot_data <- unpivot_data()
-    # Reorder columns so that submission date moves to start
-    unpivot_data <- unpivot_data[c((ncol(unpivot_data)),
-                                   1:(ncol(unpivot_data) - 1)
-    )
-    ]
-    names(unpivot_data)[3:ncol(unpivot_data)] <- gsub("Q[1-9\\.]+\\s",
-                                                      "",
-                                                      names(unpivot_data)[3:ncol(unpivot_data)], 
-                                                      perl = TRUE
-    )
-    
     # Order by submission date
     unpivot_data <- unpivot_data %>% arrange(desc(`Submission date`))
     
@@ -2591,12 +2505,10 @@ function(input, output, session) {
   # Create table to show comments for selected question 
   output$cmnt_table <- DT::renderDataTable({
     unpivot_data <- unpivot_data()
-    # Need to filter the data based on selections and recode answers
-    names(unpivot_data)[3:ncol(unpivot_data)] <- gsub("Q[1-9\\.]+\\s",
-                                                      "",
-                                                      names(unpivot_data)[3:ncol(unpivot_data)], 
-                                                      perl = TRUE
-    )
+    # Need to recode "other" respondent and reason answers
+    unpivot_data$`Other respondent`[unpivot_data$`Other respondent` != "No"] <- "Yes"
+    unpivot_data$`Other reason`[unpivot_data$`Other reason` != "No"] <- "Yes"
+    
     # Order by submission date
     unpivot_data <- unpivot_data %>% arrange(desc(`Submission date`))
     
@@ -2604,10 +2516,7 @@ function(input, output, session) {
     # store selected respondent type  
     slctn_respondent <- input$cmnts_resp_input
     # Select selected respondent reason using partial match
-    slctn_reason <- names(select(unpivot_data, 
-                                 contains(input$cmnts_reason_input)
-    )
-    )
+    slctn_reason <- input$cmnts_reason_input
     # Filter data to show comments for selected question, and respondents
     filter_data <- unpivot_data %>% 
       filter(if_any(slctn_respondent, ~ . == "Yes")) %>%
@@ -2634,16 +2543,12 @@ function(input, output, session) {
                     "function(data, type, row, meta) {",
                     "return type === 'display' && data != null && data.length > 100 ?",
                     "'<span title=\"' + data + '\">' + data.substr(0, 100) + '...</span>' : data;",
-                    "}")
-                )
-                ),
+                    "}"))),
                 dom = "t",
                 deferRender = TRUE,
                 scrollY = "280px",
-                scroller = TRUE
-              )
-    )
-  })
+                scroller = TRUE))
+    })
   
   # Closing bracket for opening function ---------------------------------------  
 }

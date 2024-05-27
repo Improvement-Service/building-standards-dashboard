@@ -580,11 +580,12 @@ dwnld_table_dta <- dwnld_table_dta %>%
                                "Staff were knowledgeable",
                                "Understandable",
                                "use the comments box below to provide more information, including your preferred method for contacting the Council.")) %>%
-  # Rename some indicator names
+  # Rename indicator names to format used in dashboard
   mutate(new_col_names = str_replace_all(new_col_names, 
-                                         c("How would you rate the standard of communication provided service following your initial contact or once your application had been submitted\\?" = "How would you rate the standard of communication provided?",
-                                           "Thinking of your engagement, how satisfied were you that the time taken to deal with your application or enquiry met the timescales that you were promised\\?" = "Thinking of your engagement, how satisfied were you with the time taken to complete the process?",
-                                           "Time taken to respond to any queries or issues raised" = "Responsiveness to any queries or issues raised"))) %>%
+                                         c("Thinking of your engagement, how satisfied were you that the time taken to deal with your application or enquiry met the timescales that you were promised\\?" = "How satisfied were you with the time taken?",
+                                           "How would you rate the standard of communication provided service following your initial contact or once your application had been submitted\\?" = "How would you rate the standard of communication?",
+                                           "Time taken to respond to any queries or issues raised" = "Responsiveness to any queries or issues raised",
+                                           "Overall, how satisfied were you with the service provided\\?" = "How satisfied were you overall?"))) %>%
   # NA values are coded as 5 by SmartSurvey - replace with NA
   mutate(value = str_replace(value, "5", NA_character_))%>%
   # Remove skipped values (-) then pivot back to wide format
@@ -636,13 +637,21 @@ dwnld_table_dta <- dwnld_table_dta %>%
          contains("other comments"))
 
 # Tidy up other column names for selecting data later
-dwnld_table_dta <- dwnld_table_dta %>% 
-  rename("Q1.4. Other respondent" = "Q1.4. Other (please specify):", 
-         "Q2.4. Other reason" = "Q2.4. Other (please specify):") 
+ dwnld_table_dta <- dwnld_table_dta %>% 
+   rename("Agent/Designer" = "Q1.1. Agent/Designer", 
+          "Applicant" = "Q1.2. Applicant", 
+          "Contractor" = "Q1.3. Contractor",
+          "Other respondent" = "Q1.4. Other (please specify):", 
+          "To discuss your proposal" = "Q2.1. To discuss your proposal before applying for a building warrant",
+          "To make an application" = "Q2.2. To make an application for a building warrant", 
+          "During construction" = "Q2.3. During construction, including submission of a completion certificate",
+          "Other reason" = "Q2.4. Other (please specify):",
+          "Submission date" = "Ended date") 
+
 
 # Recode "other" respondents and reasons so it doesn't show text value
-dwnld_table_dta$`Q1.4. Other respondent`[dwnld_table_dta$`Q1.4. Other respondent` != "0"] <- "1"
-dwnld_table_dta$`Q2.4. Other reason`[dwnld_table_dta$`Q2.4. Other reason` != "0"] <- "1"
+#dwnld_table_dta$`Q1.4. Other respondent`[dwnld_table_dta$`Q1.4. Other respondent` != "0"] <- "1"
+#dwnld_table_dta$`Q2.4. Other reason`[dwnld_table_dta$`Q2.4. Other reason` != "0"] <- "1"
 
 # Additional info ------------------------------------------------------------
 
