@@ -208,8 +208,7 @@ function(input, output, session) {
            "No data available"
            )
     )
-    years <- unique(pivot_dta$`Financial Year`)
-    no_years <- length(unique(pivot_dta$`Financial Year`))
+    years <- sort(unique(pivot_dta$`Financial Year`), decreasing = TRUE)
     
     selectizeInput(inputId = "fin_yr_selection", 
                    label = "Select Financial Year",
@@ -243,7 +242,6 @@ function(input, output, session) {
   
   # Create select button for quarter - default YTD
   output$qrtr <- renderUI({
-    # council_fltr <- local_authority()
     pivot_dta <- pivot_dta %>% 
       filter(`Financial Year` == fin_yr() &
                `Local Authority Name` == local_authority())
@@ -254,7 +252,7 @@ function(input, output, session) {
       )
     )
     quarters <- unique(pivot_dta$Quarter)
-    quarters <- str_sort(quarters)
+    quarters <- sort(quarters)
     
     selectizeInput(inputId = "qrtr_selection", 
                    label = "Select Quarter",
@@ -266,7 +264,6 @@ function(input, output, session) {
   # Reactive expression to store quarter selected
   # Either selected quarter if more than 1 available, otherwise quarter available
   qrtr <- reactive({
-    council_fltr <- local_authority()
     pivot_dta <- pivot_dta %>% 
       filter(`Financial Year` == fin_yr() &
                `Local Authority Name` == local_authority())
@@ -391,76 +388,58 @@ function(input, output, session) {
   
   # Generate another dataframe with respondent types
   resp_dta <- reactive({
-    dl_all_data <- dl_all_data()
-    # remove the end date column
-    dl_all_data <- dl_all_data[-26]
-    council_fltr = local_authority()
     
-    # Recode "other" respondents and reasons so it doesn't show the text response
-    dl_all_data$`Q1.4. Other (please specify):`[dl_all_data$`Q1.4. Other (please specify):` != "0"] <- "1"
-    dl_all_data$`Q2.4. Other (please specify):`[dl_all_data$`Q2.4. Other (please specify):` != "0"] <- "1"
-    # Change these columns to numeric so they can be combined with the other columns
-    dl_all_data$`Q1.4. Other (please specify):` <- as.numeric(dl_all_data$`Q1.4. Other (please specify):`)
-    dl_all_data$`Q2.4. Other (please specify):` <- as.numeric(dl_all_data$`Q2.4. Other (please specify):`)
+    resp_dta <- dwnld_table_dta
+    # Recode "other" respondents and reasons so it doesn't show text value
+    resp_dta$`Other respondent`[resp_dta$`Other respondent` != "0"] <- "1"
+    resp_dta$`Other reason`[resp_dta$`Other reason` != "0"] <- "1"
+    resp_dta <- resp_dta %>% 
+      mutate(across(c(`Other respondent`, `Other reason`), ~as.numeric(.)))
     
     # Calculates within each LA, the number of respondents answering yes to 
     # the different respondent options. Then calculates as a % of all responses
-    # within the financial year.
-    resp_dta <- dl_all_data %>% 
-      group_by(`Local Authority Name`) %>% 
-      select(1:12) %>%
-      pivot_longer(cols = 5:12, names_to = "Question", values_to = "value") %>% 
+    
+    # Financial year responses
+    fin_yr_resp_dta <- resp_dta %>%
+      select(Quarter:`Other reason`) %>%
+      pivot_longer(`Agent/Designer`:`Other reason`, 
+                   names_to = "Question", 
+                   values_to = "value") %>%
       group_by(`Financial Year`,`Local Authority Name`, Question) %>%
       count(value) %>%
       mutate(perc = round((n/sum(n)) * 100, 1))
     
     # Quarter responses
-    # Calculates within each LA, the number of respondents answering yes to 
-    # the different respondent options. Then calculates as a % of all responses
-    # within the quarter.
-    qrtr_resp_dta <- dl_all_data %>% 
-      group_by(`Local Authority Name`) %>% 
-      select(1:12) %>%
-      pivot_longer(cols = 5:12, names_to = "Question", values_to = "value") %>% 
+    qrtr_resp_dta <- resp_dta %>%
+      select(Quarter:`Other reason`) %>%
+      pivot_longer(`Agent/Designer`:`Other reason`, 
+                   names_to = "Question", 
+                   values_to = "value") %>%
       group_by(Quarter, `Financial Year`,`Local Authority Name`, Question) %>%
       count(value) %>%
-      mutate(perc = round((n/sum(n)) * 100, 1)) 
-    
-    # Financial Year responses
-    # Does the same calculation for YTD value
-    fin_yr_resp_dta <- dl_all_data %>% 
-      group_by(`Local Authority Name`) %>% 
-      select(1:12) %>%
-      pivot_longer(cols = 5:12, names_to = "Question", values_to = "value") %>% 
-      group_by(`Financial Year`,`Local Authority Name`, Question) %>%
-      count(value) %>%
-      mutate(perc = round((n/sum(n)) * 100, 1)) 
+      mutate(perc = round((n/sum(n)) * 100, 1))
     
     # Combine quarter and YTD data
-    resp_dta <- rbind(qrtr_resp_dta, fin_yr_resp_dta)
-    resp_dta$Quarter[is.na(resp_dta$Quarter)] <- "Year to Date" 
+    resp_dta <- rbind(qrtr_resp_dta, fin_yr_resp_dta) %>%
+      mutate(Quarter = replace_na(Quarter, "Year to Date")) %>%
+      # Differentiates questions by whether they ask about respondent types or reasons
+      mutate(question_type = if_else(Question %in% c("Agent/Designer",
+                                                     "Applicant",
+                                                     "Contractor",
+                                                     "Other respondent"),
+                                     "Type",
+                                     "Reason"))
     
-    # Differentiates questions by whether they ask about respondent types or reasons
-    resp_dta$question_type <- ifelse(grepl("Q1", resp_dta$Question), 
-                                     "Type", 
-                                     "Reason"
-    )
-    # Remove question numbers
-    resp_dta$Question <- gsub("Q[\\.1-9]+\\s", 
-                              "", 
-                              resp_dta$Question, 
-                              perl = TRUE
-    )
-    # Remove "(please specify):" from "Other" question value
-    resp_dta$Question[resp_dta$Question == "Other (please specify):"] <- "Other"
-
     # Filter to selected council & selected financial year
-    resp_dta <- resp_dta %>% 
-      filter(Quarter == input$qrtr_selection & `Financial Year` == fin_yr() & `Local Authority Name` == council_fltr)
+    resp_dta <- resp_dta %>%
+      filter(Quarter == input$qrtr_selection & 
+               `Financial Year` == fin_yr() & 
+               `Local Authority Name` == local_authority())
     resp_dta
   })
   
   # Finalise unpivot data ---------------------------------------------------
+  
   # This is used in the data download table and the respondent no. value box
   unpivot_data <- reactive({
     council_fltr <- local_authority()
@@ -512,9 +491,9 @@ function(input, output, session) {
   # Overall satisfaction makes up 50%
   # Communications and time taken each make up 12.5%
   # Staff, information, responsiveness and fairness each make up 6.25%
-  KPOweights_multiplier <- outer(pivot_dta$Indicator == "Thinking of your engagement, how satisfied were you with the time taken to complete the process?", 2)+
-    outer(pivot_dta$Indicator == "How would you rate the standard of communication provided?", 2) +
-    outer(pivot_dta$Indicator == "Overall, how satisfied were you with the service provided?", 8)
+  KPOweights_multiplier <- outer(pivot_dta$Indicator == "How satisfied were you with the time taken?", 2)+
+    outer(pivot_dta$Indicator == "How would you rate the standard of communication?", 2) +
+    outer(pivot_dta$Indicator == "How satisfied were you overall?", 8)
   KPOweights_multiplier <- replace(KPOweights_multiplier, 
                                    KPOweights_multiplier == 0, 
                                    1
@@ -528,11 +507,11 @@ function(input, output, session) {
   # response by multiplying the highest score by the weighting for that question
   scot_max <- pivot_dta %>% 
     mutate(maxAvailable = 4) %>% 
-    mutate(value = as.numeric(value))
-  scot_max$maxAvailable <- (scot_max$maxAvailable - 1) * KPOweights_multiplier 
-  scot_max[is.na(scot_max$value), "maxAvailable"] <- NA
-  # This calculates the actual weighted score
-  scot_max$KPO4_weighted <- (scot_max$value - 1) * KPOweights_multiplier
+    mutate(value = as.numeric(value)) %>%
+    mutate(maxAvailable = (maxAvailable - 1) * KPOweights_multiplier) %>%
+    mutate(maxAvailable = replace(maxAvailable, is.na(value), NA)) %>%
+    # This calculates the actual weighted score  
+    mutate(KPO4_weighted = (value - 1) * KPOweights_multiplier)
   
   # Calculate KPO4 for quarter for all results   
   scot_max_sum <- scot_max %>% 
@@ -540,134 +519,111 @@ function(input, output, session) {
     summarise(across(c(maxAvailable, KPO4_weighted), sum, na.rm = TRUE)) %>% 
     group_by(`Financial Year`) %>%
     bind_rows(summarise(.,across(where(is.numeric), sum),
-                        across(where(is.character), ~"Total")
-    )
-    ) %>%
+                        across(where(is.character), ~"Total"))) %>%
     # Generate the KPO score (out of 10)    
     mutate(KPO_score = round((1 - KPO4_weighted/maxAvailable) * 10, 1))
   
   # Calculate KPO4 for quarter and financial year for selected local authority    
   la_max_sum <- reactive({
-    council_fltr <- local_authority()
     la_max_sum <- scot_max %>% 
-      filter(`Local Authority Name` == council_fltr) %>%     
+      filter(`Local Authority Name` == local_authority()) %>%     
       group_by(Quarter, `Financial Year`) %>%
       summarise(across(c(maxAvailable, KPO4_weighted), sum, na.rm = TRUE)) %>% 
       group_by(`Financial Year`) %>%
       bind_rows(summarise(., across(where(is.numeric), sum),
-                          across(where(is.character), ~"Total")
-      )
-      ) %>%
+                          across(where(is.character), ~"Total"))) %>%
       # Generate the KPO score (out of 10)    
       mutate(KPO_score = round((1 - KPO4_weighted/maxAvailable) * 10, 1))
     # Will show a nice error message if there is no data for that council
-    validate(
-      need(nrow(la_max_sum) > 0,
-           "No data available"
-           )
-    )
+    validate(need(nrow(la_max_sum) > 0, "No data available"))
     la_max_sum
   })
   
-  ##KPO4 per respondent type
+  # KPO4 per respondent type #
   
-  #function to get KPO by respondent type at Scotland level
+  # Function to get KPO by respondent type at Scotland level
   scot_resp_kpo <- function(resp_col){
     resp_col <- enquo(resp_col)
     scot_max_sum_resp <- scot_max %>% 
       filter(!!resp_col == 1) %>%
       group_by(Quarter,`Financial Year`) %>%
-      summarise(across(c(maxAvailable,KPO4_weighted),sum, na.rm = T)) %>% 
+      summarise(across(c(maxAvailable, KPO4_weighted), sum, na.rm = TRUE)) %>% 
       ungroup() %>%
-      group_by(`Financial Year`)%>%
-      bind_rows(summarise(.,across(where(is.numeric), sum),
+      group_by(`Financial Year`) %>%
+      bind_rows(summarise(., across(where(is.numeric), sum),
                           across(where(is.character), ~"Total")))  %>%
-      ##generate the KPO score (out of 10)    
-      mutate(KPO_score = (1-KPO4_weighted/maxAvailable)*10)
+      # Generate the KPO score (out of 10)    
+      mutate(KPO_score = (1 - KPO4_weighted/maxAvailable) * 10)
     
     return(scot_max_sum_resp)
   }
   
-  ##calculate KPO4 for quarter for all results   
-  scot_kpo_agent <- scot_resp_kpo(resp_col = `Q1.1. Agent/Designer`)
-  scot_kpo_applicant <- scot_resp_kpo(resp_col = `Q1.2. Applicant`)
-  scot_kpo_contractor <- scot_resp_kpo(resp_col = `Q1.3. Contractor`)
-  scot_kpo_other <- scot_resp_kpo(resp_col = `Q1.4. Other respondent`)
+  # Calculate KPO4 for quarter for all results   
+  scot_kpo_agent <- scot_resp_kpo(resp_col = `Agent/Designer`)
+  scot_kpo_applicant <- scot_resp_kpo(resp_col = `Applicant`)
+  scot_kpo_contractor <- scot_resp_kpo(resp_col = `Contractor`)
+  scot_kpo_other <- scot_resp_kpo(resp_col = `Other respondent`)
   
-  #function to get KPO by respondent type at local authority level
+  # Function to get KPO by respondent type at local authority level
   la_resp_kpo <- function(resp_col){
-    council_fltr = local_authority()
     resp_col <- enquo(resp_col)
     la_max_sum <- scot_max %>% 
       filter(!!resp_col == 1) %>%
-      filter(`Local Authority Name` == council_fltr) %>%     
+      filter(`Local Authority Name` == local_authority()) %>%     
       group_by(Quarter, `Financial Year`) %>%
-      summarise(across(c(maxAvailable,KPO4_weighted),sum, na.rm = T)) %>% 
-      ungroup()%>%
-      group_by(`Financial Year`)%>%
+      summarise(across(c(maxAvailable, KPO4_weighted), sum, na.rm = TRUE)) %>% 
+      ungroup() %>%
+      group_by(`Financial Year`) %>%
       bind_rows(summarise(.,across(where(is.numeric), sum),
                           across(where(is.character), ~"Total")))  %>%
-      ##generate the KPO score (out of 10)    
-      mutate(KPO_score = round((1-KPO4_weighted/maxAvailable)*10,1))
+      # Generate the KPO score (out of 10)    
+      mutate(KPO_score = round((1 - KPO4_weighted/maxAvailable) * 10, 1))
   }
-  ##calculate KPO4 for quarter for selected local authority    
-  la_kpo_agent <- reactive({ la_resp_kpo(resp_col = `Q1.1. Agent/Designer`) })
-  la_kpo_applicant <- reactive({ la_resp_kpo(resp_col = `Q1.2. Applicant`)  })
-  la_kpo_contractor <- reactive({ la_resp_kpo(resp_col = `Q1.3. Contractor`) })
-  la_kpo_other <- reactive({ la_resp_kpo(resp_col = `Q1.4. Other respondent`)  })
+  
+  # Calculate KPO4 for quarter for selected local authority    
+  la_kpo_agent <- reactive({ la_resp_kpo(resp_col = `Agent/Designer`) })
+  la_kpo_applicant <- reactive({ la_resp_kpo(resp_col = `Applicant`)  })
+  la_kpo_contractor <- reactive({ la_resp_kpo(resp_col = `Contractor`) })
+  la_kpo_other <- reactive({ la_resp_kpo(resp_col = `Other respondent`)  })
   
   # Create KPO4 download ---------------------------------------------------
   
   # Create data frame with KPO4 scores for all LA's 
   # (this is available for SG and IS to download)
   total_la_max_sum <- scot_max %>%      
-    group_by(`Local Authority Name`,Quarter, `Financial Year`) %>%
-    summarise(across(c(maxAvailable, KPO4_weighted),sum, na.rm = TRUE)) %>%
+    group_by(Quarter, `Financial Year`, `Local Authority Name`) %>%
+    summarise(across(c(maxAvailable, KPO4_weighted), sum, na.rm = TRUE)) %>%
     group_by(`Local Authority Name`, `Financial Year`) %>%
     bind_rows(summarise(., across(where(is.numeric), sum),
-                        across(where(is.character), ~"Total")
-    )
-    ) %>%
+                        across(where(is.character), ~"Total"))) %>%
     # Generate the KPO score (out of 10)    
     mutate(KPO_score = round((1 - KPO4_weighted/maxAvailable) * 10, 1)) %>%
     rbind(scot_max_sum) %>%
     select(-maxAvailable, -KPO4_weighted) %>%
     rename(Area = `Local Authority Name`) %>%
     rename(Quarter = Quarter) %>%
-    rename(`KPO4 Score` = KPO_score)
-  
-  total_la_max_sum$Quarter <- recode(total_la_max_sum$Quarter, 
-                                     "Total" = "Year to Date"
-  )
-  total_la_max_sum$Area[is.na(total_la_max_sum$Area)] <- "Scotland"
-  total_la_max_sum <- total_la_max_sum %>% arrange(`Financial Year`, Quarter)
+    rename(`KPO4 Score` = KPO_score) %>%
+    mutate(Quarter = str_replace(Quarter, "Total", "Year to Date")) %>%
+    mutate(Area = replace_na(Area, "Scotland")) %>%
+    arrange(`Financial Year`, Quarter)
   
   # Create downloadable file
-  output$KPO_data_file <- downloadHandler(filename = paste("KPO4_Data", 
-                                                           ".csv", 
-                                                           sep = ""
-  ),
+  output$KPO_data_file <- downloadHandler(filename = paste0("KPO4_Data", ".csv"),
   content = function(file) {
     write.csv(total_la_max_sum, file)
-  }
-  )
+    })
   
   # Create conditionality to only show download button if IS or SG
   output$KPO_data_dl <- renderUI({
     user <- user()
-    if(grepl("improvementservice.org.uk|gov.scot", 
-             user, 
-             ignore.case = TRUE
-    )
-    ) {
+    if(grepl("improvementservice.org.uk|gov.scot", user, ignore.case = TRUE)) {
       downloadBttn("KPO_data_file", 
                    label = "Download KPO4 Data", 
                    style = "jelly", 
-                   size = "sm"
-      )
-    } else {
-      return()
-    }
+                   size = "sm")
+      } else {
+        return()
+        }
   })
   
   # Performance Overview Tab (Performance boxes) ------------------------------
