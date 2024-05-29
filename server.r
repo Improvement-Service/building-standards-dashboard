@@ -513,13 +513,13 @@ function(input, output, session) {
     # This calculates the actual weighted score  
     mutate(KPO4_weighted = (value - 1) * KPOweights_multiplier)
   
-  # Calculate KPO4 for quarter for all results   
+  # Calculate KPO4 for quarter and financial year for all results   
   scot_max_sum <- scot_max %>% 
     group_by(Quarter, `Financial Year`) %>%
     summarise(across(c(maxAvailable, KPO4_weighted), sum, na.rm = TRUE)) %>% 
     group_by(`Financial Year`) %>%
     bind_rows(summarise(.,across(where(is.numeric), sum),
-                        across(where(is.character), ~"Total"))) %>%
+                        across(where(is.character), ~"Year to Date"))) %>%
     # Generate the KPO score (out of 10)    
     mutate(KPO_score = round((1 - KPO4_weighted/maxAvailable) * 10, 1))
   
@@ -531,7 +531,7 @@ function(input, output, session) {
       summarise(across(c(maxAvailable, KPO4_weighted), sum, na.rm = TRUE)) %>% 
       group_by(`Financial Year`) %>%
       bind_rows(summarise(., across(where(is.numeric), sum),
-                          across(where(is.character), ~"Total"))) %>%
+                          across(where(is.character), ~"Year to Date"))) %>%
       # Generate the KPO score (out of 10)    
       mutate(KPO_score = round((1 - KPO4_weighted/maxAvailable) * 10, 1))
     # Will show a nice error message if there is no data for that council
@@ -551,7 +551,7 @@ function(input, output, session) {
       ungroup() %>%
       group_by(`Financial Year`) %>%
       bind_rows(summarise(., across(where(is.numeric), sum),
-                          across(where(is.character), ~"Total")))  %>%
+                          across(where(is.character), ~"Year to Date")))  %>%
       # Generate the KPO score (out of 10)    
       mutate(KPO_score = (1 - KPO4_weighted/maxAvailable) * 10)
     
@@ -575,7 +575,7 @@ function(input, output, session) {
       ungroup() %>%
       group_by(`Financial Year`) %>%
       bind_rows(summarise(.,across(where(is.numeric), sum),
-                          across(where(is.character), ~"Total")))  %>%
+                          across(where(is.character), ~"Year to Date")))  %>%
       # Generate the KPO score (out of 10)    
       mutate(KPO_score = round((1 - KPO4_weighted/maxAvailable) * 10, 1))
   }
@@ -595,7 +595,7 @@ function(input, output, session) {
     summarise(across(c(maxAvailable, KPO4_weighted), sum, na.rm = TRUE)) %>%
     group_by(`Local Authority Name`, `Financial Year`) %>%
     bind_rows(summarise(., across(where(is.numeric), sum),
-                        across(where(is.character), ~"Total"))) %>%
+                        across(where(is.character), ~"Year to Date"))) %>%
     # Generate the KPO score (out of 10)    
     mutate(KPO_score = round((1 - KPO4_weighted/maxAvailable) * 10, 1)) %>%
     rbind(scot_max_sum) %>%
@@ -603,7 +603,6 @@ function(input, output, session) {
     rename(Area = `Local Authority Name`) %>%
     rename(Quarter = Quarter) %>%
     rename(`KPO4 Score` = KPO_score) %>%
-    mutate(Quarter = str_replace(Quarter, "Total", "Year to Date")) %>%
     mutate(Area = replace_na(Area, "Scotland")) %>%
     arrange(`Financial Year`, Quarter)
   
@@ -630,65 +629,43 @@ function(input, output, session) {
   
   # Create performance box for selected Council  
   output$performanceBox <- renderValueBox({
-    la_max_sum <- la_max_sum()
     
-    fltr_qrtr <- if (input$qrtr_selection == "Year to Date") {
-      "Total"
-    } else {
-      qrtr()
-    }
+    kpo_score <- la_max_sum() %>%
+      filter(Quarter == input$qrtr_selection & `Financial Year` == fin_yr()) %>%
+      pull(KPO_score)
     
     # Sets traffic light colours based on KPO4 score
-    kpo_colr <- ifelse(
-      la_max_sum[la_max_sum$Quarter == fltr_qrtr & la_max_sum$`Financial Year` == fin_yr(), 
-                 "KPO_score"
-      ] > 7.5, 
-      "green", 
-      ifelse(la_max_sum[la_max_sum$Quarter == fltr_qrtr & la_max_sum$`Financial Year` == fin_yr(), 
-                        "KPO_score"
-      ] < 6.5, 
-      "red", 
-      "orange"
-      )
-    )
-    
-    valueBox(value = round(la_max_sum[la_max_sum$Quarter == fltr_qrtr & la_max_sum$`Financial Year` == fin_yr(), 
-                                      "KPO_score"
-    ],
-    1
-    ), 
-    paste("Council KPO4", input$qrtr_selection, fin_yr()),
-    icon = icon("chart-bar"), 
-    color = kpo_colr
-    )
+    kpo_colr <- if_else(kpo_score > 7.5, 
+                        "green",
+                        if_else(kpo_score < 6.5,
+                                "red",
+                                "orange"))
+
+    valueBox(value = round(kpo_score, 1), 
+             paste("Council KPO4", input$qrtr_selection, fin_yr()),
+             icon = icon("chart-bar"), 
+             color = kpo_colr)
   })
   
   # Create performance box for Scotland
   output$scotPerfBox<- renderValueBox({
     # Will show a nice error message if there is no data for that council
-    validate(
-      need(input$qrtr_selection != "",
-           "No data available")
-    )
-    fltr_qrtr <- if (input$qrtr_selection == "Year to Date") {
-      "Total"
-    } else {
-      qrtr()
-    }
+    validate(need(input$qrtr_selection != "","No data available"))
     
-    valueBox(value = round(scot_max_sum[scot_max_sum$Quarter == fltr_qrtr & scot_max_sum$`Financial Year` == fin_yr(), 
-                                        "KPO_score"],
-                           1
-    ), 
-    paste("Scotland Average KPO4", input$qrtr_selection, fin_yr()), 
-    icon = icon("times"), 
-    color = "navy"
-    )
+    kpo_score <- scot_max_sum %>%
+      filter(Quarter == input$qrtr_selection & `Financial Year` == fin_yr()) %>%
+      pull(KPO_score)
+    
+    valueBox(value = round(kpo_score, 1), 
+             paste("Scotland Average KPO4", input$qrtr_selection, fin_yr()), 
+             icon = icon("times"), 
+             color = "navy")
   })
   
   # Create valuebox for number of responses 
   output$respBox <- renderValueBox({
-    unpivot_data <- unpivot_data()
+    dta <- dwnld_table_dta %>%
+      filter(`Local Authority Name` == local_authority())
     # Will show a nice error message if there is no data for that council
     validate(
       need(input$qrtr_selection != "",
@@ -696,40 +673,31 @@ function(input, output, session) {
     )
     
     # Store number of responses in each quarter of the selected financial year
-    q1_response <- nrow(filter(unpivot_data, 
-                               Quarter == "Quarter 1" & `Financial Year` == fin_yr()
-                               )
-                        )
-    q2_response <- nrow(filter(unpivot_data, 
-                               Quarter == "Quarter 2" & `Financial Year` == fin_yr()
-                               )
-                        )
-    q3_response <- nrow(filter(unpivot_data, 
-                               Quarter == "Quarter 3" & `Financial Year` == fin_yr()
-                               )
-                        )
-    q4_response <- nrow(filter(unpivot_data, 
-                               Quarter == "Quarter 4" & `Financial Year` == fin_yr()
-                               )
-                        )
+    q1_response <- dta %>%
+      nrow(filter(Quarter == "Quarter 1" & `Financial Year` == fin_yr()))
+    q2_response <- dta %>%
+      nrow(filter(Quarter == "Quarter 2" & `Financial Year` == fin_yr()))
+    q3_response <- dta %>%
+      nrow(filter(Quarter == "Quarter 3" & `Financial Year` == fin_yr()))
+    q4_response <- dta %>%
+      nrow(filter(Quarter == "Quarter 4" & `Financial Year` == fin_yr()))
+    full_yr_response <- dta %>%
+      nrow(filter(`Financial Year` == fin_yr()))
     
     # Counts the number of rows (responses) for the full year
-    # data is already filtered to selected council
     valueBox(value = tags$p(style = "font-size:18px; line-height:0px; margin-bottom:0px;",
-                            paste(nrow(filter(unpivot_data, `Financial Year` == fin_yr())),
-                                  paste("Responses Year to Date", fin_yr())
-                                  )
-                            ),
+                            paste(full_yr_response,
+                                  "Responses Year to Date", 
+                                  fin_yr())),
              subtitle = tags$p(style = "font-size:14px; line-height:1.1;",
                                # Uses response numbers for each of the quarters
                                HTML(sprintf("%s - Quarter 1<br/>%s - Quarter 2<br/>%s - Quarter 3<br/>%s - Quarter 4",
-                                            q1_response, q2_response, q3_response, q4_response
-                                            )
-                                    )
-                               ),
+                                            q1_response, 
+                                            q2_response, 
+                                            q3_response, 
+                                            q4_response))),
              icon = icon("user-friends"), 
-             color = "light-blue"
-             )
+             color = "light-blue")
     })
   
   # Performance Overview tab (KPO4 bar plot) -----------------------------------
