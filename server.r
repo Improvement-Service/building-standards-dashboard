@@ -1077,19 +1077,19 @@ function(input, output, session) {
   
 # Questions Results Tab (Table with respondent number per Quarter)--------------------------------------
   output$resp_qrts <- renderTable({
-    # Filter dataset based on selected question & set responses as factors
-    qstn_dataset_filtered <- qstn_dataset_filtered()
-    
-    ##Only want to count each respondent once, so only keep the question selected by user on page 2
-    qst_ind <- ifelse(input$Qstn_tab2 == "All Questions", "Overall, how satisfied were you with the service provided?", input$Qstn_tab2)
-    qstn_dataset_filtered <- qstn_dataset_filtered %>% filter(Indicator == qst_ind) %>% filter(value != "-")
-
-    # Calculate count per quarter
-    qstnDta_responses <- qstn_dataset_filtered %>% count(Quarter, .drop = FALSE) %>%
-    add_row(Quarter = "Year to Date", n = sum(.$n)) %>%
-      rename(#Quarter = `Tracking Link`, 
-             Number = n)
-
+    # Only want to count each respondent once, so only keep the question 
+    # selected by user on page 2
+    qst_ind <- if_else(input$Qstn_tab2 == "All Questions", 
+                       "How satisfied were you overall?", 
+                       input$Qstn_tab2
+                       )
+    qstnDta_responses <- qstn_dataset_filtered() %>% 
+      filter(Indicator == qst_ind) %>% 
+      drop_na(value) %>%
+      # Calculate count per quarter
+      count(Quarter) %>%
+      add_row(Quarter = "Year to Date", n = sum(.$n)) %>%
+      rename(Number = n)
   })
   
   # Report Download Tab (KPO4 YTD)------------------------------------------
