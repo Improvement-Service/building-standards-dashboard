@@ -171,10 +171,8 @@ function(input, output, session) {
   
   # Creates a heading with the selected council name
   output$LA_KPO4_Heading <- renderUI({
-    la_name <- local_authority()
-    h2(paste("KPO4 Performance", la_name, sep = " - "), 
-       style = "margin-top:3px"
-    )
+    h2(paste("KPO4 Performance", local_authority(), sep = " - "), 
+       style = "margin-top:3px")
   })
   
   # Shows who the logged in user is     
@@ -186,42 +184,37 @@ function(input, output, session) {
       sidebarUserPanel(paste("Logged in as: ", usr, sep = "\n"),
                        subtitle = a(icon("sign-out"), 
                                     "Logout", 
-                                    href="__logout__"
-                       )
-      )
+                                    href="__logout__"))
     }
   })
 
-  
   # Financial Year Selection---------------------------------------------------
   
   # Create select button for financial year - will only show years where there is data available
   output$fin_yr <- renderUI({
-    council_fltr <- local_authority()
-    pivot_dta <- pivot_dta %>% filter(`Local Authority Name` == council_fltr)
+    dta <- pivot_dta %>% filter(`Local Authority Name` == local_authority())
     # Will show a nice error message if there is no data for that council
-    validate(need(row(pivot_dta) > 0,"No data available"))
+    validate(need(row(dta) > 0,"No data available"))
     
-    years <- sort(unique(pivot_dta$`Financial Year`), decreasing = TRUE)
+    years <- sort(unique(dta$`Financial Year`), decreasing = TRUE)
     
     selectizeInput(inputId = "fin_yr_selection", 
                    label = "Select Financial Year",
                    choices = years, 
-                   selected = crnt_fin_yr
-                   )
+                   selected = crnt_fin_yr)
   })
   
   # Reactive expression to store financial year selected
   # Either selected year if more than 1 available, otherwise year available
   fin_yr <- reactive({
-    council_fltr <- local_authority()
-    pivot_dta <- pivot_dta %>% filter(`Local Authority Name` == council_fltr)
+    dta <- pivot_dta %>% 
+      filter(`Local Authority Name` == local_authority())
     # Will show a nice error message for any graphs that reference fin_yr 
     # if there is no data for that council
-    validate(need(nrow(pivot_dta) > 0,"No data available"))
+    validate(need(nrow(dta) > 0,"No data available"))
     
-    years <- unique(pivot_dta$`Financial Year`)
-    no_years <- length(unique(pivot_dta$`Financial Year`))
+    years <- unique(dta$`Financial Year`)
+    no_years <- length(unique(dta$`Financial Year`))
     fin_yr <- if (no_years > 1) {
       input$fin_yr_selection
     } else {
@@ -233,34 +226,33 @@ function(input, output, session) {
   
   # Create select button for quarter - default YTD
   output$qrtr <- renderUI({
-    pivot_dta <- pivot_dta %>% 
+    dta <- pivot_dta %>% 
       filter(`Financial Year` == fin_yr() &
                `Local Authority Name` == local_authority())
     # Will show a nice error message if there is no data for that council
-    validate(need(row(pivot_dta) > 0,"No data available"))
+    validate(need(row(dta) > 0,"No data available"))
     
-    quarters <- unique(pivot_dta$Quarter)
+    quarters <- unique(dta$Quarter)
     quarters <- sort(quarters)
     
     selectizeInput(inputId = "qrtr_selection", 
                    label = "Select Quarter",
                    choices = c("Year to Date", quarters), 
-                   selected = "Year to Date"
-    )
+                   selected = "Year to Date")
   })
   
   # Reactive expression to store quarter selected
   # Either selected quarter if more than 1 available, otherwise quarter available
   qrtr <- reactive({
-    pivot_dta <- pivot_dta %>% 
+    dta <- pivot_dta %>% 
       filter(`Financial Year` == fin_yr() &
                `Local Authority Name` == local_authority())
     # Will show a nice error message for any graphs that reference qrtr
     # if there is no data for that council
-    validate(need(nrow(pivot_dta) > 0,"No data available"))
+    validate(need(nrow(dta) > 0,"No data available"))
     
-    quarters <- unique(pivot_dta$Quarter)
-    no_quarters <- length(unique(pivot_dta$Quarter))
+    quarters <- unique(dta$Quarter)
+    no_quarters <- length(unique(dta$Quarter))
     qrtr <- if (no_quarters < 2) {
       quarters
     } else {
@@ -374,18 +366,18 @@ function(input, output, session) {
   # Generate another dataframe with respondent types
   resp_dta <- reactive({
     
-    resp_dta <- dwnld_table_dta
+    dta <- dwnld_table_dta
     # Recode "other" respondents and reasons so it doesn't show text value
-    resp_dta$`Other respondent`[resp_dta$`Other respondent` != "0"] <- "1"
-    resp_dta$`Other reason`[resp_dta$`Other reason` != "0"] <- "1"
-    resp_dta <- resp_dta %>% 
+    dta$`Other respondent`[dta$`Other respondent` != "0"] <- "1"
+    dta$`Other reason`[dta$`Other reason` != "0"] <- "1"
+    dta <- dta %>% 
       mutate(across(c(`Other respondent`, `Other reason`), ~as.numeric(.)))
     
     # Calculates within each LA, the number of respondents answering yes to 
     # the different respondent options. Then calculates as a % of all responses
     
     # Financial year responses
-    fin_yr_resp_dta <- resp_dta %>%
+    fin_yr_dta <- dta %>%
       select(Quarter:`Other reason`) %>%
       pivot_longer(`Agent/Designer`:`Other reason`, 
                    names_to = "Question", 
@@ -395,7 +387,7 @@ function(input, output, session) {
       mutate(perc = round((n/sum(n)) * 100, 1))
     
     # Quarter responses
-    qrtr_resp_dta <- resp_dta %>%
+    qrtr_dta <- dta %>%
       select(Quarter:`Other reason`) %>%
       pivot_longer(`Agent/Designer`:`Other reason`, 
                    names_to = "Question", 
@@ -405,7 +397,7 @@ function(input, output, session) {
       mutate(perc = round((n/sum(n)) * 100, 1))
     
     # Combine quarter and YTD data
-    resp_dta <- rbind(qrtr_resp_dta, fin_yr_resp_dta) %>%
+    dta <- rbind(qrtr_dta, fin_yr_dta) %>%
       mutate(Quarter = replace_na(Quarter, "Year to Date")) %>%
       # Differentiates questions by whether they ask about respondent types or reasons
       mutate(question_type = if_else(Question %in% c("Agent/Designer",
@@ -416,19 +408,18 @@ function(input, output, session) {
                                      "Reason"))
     
     # Filter to selected council & selected financial year
-    resp_dta <- resp_dta %>%
+    dta <- dta %>%
       filter(Quarter == input$qrtr_selection & 
                `Financial Year` == fin_yr() & 
                `Local Authority Name` == local_authority())
-    resp_dta
+    dta
   })
   
   # Finalise unpivot data ---------------------------------------------------
   
   # This is used in the data download table and the respondent no. value box
   unpivot_data <- reactive({
-    council_fltr <- local_authority()
-   unpivot_data <- dwnld_table_dta %>%
+   dta <- dwnld_table_dta %>%
      # Recode responses for download and to show in table
       mutate(across(contains(c("Agent/Designer", 
                                "Applicant", 
@@ -462,8 +453,8 @@ function(input, output, session) {
                                 "3" = "Disagree",
                                 "4" = "Strongly disagree"))) %>%
      # Filter this data for selected council
-     filter(`Local Authority Name` == council_fltr)
-   unpivot_data
+     filter(`Local Authority Name` == local_authority())
+   dta
    })
   
   # Create KPO4 Score Data ---------------------------------------------------
@@ -510,7 +501,7 @@ function(input, output, session) {
   
   # Calculate KPO4 for quarter and financial year for selected local authority    
   la_max_sum <- reactive({
-    la_max_sum <- scot_max %>% 
+    dta <- scot_max %>% 
       filter(`Local Authority Name` == local_authority()) %>%     
       group_by(Quarter, `Financial Year`) %>%
       summarise(across(c(maxAvailable, KPO4_weighted), sum, na.rm = TRUE)) %>% 
@@ -522,7 +513,7 @@ function(input, output, session) {
       ungroup()
     # Will show a nice error message if there is no data for that council
     validate(need(nrow(la_max_sum) > 0, "No data available"))
-    la_max_sum
+    dta
   })
   
   # KPO4 per respondent type #
@@ -530,7 +521,7 @@ function(input, output, session) {
   # Function to get KPO by respondent type at Scotland level
   scot_resp_kpo <- function(resp_col){
     resp_col <- enquo(resp_col)
-    scot_max_sum_resp <- scot_max %>% 
+    dta <- scot_max %>% 
       filter(!!resp_col == 1) %>%
       group_by(Quarter,`Financial Year`) %>%
       summarise(across(c(maxAvailable, KPO4_weighted), sum, na.rm = TRUE)) %>% 
@@ -542,7 +533,7 @@ function(input, output, session) {
       mutate(KPO_score = (1 - KPO4_weighted/maxAvailable) * 10) %>%
       ungroup()
     
-    return(scot_max_sum_resp)
+    return(dta)
   }
   
   # Calculate KPO4 for quarter for all results   
@@ -554,7 +545,7 @@ function(input, output, session) {
   # Function to get KPO by respondent type at local authority level
   la_resp_kpo <- function(resp_col){
     resp_col <- enquo(resp_col)
-    la_max_sum <- scot_max %>% 
+    dta <- scot_max %>% 
       filter(!!resp_col == 1) %>%
       filter(`Local Authority Name` == local_authority()) %>%     
       group_by(Quarter, `Financial Year`) %>%
@@ -602,8 +593,7 @@ function(input, output, session) {
   
   # Create conditionality to only show download button if IS or SG
   output$KPO_data_dl <- renderUI({
-    user <- user()
-    if(grepl("improvementservice.org.uk|gov.scot", user, ignore.case = TRUE)) {
+    if(grepl("improvementservice.org.uk|gov.scot", user(), ignore.case = TRUE)) {
       downloadBttn("KPO_data_file", 
                    label = "Download KPO4 Data", 
                    style = "jelly", 
@@ -699,28 +689,28 @@ function(input, output, session) {
                                label_size,
                                text_size
                                ) {
-    la_max_sum <- dataset
+    dta <- dataset
     
-    validate(need(nrow(la_max_sum) > 0,"No respondents of this type"))
+    validate(need(nrow(dta) > 0,"No respondents of this type"))
     
     # Rename Total as year to date
-    la_max_sum <- la_max_sum %>%
-      mutate(Quarter = str_replace(Quarter, "Year to Date", "YTD"))
-    # Filter to only include the Quarters for current year
-    la_max_sum <- la_max_sum %>% 
-      filter(Quarter == "YTD" | (Quarter != "YTD" & `Financial Year` == fin_yr()))
-    # Add Financial year to quarter labels
-    la_max_sum <- la_max_sum %>%
+    dta <- dta %>%
+      mutate(Quarter = str_replace(Quarter, "Year to Date", "YTD")) %>%
+      # Filter to only include the Quarters for current year
+      filter(Quarter == "YTD" | 
+               (Quarter != "YTD" & 
+                  `Financial Year` == fin_yr())) %>%
+      # Add Financial year to quarter labels
       mutate(Quarter = str_replace(Quarter, "Quarter ", "Q")) %>%
       mutate(Label = paste(Quarter, `Financial Year`))
     # Store the number of YTD values to determine the colours for these bars
-    YTD <- la_max_sum %>%
+    YTD <- dta %>%
       count(Quarter) %>%
       filter(Quarter == "YTD") %>%
       pull(n)
     
     # Set colours for quarter by kpo4
-    kpo_clrs <- la_max_sum %>% 
+    kpo_clrs <- dta %>% 
       filter(Quarter != "YTD") %>% 
       pull(KPO_score)
     clrs <- if_else(kpo_clrs > 7.5, 
@@ -729,7 +719,7 @@ function(input, output, session) {
                           "tomato", 
                           "tan1"))
     
-    p <- ggplot(data = la_max_sum) +
+    p <- ggplot(data = dta) +
       geom_bar(aes(x = Label, 
                    y = KPO_score,
                    text = paste(paste("Quarter:", Label),
@@ -768,9 +758,9 @@ function(input, output, session) {
   
   # Extract data for response type
   report_type_data <- reactive({
-    pc_resp_data <- resp_dta() %>% 
+    dta <- resp_dta() %>% 
       filter(., question_type == "Type" & value == 1)
-    pc_resp_data
+    dta
   })
   
   # This output is used twice, in the UI, but this is not allowed
@@ -780,8 +770,7 @@ function(input, output, session) {
   # resp_type_graph_overview is used in the performance overview tab
   
   output$resp_type_graph_report <- output$resp_type_graph_overview <- renderPlotly({
-    report_type_data <- report_type_data()
-    plot <- ggplot(data = report_type_data) +
+    plot <- ggplot(data = report_type_data()) +
       geom_col(aes(x = fct_reorder(Question, desc(perc)),
                    y = perc,
                    text = paste(paste("Respondent Type:", 
@@ -807,10 +796,9 @@ function(input, output, session) {
   
   # Extract data for response reason
   report_reason_data <- reactive({
-    resp_dta <- resp_dta()
-    pc_resp_data <- resp_dta %>% 
-      filter(., question_type == "Reason" & value == 1)
-    pc_resp_data
+    dta <- resp_dta() %>% 
+      filter(question_type == "Reason" & value == 1)
+    dta
   })
   
   # This output is used twice, in the UI, but this is not allowed
@@ -820,7 +808,6 @@ function(input, output, session) {
   # resp_reason_graph_overview is used in the performance overview tab
   
   output$resp_reason_graph_report <- output$resp_reason_graph_overview <- renderPlotly({
-    report_reason_data <- report_reason_data()
     plot <- ggplot(data = report_reason_data()) +
       geom_col(aes(x = fct_reorder(Question, desc(perc)),
                    y = perc,
@@ -894,13 +881,13 @@ function(input, output, session) {
     slctn_respondent <- input$Qs_resp_input
     slctn_reason <- input$Qs_reason_input
     # Filter to match LA, selected respondent type & reason
-    filter_data <- pivot_dta %>% 
+    dta <- pivot_dta %>% 
       filter(`Local Authority Name` == local_authority()) %>%
       filter(if_any(slctn_respondent, ~. == 1)) %>%
       filter(if_any(slctn_reason, ~. == 1)) %>%
       # Filter to correct financial year - either current year or selected year
       filter(`Financial Year` == fin_yr())
-    filter_data
+    dta
   })
 
   # Questions Results tab (YTD plot)---------------------------------------
@@ -910,13 +897,13 @@ function(input, output, session) {
   output$YTDqstsPlot <- renderPlotly({
     # Filter data based on question selected & set responses as factors
     if (input$Qstn_tab2 == "All Questions") {
-      qstnDta <- qstn_dataset_filtered()
+      dta <- qstn_dataset_filtered()
     } else {
-      qstnDta <- qstn_dataset_filtered() %>% 
+      dta <- qstn_dataset_filtered() %>% 
         filter(Indicator == input$Qstn_tab2) 
     }
     # Calculate count for each response
-    qstnDta <- qstnDta %>% 
+    dta <- dta %>% 
       drop_na(value) %>%
       count(value) %>% 
       mutate(perc = round((n/sum(n)) * 100, 2))
@@ -924,7 +911,7 @@ function(input, output, session) {
     # Set labels for tickmarks to display on x axis
     # Different responses for different questions so needs to be set accordingly
     if (input$Qstn_tab2 == "All Questions") {
-      qstnDta <- qstnDta %>%
+      dta <- dta %>%
         mutate(named_value = recode(value, 
                                     "1" = "Very Good/Very Satisfied/Strongly Agree",
                                     "2" = "Good/Satisfied/Agree",
@@ -932,7 +919,7 @@ function(input, output, session) {
                                     "4" = "Very Poor/Very Dissatisfied/Strongly Disagree"))
     } else 
       if (input$Qstn_tab2 == "How satisfied were you overall?"|input$Qstn_tab2 == "How satisfied were you with the time taken?") {
-        qstnDta <- qstnDta %>%
+        dta <- dta %>%
           mutate(named_value = recode(value, 
                                       "1" = "Very Satisfied",
                                       "2" =" Satisfied",
@@ -940,14 +927,14 @@ function(input, output, session) {
                                       "4" = "Very Dissatisfied"))
       } else 
         if (input$Qstn_tab2 == "To what extent would you agree that you were treated fairly?") {
-          qstnDta <- qstnDta %>%
+          dta <- dta %>%
             mutate(named_value = recode(value, 
                                         "1" = "Strongly Agree",
                                         "2" = "Agree",
                                         "3" = "Disagree",
                                         "4" = "Strongly Disagree"))
         } else {
-          qstnDta <- qstnDta %>%
+          dta <- dta %>%
             mutate(named_value = recode(value, 
                                         "1" = "Very Good",
                                         "2" = "Good",
@@ -956,10 +943,10 @@ function(input, output, session) {
         }
     
     # Format value as numeric to use in order
-    qstnDta$value <- as.numeric(qstnDta$value)
+    dta$value <- as.numeric(dta$value)
     
     # Generate barplot
-    plot <- ggplot(data = qstnDta) +
+    plot <- ggplot(data = dta) +
       geom_bar(aes(x = fct_reorder(named_value, value), 
                    y = perc, 
                    text = paste(paste("Response:", named_value), 
@@ -991,17 +978,17 @@ function(input, output, session) {
   output$qrtsQsplot <- renderPlotly({
     # Filter dataset based on selected question & set responses as factors
     if(input$Qstn_tab2 == "All Questions") {  
-      qstnDta <- qstn_dataset_filtered()
+      dta <- qstn_dataset_filtered()
     } else {
-      qstnDta <- qstn_dataset_filtered() %>%
+      dta <- qstn_dataset_filtered() %>%
         filter(Indicator == input$Qstn_tab2)
     }
     # Calculate count for each response
-    qstnDta <- qstnDta %>% 
+    dta <- dta %>% 
       drop_na(value) %>%
       count(Quarter, value)
     # Summarise the count per quarter
-    qstnDta <- qstnDta %>% 
+    dta <- dta %>% 
       group_by(Quarter) %>%
       mutate(total_responses = sum(n)) %>%
       ungroup() %>%
@@ -1010,7 +997,7 @@ function(input, output, session) {
     # Set labels for tickmarks to display on x axis
     # Different responses for different questions so needs to be set accordingly
     if (input$Qstn_tab2 == "All Questions") {
-      qstnDta <- qstnDta %>%
+      dta <- dta %>%
         mutate(named_value = recode(value, 
                                     "1" = "Very Good/Very Satisfied/Strongly Agree",
                                     "2" = "Good/Satisfied/Agree",
@@ -1018,7 +1005,7 @@ function(input, output, session) {
                                     "4" = "Very Poor/Very Dissatisfied/Strongly Disagree"))
     } else 
       if (input$Qstn_tab2 == "How satisfied were you overall?"|input$Qstn_tab2 == "How satisfied were you with the time taken?") {
-        qstnDta <- qstnDta %>%
+        dta <- dta %>%
           mutate(named_value = recode(value, 
                                       "1" = "Very Satisfied",
                                       "2" =" Satisfied",
@@ -1026,14 +1013,14 @@ function(input, output, session) {
                                       "4" = "Very Dissatisfied"))
       } else 
         if (input$Qstn_tab2 == "To what extent would you agree that you were treated fairly?") {
-          qstnDta <- qstnDta %>%
+          dta <- dta %>%
             mutate(named_value = recode(value, 
                                         "1" = "Strongly Agree",
                                         "2" = "Agree",
                                         "3" = "Disagree",
                                         "4" = "Strongly Disagree"))
         } else {
-          qstnDta <- qstnDta %>%
+          dta <- dta %>%
             mutate(named_value = recode(value, 
                                         "1" = "Very Good",
                                         "2" = "Good",
@@ -1042,15 +1029,15 @@ function(input, output, session) {
         }
     
     # Add Financial year to quarter labels
-    qstnDta <- qstnDta %>%
+    dta <- dta %>%
       mutate(Quarter = str_replace(Quarter, "Quarter ", "Q")) %>%
       mutate(Quarter = paste(Quarter, fin_yr()))
     
     # Format value as numeric to use in order
-    qstnDta$value <- as.numeric(qstnDta$value)
+    dta$value <- as.numeric(dta$value)
     
     # Generate bar plot
-    plot <- ggplot(data = qstnDta ) +
+    plot <- ggplot(data = dta ) +
       geom_bar(aes(x = Quarter, 
                    y = `% of responses`, 
                    fill = fct_reorder(named_value, value), 
@@ -1083,7 +1070,7 @@ function(input, output, session) {
                        "How satisfied were you overall?", 
                        input$Qstn_tab2
                        )
-    qstnDta_responses <- qstn_dataset_filtered() %>% 
+    dta <- qstn_dataset_filtered() %>% 
       filter(Indicator == qst_ind) %>% 
       drop_na(value) %>%
       # Calculate count per quarter
@@ -1099,10 +1086,10 @@ function(input, output, session) {
   # plot function, so the data can be used in the markdown document
   
   report_kpo_data <- reactive({
-    la_max_sum <- la_max_sum()
-    council_fltr <- local_authority()
-    la_max_sum$id <- council_fltr
-    scot_max_sum$id <- "Scotland" 
+    la_max_sum <- la_max_sum() %>%
+      mutate(id = local_authority())
+    scot_max_sum <- scot_max_sum %>%
+      mutate(id = "Scotland")
     all_kpo_dta <- rbind(scot_max_sum, la_max_sum)
     all_kpo_dta
   })
@@ -1111,7 +1098,7 @@ function(input, output, session) {
   output$reportKPO4Plot <- renderPlotly({
     all_kpo_data <- report_kpo_data()
     council_fltr <- local_authority()
-    all_kpo_data <- all_kpo_data %>% filter(Quarter == "Total")
+    all_kpo_data <- all_kpo_data %>% filter(Quarter == "Year to Date")
     # Set the council values as a factor so the data can be arranged to 
     # have the council first regardless of alphabetical order
     all_kpo_data$id <- factor(all_kpo_data$id, 
