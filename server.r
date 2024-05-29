@@ -162,11 +162,8 @@ function(input, output, session) {
                                                                   } else {
                                                                     # IS or SG 
                                                                     # Validation - will show nice error message before LA is selected
-                                                                    validate(
-                                                                      need(input$LA_selection != "",
-                                                                           "Local Authority selection needed"
-                                                                           )
-                                                                      )
+                                                                    validate(need(input$LA_selection != "",
+                                                                                  "Local Authority selection needed"))
                                                                     input$LA_selection
                                                                     } 
   })
@@ -203,11 +200,8 @@ function(input, output, session) {
     council_fltr <- local_authority()
     pivot_dta <- pivot_dta %>% filter(`Local Authority Name` == council_fltr)
     # Will show a nice error message if there is no data for that council
-    validate(
-      need(row(pivot_dta) > 0,
-           "No data available"
-           )
-    )
+    validate(need(row(pivot_dta) > 0,"No data available"))
+    
     years <- sort(unique(pivot_dta$`Financial Year`), decreasing = TRUE)
     
     selectizeInput(inputId = "fin_yr_selection", 
@@ -224,11 +218,8 @@ function(input, output, session) {
     pivot_dta <- pivot_dta %>% filter(`Local Authority Name` == council_fltr)
     # Will show a nice error message for any graphs that reference fin_yr 
     # if there is no data for that council
-    validate(
-      need(nrow(pivot_dta) > 0,
-           "No data available"
-      )
-    )
+    validate(need(nrow(pivot_dta) > 0,"No data available"))
+    
     years <- unique(pivot_dta$`Financial Year`)
     no_years <- length(unique(pivot_dta$`Financial Year`))
     fin_yr <- if (no_years > 1) {
@@ -246,11 +237,8 @@ function(input, output, session) {
       filter(`Financial Year` == fin_yr() &
                `Local Authority Name` == local_authority())
     # Will show a nice error message if there is no data for that council
-    validate(
-      need(row(pivot_dta) > 0,
-           "No data available"
-      )
-    )
+    validate(need(row(pivot_dta) > 0,"No data available"))
+    
     quarters <- unique(pivot_dta$Quarter)
     quarters <- sort(quarters)
     
@@ -269,11 +257,8 @@ function(input, output, session) {
                `Local Authority Name` == local_authority())
     # Will show a nice error message for any graphs that reference qrtr
     # if there is no data for that council
-    validate(
-      need(nrow(pivot_dta) > 0,
-           "No data available"
-      )
-    )
+    validate(need(nrow(pivot_dta) > 0,"No data available"))
+    
     quarters <- unique(pivot_dta$Quarter)
     no_quarters <- length(unique(pivot_dta$Quarter))
     qrtr <- if (no_quarters < 2) {
@@ -496,8 +481,7 @@ function(input, output, session) {
     outer(pivot_dta$Indicator == "How satisfied were you overall?", 8)
   KPOweights_multiplier <- replace(KPOweights_multiplier, 
                                    KPOweights_multiplier == 0, 
-                                   1
-  )
+                                   1)
   # This calculates the weighted score
   KPOdta$KPO_weight <- KPOdta$KPO_weight * KPOweights_multiplier  
   
@@ -533,7 +517,8 @@ function(input, output, session) {
       bind_rows(summarise(., across(where(is.numeric), sum),
                           across(where(is.character), ~"Year to Date"))) %>%
       # Generate the KPO score (out of 10)    
-      mutate(KPO_score = round((1 - KPO4_weighted/maxAvailable) * 10, 1))
+      mutate(KPO_score = round((1 - KPO4_weighted/maxAvailable) * 10, 1)) %>%
+      ungroup()
     # Will show a nice error message if there is no data for that council
     validate(need(nrow(la_max_sum) > 0, "No data available"))
     la_max_sum
@@ -667,22 +652,24 @@ function(input, output, session) {
     dta <- dwnld_table_dta %>%
       filter(`Local Authority Name` == local_authority())
     # Will show a nice error message if there is no data for that council
-    validate(
-      need(input$qrtr_selection != "",
-           "No data available")
-    )
+    validate(need(input$qrtr_selection != "","No data available"))
     
     # Store number of responses in each quarter of the selected financial year
     q1_response <- dta %>%
-      nrow(filter(Quarter == "Quarter 1" & `Financial Year` == fin_yr()))
+      filter(Quarter == "Quarter 1" & `Financial Year` == fin_yr()) %>%
+      nrow()
     q2_response <- dta %>%
-      nrow(filter(Quarter == "Quarter 2" & `Financial Year` == fin_yr()))
+      filter(Quarter == "Quarter 2" & `Financial Year` == fin_yr()) %>%
+      nrow()
     q3_response <- dta %>%
-      nrow(filter(Quarter == "Quarter 3" & `Financial Year` == fin_yr()))
+      filter(Quarter == "Quarter 3" & `Financial Year` == fin_yr()) %>%
+      nrow()
     q4_response <- dta %>%
-      nrow(filter(Quarter == "Quarter 4" & `Financial Year` == fin_yr()))
+      filter(Quarter == "Quarter 4" & `Financial Year` == fin_yr()) %>%
+      nrow()
     full_yr_response <- dta %>%
-      nrow(filter(`Financial Year` == fin_yr()))
+      filter(`Financial Year` == fin_yr()) %>%
+      nrow()
     
     # Counts the number of rows (responses) for the full year
     valueBox(value = tags$p(style = "font-size:18px; line-height:0px; margin-bottom:0px;",
@@ -711,71 +698,56 @@ function(input, output, session) {
                                ) {
     la_max_sum <- dataset
     
-    validate(
-      need(nrow(la_max_sum) > 0,
-           "No respondents of this type"
-           )
-      )
+    validate(need(nrow(la_max_sum) > 0,"No respondents of this type"))
     
     # Rename Total as year to date
-    la_max_sum$Quarter <- recode(la_max_sum$Quarter, 
-                                         "Total" = "YTD"
-    )
+    la_max_sum <- la_max_sum %>%
+      mutate(Quarter = str_replace(Quarter, "Year to Date", "YTD"))
     # Filter to only include the Quarters for current year
     la_max_sum <- la_max_sum %>% 
       filter(Quarter == "YTD" | (Quarter != "YTD" & `Financial Year` == fin_yr()))
     # Add Financial year to quarter labels
-    la_max_sum$Quarter <- gsub("Quarter\\ ",
-                                       "Q",
-                                       la_max_sum$Quarter, 
-                                       perl = TRUE
-    )
-    la_max_sum$Label <- paste(la_max_sum$Quarter, 
-                              la_max_sum$`Financial Year`, 
-                              sep = " "
-    )
+    la_max_sum <- la_max_sum %>%
+      mutate(Quarter = str_replace(Quarter, "Quarter ", "Q")) %>%
+      mutate(Label = paste(Quarter, `Financial Year`))
     # Store the number of YTD values to determine the colours for these bars
-    YTD <- length(la_max_sum$Quarter[la_max_sum$Quarter == "YTD"])
+    YTD <- la_max_sum %>%
+      count(Quarter) %>%
+      filter(Quarter == "YTD") %>%
+      pull(n)
     
     # Set colours for quarter by kpo4
     kpo_clrs <- la_max_sum %>% 
       filter(Quarter != "YTD") %>% 
       pull(KPO_score)
-    clrs <- ifelse(kpo_clrs > 7.5, 
+    clrs <- if_else(kpo_clrs > 7.5, 
                    "palegreen3", 
-                   ifelse(kpo_clrs < 6.5, 
+                   if_else(kpo_clrs < 6.5, 
                           "tomato", 
-                          "tan1"
-                   )
-    )
+                          "tan1"))
     
     p <- ggplot(data = la_max_sum) +
       geom_bar(aes(x = Label, 
                    y = KPO_score,
                    text = paste(paste("Quarter:", Label),
                                 paste("KPO 4 Score", KPO_score),
-                                sep = "\n"
-                   )
-      ), 
+                                sep = "\n")), 
       stat = "identity",
       position = "dodge", 
       fill = c(clrs, rep("dimgrey", YTD)), 
       width = 0.7, 
-      colour = "black"
-      ) +
+      colour = "black") +
       theme_classic() +
       # Span x axis labels over multiple lines
       scale_x_discrete(labels = function(x) str_wrap(x, width = 8)) +
       scale_y_continuous(limits = c(0, 10), 
-                         expand = expansion(mult = c(0, 0.1))
-      ) +
+                         expand = expansion(mult = c(0, 0.1))) +
       ggtitle(str_wrap(plot_title, width = title_width)) +
       ylab("KPO 4 Score") +
       xlab("Response period") +
       theme(axis.text.x = element_text(size = text_size),
             axis.title = element_text(size = label_size),
-            plot.title = element_text(size = label_size)
-      )
+            plot.title = element_text(size = label_size))
     
     ggplotly(p, tooltip = "text")
   }
@@ -786,16 +758,14 @@ function(input, output, session) {
                      plot_title = "KPO4 Performance by Quarter and Year to Date",
                      title_width = 45,
                      label_size = 12,
-                     text_size = 10
-                     )
+                     text_size = 10)
   })
   
   # Performance Overview tab (respondent type & reason plots)------------------
   
   # Extract data for response type
   report_type_data <- reactive({
-    resp_dta <- resp_dta()
-    pc_resp_data <- resp_dta %>% 
+    pc_resp_data <- resp_dta() %>% 
       filter(., question_type == "Type" & value == 1)
     pc_resp_data
   })
@@ -809,39 +779,34 @@ function(input, output, session) {
   output$resp_type_graph_report <- output$resp_type_graph_overview <- renderPlotly({
     report_type_data <- report_type_data()
     plot <- ggplot(data = report_type_data) +
-      geom_col(aes(x = Question, 
+      geom_col(aes(x = fct_reorder(Question, desc(perc)),
                    y = perc,
                    text = paste(paste("Respondent Type:", 
-                                      report_type_data$Question
-                   ),
-                   paste("% of responses:", 
-                         report_type_data$perc
-                   ),
-                   sep = "\n"
-                   )
-      ),
-      fill = "cadetblue3", 
-      colour = "black"
-      ) +
+                                      report_type_data$Question),
+                                paste("% of responses:", 
+                                      report_type_data$perc),
+                                sep = "\n")),
+               fill = "cadetblue3", 
+               colour = "black") +
       coord_flip() +
+      scale_x_discrete(labels = function(x) str_wrap(x, width = 10)) +
       theme_classic() +
       scale_y_continuous(expand = expansion(mult = c(0, 0.1))) +
       ggtitle(paste("Respondent Type:\n", input$qrtr_selection, fin_yr())) +
       xlab("Respondent Type") +
       ylab("Percentage of Responses") +
-      theme(plot.title = element_text(size = 12))
+      theme(plot.title = element_text(size = 10),
+            axis.text.x = element_text(size = 10),
+            axis.text.y = element_text(size = 10))
     
     ggplotly(plot, tooltip = "text")
   })
   
-  # Extract data for response reason and shorten question labels
+  # Extract data for response reason
   report_reason_data <- reactive({
     resp_dta <- resp_dta()
     pc_resp_data <- resp_dta %>% 
       filter(., question_type == "Reason" & value == 1)
-    pc_resp_data[pc_resp_data$Question == "During construction, including submission of a completion certificate", "Question"] <- "During construction" 
-    pc_resp_data[pc_resp_data$Question == "To discuss your proposal before applying for a building warrant", "Question"] <- "Discuss proposal" 
-    pc_resp_data[pc_resp_data$Question == "To make an application for a building warrant", "Question"] <- "Make application" 
     pc_resp_data
   })
   
@@ -854,27 +819,23 @@ function(input, output, session) {
   output$resp_reason_graph_report <- output$resp_reason_graph_overview <- renderPlotly({
     report_reason_data <- report_reason_data()
     plot <- ggplot(data = report_reason_data()) +
-      geom_col(aes(x = Question, 
+      geom_col(aes(x = fct_reorder(Question, desc(perc)),
                    y = perc,
-                   text = paste(paste("Reason:", 
-                                      report_reason_data$Question
-                   ),
-                   paste("% of responses:", 
-                         report_reason_data$perc
-                   ),
-                   sep = "\n"
-                   )
-      ),
-      fill = "cadetblue3", 
-      colour = "black"
-      ) +
+                   text = paste(paste("Reason:", report_reason_data$Question),
+                                paste("% of responses:", report_reason_data$perc),
+                                sep = "\n")),
+               fill = "cadetblue3", 
+               colour = "black") +
       coord_flip() +
+      scale_x_discrete(labels = function(x) str_wrap(x, width = 10)) +
       theme_classic() +
       scale_y_continuous(expand = expansion(mult = c(0, 0.1))) +
       ggtitle(paste("Response Reason:\n", input$qrtr_selection, fin_yr())) +
       xlab("Reason") +
       ylab("Percentage of Responses") +
-      theme(plot.title = element_text(size = 12))
+      theme(plot.title = element_text(size = 10),
+            axis.text.x = element_text(size = 10),
+            axis.text.y = element_text(size = 10))
     
     ggplotly(plot, tooltip = "text")
   })
