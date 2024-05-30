@@ -184,38 +184,38 @@ ggplot(data = kpo_ytd_plot_data,
 # Respondent Type
 ```{r echo = FALSE, comment = ""}
 # Set up text for respondent type
-type_dta_filter <- respondent_data %>% filter(question_type == "Type") 
+type_dta_filter <- respondent_data %>% 
+  filter(question_type == "Type") 
 # Get total responses for referencing the percentage denominator
 type_number <- type_dta_filter %>% 
   group_by(Question) %>%
-  summarise_at(vars(`n`),sum)
-type_number <- type_number[1, 2]
+  summarise("total_responses" = sum(n)) %>%
+  distinct(total_responses) %>%
+  pull(total_responses)
 # Create variables for percentages for different groups
-agent_perc <- type_dta_filter[type_dta_filter$Question == "Agent/Designer" & type_dta_filter$value == 1 ,"perc"] %>% 
-  pull(perc)
-
-appli_perc <- type_dta_filter[type_dta_filter$Question == "Applicant" & type_dta_filter$value == 1 ,"perc"] %>% 
-  pull(perc)
-
-contr_perc <- type_dta_filter[type_dta_filter$Question == "Contractor" & type_dta_filter$value == 1 ,"perc"] %>% 
-  pull(perc)
-
-type_other_perc <- type_dta_filter[type_dta_filter$Question == "Other" & type_dta_filter$value == 1 ,"perc"] %>% 
-  pull(perc)
+agent_perc <- typ_dta_filter %>%
+      filter(Question == "Agent/Designer" & value == 1) %>%
+      pull(perc)
+appli_perc <- typ_dta_filter %>%
+      filter(Question == "Applicant" & value == 1) %>%
+      pull(perc)
+contr_perc <- typ_dta_filter %>%
+      filter(Question == "Contractor" & value == 1) %>%
+      pull(perc)
+type_other_perc <- typ_dta_filter %>%
+      filter(Question == "Other respondent" & value == 1) %>%
+      pull(perc)
 
 # If any are 0 then replace with "none"
-agent_perc <- ifelse(isEmpty(agent_perc), "none", paste0(agent_perc, "%"))
-appli_perc <- ifelse(isEmpty(appli_perc), "none", paste0(appli_perc, "%"))
-contr_perc <- ifelse(isEmpty(contr_perc), "none", paste0(contr_perc, "%"))
-type_other_perc <- ifelse(isEmpty(type_other_perc), 
+agent_perc <- if_else(is_empty(agent_perc), "none", paste0(agent_perc, "%"))
+appli_perc <- if_else(is_empty(appli_perc), "none", paste0(appli_perc, "%"))
+contr_perc <- if_else(is_empty(contr_perc), "none", paste0(contr_perc, "%"))
+type_other_perc <- if_else(is_empty(type_other_perc), 
                           "No respondents", 
                           paste0(type_other_perc, "%"))
 ```
-
   
-Respondents were asked to provide details on the type of respondent they were, as well as their reason for contacting the Building Standards Service in `r la`. Of the `r type_number` respondents in `r named_qrtr` `r year`, `r agent_perc` were agents or designers, `r appli_perc` were applicants and `r contr_perc` were contractors. `r type_other_perc` said they were an other respondent type.  
-
-
+Respondents were asked to provide details on the type of respondent they were, as well as their reason for contacting the Building Standards Service in `r la`. Of the `r type_number` respondents in `r named_qrtr` `r year`, `r agent_perc` were agents or designers, `r appli_perc` were applicants and `r contr_perc` were contractors. `r type_other_perc` said they were an other respondent type.
 
 ```{r echo = FALSE}
 ggplot(data = type_data, aes(x = Question, y = perc)) +
