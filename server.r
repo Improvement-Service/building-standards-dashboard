@@ -512,7 +512,7 @@ function(input, output, session) {
       mutate(KPO_score = round((1 - KPO4_weighted/maxAvailable) * 10, 1)) %>%
       ungroup()
     # Will show a nice error message if there is no data for that council
-    validate(need(nrow(la_max_sum) > 0, "No data available"))
+    validate(need(nrow(dta) > 0, "No data available"))
     dta
   })
   
@@ -689,12 +689,11 @@ function(input, output, session) {
                                label_size,
                                text_size
                                ) {
-    dta <- dataset
     
-    validate(need(nrow(dta) > 0,"No respondents of this type"))
+    validate(need(nrow(dataset) > 0,"No respondents of this type"))
     
     # Rename Total as year to date
-    dta <- dta %>%
+    dta <- dataset %>%
       mutate(Quarter = str_replace(Quarter, "Year to Date", "YTD")) %>%
       # Filter to only include the Quarters for current year
       filter(Quarter == "YTD" | 
@@ -770,13 +769,14 @@ function(input, output, session) {
   # resp_type_graph_overview is used in the performance overview tab
   
   output$resp_type_graph_report <- output$resp_type_graph_overview <- renderPlotly({
-    plot <- ggplot(data = report_type_data()) +
+    dta <- report_type_data()
+    plot <- ggplot(data = dta) +
       geom_col(aes(x = fct_reorder(Question, desc(perc)),
                    y = perc,
                    text = paste(paste("Respondent Type:", 
-                                      report_type_data$Question),
+                                      dta$Question),
                                 paste("% of responses:", 
-                                      report_type_data$perc),
+                                      dta$perc),
                                 sep = "\n")),
                fill = "cadetblue3", 
                colour = "black") +
@@ -797,7 +797,7 @@ function(input, output, session) {
   # Extract data for response reason
   report_reason_data <- reactive({
     dta <- resp_dta() %>% 
-      filter(question_type == "Reason" & value == 1)
+      filter(., question_type == "Reason" & value == 1)
     dta
   })
   
@@ -808,11 +808,12 @@ function(input, output, session) {
   # resp_reason_graph_overview is used in the performance overview tab
   
   output$resp_reason_graph_report <- output$resp_reason_graph_overview <- renderPlotly({
-    plot <- ggplot(data = report_reason_data()) +
+    dta <- report_reason_data()
+    plot <- ggplot(data = dta) +
       geom_col(aes(x = fct_reorder(Question, desc(perc)),
                    y = perc,
-                   text = paste(paste("Reason:", report_reason_data$Question),
-                                paste("% of responses:", report_reason_data$perc),
+                   text = paste(paste("Reason:", dta$Question),
+                                paste("% of responses:", dta$perc),
                                 sep = "\n")),
                fill = "cadetblue3", 
                colour = "black") +
@@ -1082,7 +1083,7 @@ function(input, output, session) {
   # Report Download Tab (KPO4 YTD)------------------------------------------
   
   # Create data for KPO4 in report page - combine LA & Scot level data 
-  # Note - data has to be created in a reactive function, seperate from the 
+  # Note - data has to be created in a reactive function, separate from the 
   # plot function, so the data can be used in the markdown document
   
   report_kpo_data <- reactive({
@@ -1090,44 +1091,36 @@ function(input, output, session) {
       mutate(id = local_authority())
     scot_max_sum <- scot_max_sum %>%
       mutate(id = "Scotland")
-    all_kpo_dta <- rbind(scot_max_sum, la_max_sum)
-    all_kpo_dta
+    dta <- rbind(scot_max_sum, la_max_sum)
+    dta
   })
   
   # Generate plot for KPO4 in report page 
   output$reportKPO4Plot <- renderPlotly({
-    all_kpo_data <- report_kpo_data()
-    council_fltr <- local_authority()
-    all_kpo_data <- all_kpo_data %>% filter(Quarter == "Year to Date")
+    dta <- report_kpo_data() %>% 
+      filter(Quarter == "Year to Date")
     # Set the council values as a factor so the data can be arranged to 
     # have the council first regardless of alphabetical order
-    all_kpo_data$id <- factor(all_kpo_data$id, 
-                              levels = c(council_fltr, "Scotland")
-    )
-    all_kpo_data <- arrange(all_kpo_data, id)
+    dta$id <- factor(dta$id, levels = c(local_authority(), "Scotland"))
+    dta <- arrange(dta, id)
     # Store number of years to determine the number of reps for colours of bars
-    Years <- length(unique(all_kpo_data$`Financial Year`))
+    Years <- length(unique(dta$`Financial Year`))
     
-    plot <- ggplot(data = all_kpo_data) +
+    plot <- ggplot(data = dta) +
       geom_bar(aes(x = `Financial Year`, 
                    y = KPO_score, 
                    fill = id,
                    text = paste(`Financial Year`, 
                                 id, 
-                                paste("KPO 4 Score:", KPO_score), sep = "\n"
-                   )
-      ), 
-      stat = "identity",
-      position = "dodge",
-      width = 0.7, 
-      colour = "black"
-      ) +
+                                paste("KPO 4 Score:", KPO_score), sep = "\n")), 
+               stat = "identity",
+               position = "dodge",
+               width = 0.7, 
+               colour = "black") +
       scale_y_continuous(limits = c(0, 10), 
-                         expand = expansion(mult = c(0, 0.1))
-      ) +
+                         expand = expansion(mult = c(0, 0.1))) +
       scale_fill_manual(values = rep(c("cadetblue3", "dimgrey"), Years), 
-                        name = ""
-      ) + 
+                        name = "") + 
       ggtitle("KPO 4 score - Year to Date") +
       xlab("") +
       ylab("KPO 4 Score") +
@@ -1138,60 +1131,56 @@ function(input, output, session) {
   
   # Render text for KPO4 Overall performance  to year
   output$KPO4_text_report <- renderText({
-    council_fltr <- local_authority()
-    all_kpo_data <- report_kpo_data()
-    # Store the number of financial years available for council
-    Years <- all_kpo_data %>% filter(id == council_fltr)
-    Years <- length(unique(Years$`Financial Year`))
+    Years <- report_kpo_data() %>%
+      filter(id == local_authority()) %>%
+      distinct(`Financial Year`) %>%
+      arrange(`Financial Year`) %>%
+      mutate("prev_year" = lag(`Financial Year`))
     # Filter to selected financial year
-    all_kpo_data <- all_kpo_data %>%
-      filter(Quarter == "Total" & `Financial Year` == fin_yr())
+    dta <- report_kpo_data() %>%
+      filter(Quarter == "Year to Date" & `Financial Year` == fin_yr())
     
     # Compare council KPO4 values with Scotland and target to create 
     # reactive text values
     # Council KPO4
-    KPO4_ytd <- all_kpo_data %>% 
-      filter(id == council_fltr) %>% 
+    KPO4_ytd <- dta %>% 
+      filter(id == local_authority()) %>% 
       pull(KPO_score)
     # Scotland KPO4
-    scotAv_kpo4 <- all_kpo_data %>% 
+    scotAv_kpo4 <- dta %>% 
       filter(id == "Scotland") %>% 
       pull(KPO_score)
     # Compares council KPO4 with target KPO4
-    hilow_kpo4 <- ifelse(KPO4_ytd > 7.5, 
-                         "higher than", 
-                         ifelse(KPO4_ytd < 7.5, 
-                                "lower than", 
-                                "equal to"
-                         )
-    )
+    hilow_kpo4 <- if_else(KPO4_ytd > 7.5, 
+                          "higher than", 
+                          if_else(KPO4_ytd < 7.5, 
+                                  "lower than", 
+                                  "equal to"))
     # Compares council KPO4 with Scotland KPO4
-    abbel_kpo4 <- ifelse(KPO4_ytd > scotAv_kpo4, 
+    abbel_kpo4 <- if_else(KPO4_ytd > scotAv_kpo4, 
                          "higher than",
-                         ifelse(KPO4_ytd < scotAv_kpo4, 
-                                "lower than", 
-                                "equal to"
-                         )
-    )
+                         if_else(KPO4_ytd < scotAv_kpo4, 
+                                 "lower than", 
+                                 "equal to"))
     
-    # Store value for other financial year if there is one
-    other_fin_yr <- report_kpo_data() %>% 
-      filter(id == council_fltr & `Financial Year` != fin_yr()) %>%
-      pull(`Financial Year`)
+    # Store value for previous financial year if there is one
+    prev_fin_yr <- Years %>%
+      filter(`Financial Year` == fin_yr()) %>%
+      pull(prev_year)
     KPO4_other <- report_kpo_data() %>%
-      filter(Quarter == "Total" & `Financial Year` != fin_yr())
-    KPO4_other <- KPO4_other %>% 
-      filter(id == council_fltr) %>% 
+      filter(Quarter == "Year to Date" & 
+               `Financial Year` == prev_fin_yr & 
+               id == local_authority()) %>%
       pull(KPO_score)
     
-    # Create comparison of KPO4 for selected year with other year available
+    # Create comparison of KPO4 for selected year with previous year available
     diff_value <- KPO4_ytd - KPO4_other
     diff_text <- if_else(diff_value < 0, "lower", "higher")
     diff_value <- round(abs(diff_value), 1)
     
     # Text for when there is only 1 financial year
     text_kpo <- paste0("This indicator summarises performance across all questions, with differential weightings based on importance. For ", 
-                       council_fltr,
+                       local_authority(),
                        " in ",
                        fin_yr(), 
                        " overall performance is at ", 
@@ -1203,12 +1192,11 @@ function(input, output, session) {
                        scotAv_kpo4,
                        " and ", 
                        hilow_kpo4,
-                       " the target value of 7.5."
-    )
+                       " the target value of 7.5.")
     
     # Text for when there are more than 1 financial years     
     text_multiple_kpo <- paste0("This indicator summarises performance across all questions, with differential weightings based on importance. For ", 
-                                council_fltr,
+                                local_authority(),
                                 " in ",
                                 fin_yr(), 
                                 " overall performance is at ", 
@@ -1220,9 +1208,9 @@ function(input, output, session) {
                                 " than the performance of ", 
                                 KPO4_other, 
                                 " in ", 
-                                other_fin_yr, 
+                                prev_fin_yr, 
                                 ". The year to date performance of ", 
-                                council_fltr, 
+                                local_authority(), 
                                 " in ", 
                                 fin_yr(), 
                                 " is ", 
@@ -1231,11 +1219,10 @@ function(input, output, session) {
                                 scotAv_kpo4,
                                 " and ", 
                                 hilow_kpo4,
-                                " the target value of 7.5."
-    )
+                                " the target value of 7.5.")
     
-    # Conditional statement to select text based on the number of financial years available    
-    final_text <- ifelse(Years > 1, text_multiple_kpo, text_kpo)
+    # Conditional statement to select text based on whether there is a previous year to compare   
+    final_text <- if_else(is.na(prev_fin_yr), text_kpo, text_multiple_kpo)
     return(final_text)
   })
   
