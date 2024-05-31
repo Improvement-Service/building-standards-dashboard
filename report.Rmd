@@ -298,241 +298,147 @@ ggplot(data = reason_data,aes(x = Question, y = perc)) +
 # KPO 4 Over Time
 ```{r echo = FALSE, comment = ""}
 
-# Filter to quarters, selected council and year
-kpo_data1 <- kpo_data %>% 
-  filter(Quarter != "Total",
-         `Financial Year` == year,  
-         id == la
-         ) %>% 
-  ungroup()
-     
-# Set the quarter labels as a factor to ensure they stay in order
-QLabels <- unique(kpo_data1$Quarter)
-kpo_data1$Quarter <- factor(kpo_data1$Quarter, 
-                                    levels = QLabels
-                                    )
-     
-# Store the names of the quarters by position (can't just reference by quarter number as some councils may have data missing).
-# If there is a quarter missing the position will be empty
-first_Q <- kpo_data1$Quarter[[1]]
-second_Q <- if (length(QLabels) > 1) {
-  kpo_data1$Quarter[[2]]
-} else {
-    0
-  }
-third_Q <- if (length(QLabels) > 2) {
-  kpo_data1$Quarter[[3]]
-} else {
-    0
-  }
-fourth_Q <- if (length(QLabels) > 3) {
-  kpo_data1$Quarter[[4]]
-} else {
-    0
-  }
-    
-# Filter to get KPO for first quarter available
-Q1_kpo <- kpo_data1 %>% 
-  filter(Quarter == first_Q) %>%
-  select(KPO_score)
-# Render text for quarter 1
-Q1_text <- paste0("In ", 
-                  first_Q,
-                  " ",
-                  year,
-                  " performance for KPO 4 calculated across all responses for all questions was ",
-                  Q1_kpo,
-                  " for ", 
-                  la,
-                  ". "
-                  )
-# Filter to get KPO for second quarter available
-Q2_kpo <- kpo_data1 %>% 
-  filter(Quarter == second_Q) %>%
-  select(KPO_score)
-# Compare quarter 2 and quarter 1
-comp_Q12 <- tryCatch({
-  ifelse(Q2_kpo > Q1_kpo + 0.2, 
-         "rose", 
-         ifelse(Q2_kpo < Q1_kpo - 0.2, "fell", "stayed the same")
-         )
-  },
-  error = function(error_message) {""}
-  )
-# Render text for when there are 2 quarters                 
-Q2_text <- paste0(Q1_text,
-                  "Performance then ", 
-                  comp_Q12,
-                  " in ", 
-                  second_Q, 
-                  " to stand at ", 
-                  Q2_kpo, 
-                  "."
-                  )
-# Filter to get KPO for third quarter available
-Q3_kpo <- kpo_data1 %>% 
-  filter(Quarter == third_Q) %>%
-  select(KPO_score)
-# Compare third & second quarter available - ignore if error occurs
-comp_Q23 <- tryCatch({
-  ifelse(Q3_kpo > Q2_kpo + 0.2, 
-         "higher than", 
-         ifelse(Q3_kpo < Q2_kpo - 0.2, "lower than", "the same as")
-         )
-  }, 
-  error = function(error_message) {""}
-  )
-# Render text for when there are 3 quarters                    
-Q3_text <- paste0(Q2_text,
-                  " In ", 
-                  third_Q, 
-                  " performance was ", 
-                  comp_Q23,
-                  " ", 
-                  second_Q,
-                  " at ", 
-                  Q3_kpo,
-                  "."
-                  )
-# Filter to get KPO for fourth quarter available  
-Q4_kpo <- kpo_data1 %>% 
-  filter(Quarter == fourth_Q) %>%
-  select(KPO_score)
-# Compare fourth and third quarter available - ignore if error occurs
-comp_Q34 <- tryCatch({
-  ifelse(Q4_kpo > Q3_kpo + 0.2, 
-         "higher than", 
-         ifelse(Q4_kpo < Q3_kpo - 0.2, "lower than", "the same as")
-         )
-  },
-  error = function(error_message) {""}
-  )
-# Render text for when there are four quarters                    
-Q4_text<- paste0(Q3_text, 
-                 " In ", 
-                 fourth_Q,
-                 " performance was ", 
-                 comp_Q34,
-                 " ",
-                 third_Q,
-                 " and stands at ",
-                 Q4_kpo, 
-                 "."
-                 )
+# Filter data to selected council and quarters only
+kpo_over_time_dta <- kpo_data %>%
+  filter(Quarter != "Year to Date" & id == la) %>%
+  # Add column with quarter & financial years combined
+  mutate(Label = str_replace(Quarter, "Quarter ", "Q")) %>%
+  mutate(Label = paste(Label, `Financial Year`))
 
-# Select what text to include based on the no. of quarters available     
-main_text <- ifelse(length(QLabels) == 1, 
-                    Q1_text, 
-                    ifelse(length(QLabels) == 2, 
-                           Q2_text, 
-                           ifelse(length(QLabels) == 3, 
-                                  Q3_text, 
-                                  Q4_text
-                                  )
-                           )
-                    )
-# If there is data for more than 1 financial year compare selected quarter (or most recent if YTD is selected) with same quarter in previous year
-extra_data <- kpo_data
-
-qrtr <- if (named_qrtr == "Year to Date") {
-  crnt_qtr
+# Set value for current quarter - either quarter selected, or if YTD is
+# selected, use most recent quarter in the selected year
+current_quarter <- if(named_qrtr == "Year to Date") {
+  max_qrtr <- kpo_over_time_dta %>% 
+    filter(`Financial Year` == year)
+    max(max_qrtr$Quarter)
 } else {
   named_qrtr
 }
-
-# Filter to selected quarter and selected council
-extra_data <- extra_data %>% 
-  filter(Quarter == qrtr, id == la)
-# Store values for current financial year and previous financial year
-other_fin_yr <- extra_data %>%
-  filter(`Financial Year` != year) %>%
-  pull(`Financial Year`)
-KPO4_other <- extra_data %>%
-  filter(`Financial Year` != year) %>%
+                           
+# Store KPO score for currently selected quarter and year
+current_value <- kpo_over_time_dta %>%
+  filter(Quarter == current_quarter &
+           `Financial Year` == year) %>%
   pull(KPO_score)
 
-selected_fin_yr <- extra_data %>%
+# Find previous quarter name and value
+prev_quarter <- kpo_over_time_dta %>%
+  arrange(`Financial Year`) %>%
+  mutate("prev_quarter" = lag(Label)) %>%
+  filter(Quarter == current_quarter & `Financial Year` == year) %>%
+  pull(prev_quarter)
+
+prev_quarter_value <- kpo_over_time_dta %>%
+  filter(Label == prev_quarter) %>%
+  pull(KPO_score)
+
+# Create comparison of KPO4 for selected quarter with previous quarter available
+quarter_diff <- current_value - prev_quarter_value
+quarter_diff_text <- if_else(quarter_diff < 0, "lower", "higher")
+quarter_diff <- round(abs(quarter_diff), 1)
+
+# Find equivalent quarter in previous year (if available)
+prev_year_quarter <- kpo_over_time_dta %>%
+  filter(Quarter == current_quarter) %>%
+  arrange(`Financial Year`) %>%
+  mutate("prev_year_quarter" = lag(Label)) %>%
   filter(`Financial Year` == year) %>%
+  pull(prev_year_quarter)
+
+prev_year_quarter_value <- kpo_over_time_dta %>%
+  filter(Label == prev_year_quarter) %>%
   pull(KPO_score)
 
-# Compare values and create text
-extra_comp <- tryCatch({
-  ifelse(selected_fin_yr > KPO4_other + 0.2, 
-         " points higher than in ", 
-         ifelse(selected_fin_yr < KPO4_other - 0.2, 
-                " points lower than in ",
-                " the same as in "
-                )
-         )
-  }, error = function(error_message) {""}
-  )
-extra_comp_value <- ifelse(extra_comp == " the same as in ",
-                           "", 
-                           round(abs(selected_fin_yr - KPO4_other), 1)
-                           )
-extra_text <- paste0("KPO 4 performance in ", 
-                     qrtr, 
-                     " ", 
-                     year, 
-                     " was ", 
-                     extra_comp_value, 
-                     extra_comp,
-                     qrtr, 
-                     " ",
-                     other_fin_yr,
-                     "."
-                     )
-# Number of years
-no_years <- length(unique(extra_data$`Financial Year`))
-# Number of quarters
-no_qrtrs <- length(extra_data$Quarter)
-# Select which text is shown based on the no. of years available
+prev_year_quarter <- prev_year_quarter %>%
+  str_replace(., "Q[0-9]\\ ", "")
+
+# Create comparison of KPO4 for selected quarter with equivalent quarter
+# from previous year (if available)
+year_quarter_diff <- current_value - prev_year_quarter_value
+year_quarter_diff_text <- if_else(year_quarter_diff < 0, "lower", "higher")
+year_quarter_diff <- round(abs(year_quarter_diff), 1)
+
+# Create standard text
+main_text <- paste0("In ", 
+                    current_quarter, 
+                    " ",
+                    year, 
+                    " performance for KPO4, calculated across all responses for all questions, was ",
+                    current_value,
+                    " for ",
+                    la,
+                    ".")
+
+# Create text for previous quarter comparison
+prev_quarter_text <- paste0("This is ",
+                            quarter_diff,
+                            " points ",
+                            quarter_diff_text,
+                            " than the previous quarter performance of ",
+                            prev_quarter_value,
+                            " in ",
+                            prev_quarter,
+                            ".")
+
+# Create text for equivalent quarter in previous year comparison
+prev_year_quarter_text <- paste0("KPO4 performance in  ",
+                                 current_quarter, 
+                                 " ",
+                                 year, 
+                                 " was ",
+                                 year_quarter_diff,
+                                 " points ",
+                                 year_quarter_diff_text,
+                                 " than the performance of ",
+                                 prev_year_quarter_value,
+                                 " in the same quarter in ",
+                                 prev_year_quarter,
+                                 ".")
+
+# Conditional statement to select text based on whether there is a previous year to compare   
+final_text <- if_else(is.na(prev_quarter) & is.na(prev_year_quarter), 
+                      main_text,
+                      if_else(!is.na(prev_quarter) & is.na(prev_year_quarter),
+                              paste(main_text, prev_quarter_text),
+                              paste(main_text, 
+                                    prev_quarter_text, 
+                                    prev_year_quarter_text)))
+
 ```    
     
-`r ifelse(no_years > 1 & no_qrtrs > 1, paste(main_text, extra_text), main_text)`
+`r final_text`
     
 ```{r echo = FALSE}
-# Set the council values as a factor so the data can be arranged to have the council first regardless of alphabetical order
-line_data$LA <- factor(line_data$LA, levels = c(la, "Scotland"))
+kpo_over_time_plot_dta <- kpo_data %>%
+  filter(Quarter != "Year to Date")
 
+# Set the council values as a factor so the data can be arranged to have the # council first regardless of alphabetical order
+kpo_over_time_plot_dta$id <- factor(kpo_over_time_plot_dta$id, 
+                                    levels = c(la, "Scotland"))
 # Add Financial year to quarter labels
-line_data$Quarter <- gsub("Quarter\\ ",
-                                  "Q",
-                                  line_data$Quarter, 
-                                  perl = TRUE
-                                  )
-line_data$Label <- paste(line_data$Quarter, 
-                         line_data$`Financial Year`, 
-                         sep = " "
-                         )
-line_data$Quarter <- gsub("Q",
-                                  "",
-                                  line_data$Quarter, 
-                                  perl = TRUE
-                                  )
-
+kpo_over_time_plot_dta <- kpo_over_time_plot_dta %>%
+  mutate(Quarter = str_replace(Quarter, "Quarter ", "Q")) %>%
+  mutate(Label = paste(Quarter, `Financial Year`))
 # Arrange the data to set the order of colours
-line_data <- arrange(line_data, `Financial Year`, Quarter, LA)
-      
+kpo_over_time_plot_dta <- kpo_over_time_plot_dta %>%
+  arrange(`Financial Year`, Quarter, id)
 # Set the date labels as a factor to ensure they stay in order
-QLabels <- unique(line_data$Label)
-line_data$Label <- factor(line_data$Label, levels = QLabels)
-```
-  
-  
-```{r, eval = length(line_data$LA[line_data$LA == la]) > 1, warning = FALSE, echo = FALSE}
-# The above test whether there is more than one data point available for the council and will only evaluate the code below if this is TRUE
-ggplot(data = line_data,
-       aes(x = Label, y = KPO_score, group = LA, colour = LA)
-       ) +
-  geom_line(lwd = 1) +
+kpo_over_time_plot_dta$Label <- factor(kpo_over_time_plot_dta$Label, 
+                                       levels = unique(dta$Label))
+
+ggplot(data = kpo_over_time_plot_dta) +
+  geom_line(aes(x = Label,
+                y = KPO_score, 
+                group = id, 
+                colour = id),
+            lwd = 1) +
   geom_text(aes(label = KPO_score, y = KPO_score + 0.1), 
             vjust = 0,
             position = position_dodge(width = 0),
-            show.legend = FALSE
-            ) +
+            show.legend = FALSE) +
   # Span x axis labels over multiple lines
-  scale_x_discrete(labels = function(x) str_wrap(x, width = 8)) +
+  scale_x_discrete(breaks = function(x){x[c(TRUE, FALSE)]},
+                   labels = function(x) str_wrap(x, width = 8)) +
   scale_color_manual(values = c("cadetblue3", "dimgrey"), name = "") +
   ggtitle("KPO 4 score - over time") +
   ylim(0, 10) +
@@ -541,44 +447,6 @@ ggplot(data = line_data,
   theme_classic()
 ```
   
-  
-```{r, eval = length(line_data$LA[line_data$LA == la]) < 2, echo = F}
-# The above test whether there is only one data point available for the council and will only evaluate the code below if this is TRUE
-
-# Pulls out quarter and financial year available for selected council
-# There may be more than one quarter for Scotland so need to filter so that's not included
-qrtr_available <- line_data$Quarter[line_data$LA == la]
-year_available <- line_data$`Financial Year`[line_data$LA == la]
-      
-line_data <- line_data %>% 
-  filter(Quarter == qrtr_available, 
-         `Financial Year` == year_available
-         )
-
-ggplot(data = line_data,
-       aes(x = Quarter, 
-           y = KPO_score, 
-           fill = LA
-           )
-       ) +
-  geom_bar(stat = "identity",
-           position = "dodge",
-           width = 0.7, 
-           colour = "black"
-           ) +
-  geom_text(aes(label = KPO_score, y = KPO_score + 0.8), 
-            vjust = 0,
-            position = position_dodge(width = 0.9)
-            ) +
-  scale_y_continuous(limits = c(0,11), 
-                     expand = expansion(mult = c(0, 0.1))
-                     ) +
-  scale_fill_manual(values = c("cadetblue3", "dimgrey"), name = "") +
-  ggtitle("KPO 4 score - over time") +
-  xlab("") +
-  ylab("KPO 4 Score") +
-  theme_classic()
-```
 \newpage
 
 # Individual Questions
