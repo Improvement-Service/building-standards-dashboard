@@ -18,7 +18,6 @@ params:
   reason_data: NA
   respondent_data: NA
   kpo_data: NA
-  line_data: NA
   comms_data: NA
   info_data: NA
   staff_data: NA
@@ -38,7 +37,6 @@ kpo_data <- params$kpo_data
 type_data <- params$type_data
 reason_data <- params$reason_data
 respondent_data <- params$respondent_data
-line_data <- params$line_data
 time_data <- params$time_data
 comms_data <- params$comms_data
 info_data <- params$info_data
@@ -53,7 +51,7 @@ named_qrtr <- params$named_qrtr
 ```
 
 ## KPO 4 Score
-```{r echo = FALSE, comment = ""}
+```{r kpo score text, echo = FALSE, comment = ""}
 # Set up text for KPO4 
 
 # Store the number of financial years available for council
@@ -63,15 +61,15 @@ Years <- kpo_data %>%
   arrange(`Financial Year`) %>%
   mutate("prev_year" = lag(`Financial Year`))
 # Filter to selected financial year
-kpo_data_ytd <- kpo_data %>%
+dta <- kpo_data %>%
   filter(Quarter == "Year to Date" & `Financial Year` == year)
 
 # Council KPO4
-KPO4_ytd <- kpo_data_ytd  %>% 
+KPO4_ytd <- dta  %>% 
   filter(id == la) %>% 
   pull(KPO_score)
 # Scotland KPO4
-scotAv_kpo4 <- kpo_data_ytd  %>% 
+scotAv_kpo4 <- dta  %>% 
   filter(id == "Scotland") %>% 
   pull(KPO_score)
 
@@ -90,9 +88,9 @@ abbel_kpo4 <- if_else(KPO4_ytd > scotAv_kpo4,
 prev_fin_yr <- Years %>%
   filter(`Financial Year` == year) %>%
   pull(prev_year)
-KPO4_other <- kpo_data_ytd %>%
+KPO4_other <- kpo_data %>%
   filter(Quarter == "Year to Date" & 
-           `Financial Year` == year & 
+           `Financial Year` == prev_fin_yr & 
            id == la) %>%
   pull(KPO_score)
 
@@ -182,7 +180,7 @@ ggplot(data = kpo_ytd_plot_data,
 \newpage
 
 # Respondent Type
-```{r echo = FALSE, comment = ""}
+```{r respondent type text, echo = FALSE, comment = ""}
 # Set up text for respondent type
 type_dta_filter <- respondent_data %>% 
   filter(question_type == "Type") 
@@ -193,16 +191,16 @@ type_number <- type_dta_filter %>%
   distinct(total_responses) %>%
   pull(total_responses)
 # Create variables for percentages for different groups
-agent_perc <- typ_dta_filter %>%
+agent_perc <- type_dta_filter %>%
       filter(Question == "Agent/Designer" & value == 1) %>%
       pull(perc)
-appli_perc <- typ_dta_filter %>%
+appli_perc <- type_dta_filter %>%
       filter(Question == "Applicant" & value == 1) %>%
       pull(perc)
-contr_perc <- typ_dta_filter %>%
+contr_perc <- type_dta_filter %>%
       filter(Question == "Contractor" & value == 1) %>%
       pull(perc)
-type_other_perc <- typ_dta_filter %>%
+type_other_perc <- type_dta_filter %>%
       filter(Question == "Other respondent" & value == 1) %>%
       pull(perc)
 
@@ -217,86 +215,86 @@ type_other_perc <- if_else(is_empty(type_other_perc),
   
 Respondents were asked to provide details on the type of respondent they were, as well as their reason for contacting the Building Standards Service in `r la`. Of the `r type_number` respondents in `r named_qrtr` `r year`, `r agent_perc` were agents or designers, `r appli_perc` were applicants and `r contr_perc` were contractors. `r type_other_perc` said they were an other respondent type.
 
-```{r echo = FALSE}
-ggplot(data = type_data, aes(x = Question, y = perc)) +
+```{r respondent type plot, echo = FALSE}
+ggplot(data = type_data,
+       aes(x = fct_reorder(Question, desc(perc)), 
+           y = perc)) +
   geom_col(fill = "cadetblue3", colour = "black") +
   geom_text(aes(label = perc, y = perc + 2.5), 
             vjust = 0,
-            position = position_dodge(width = 0.9) 
-            ) +
+            position = position_dodge(width = 0.9)) +
   coord_flip() +
   theme_classic() +
   scale_y_continuous(expand = expansion(mult = c(0, 0.1))) +
-
   ggtitle(paste("Respondent Type: \n", named_qrtr, year)) +
-
   xlab("Respondent Type") +
   ylab("Percentage of Responses")
 ```
 \newpage
 
 # Response Reason
-```{r echo= FALSE, comment = ""}
+```{r respondent reason text, echo= FALSE, comment = ""}
 # Set up text for response reason
-resp_dta_filter <- respondent_data %>% filter(question_type == "Reason") 
+resp_dta_filter <- respondent_data %>% 
+  filter(question_type == "Reason") 
 # Get total responses for referencing the percentage denominator
 resp_number <- resp_dta_filter %>% 
   group_by(Question) %>%
-  summarise_at(vars(`n`), sum)
-resp_number <- resp_number[1, 2]
+  summarise("total_responses" = sum(n)) %>%
+  distinct(total_responses) %>%
+  pull(total_responses)
 # Calculate percentages for each response type
-discuss_perc <- resp_dta_filter[resp_dta_filter$Question == "To discuss your proposal before applying for a building warrant" & 
-                                  resp_dta_filter$value == 1, "perc"] %>% 
+discuss_perc <- resp_dta_filter %>%
+  filter(Question == "To discuss your proposal" & value == 1) %>%
   pull(perc)
-
-appli_perc <- resp_dta_filter[resp_dta_filter$Question == "To make an application for a building warrant" & 
-                                resp_dta_filter$value == 1 ,"perc"] %>%
+appli_perc <- resp_dta_filter %>%
+  filter(Question == "To make an application" & value == 1) %>%
   pull(perc)
-
-constr_perc <- resp_dta_filter[resp_dta_filter$Question == "During construction, including submission of a completion certificate" &
-                                 resp_dta_filter$value == 1 ,"perc"] %>% 
+constr_perc <- resp_dta_filter %>%
+  filter(Question == "During construction" & value == 1) %>%
   pull(perc)
-
-other_perc <- resp_dta_filter[resp_dta_filter$Question == "Other" &
-                                resp_dta_filter$value == 1 ,"perc"] %>%
+other_perc <- resp_dta_filter %>%
+  filter(Question == "Other reason" & value == 1) %>%
   pull(perc)
      
 # If any are 0 then replace with "none"
-discuss_perc <- ifelse(isEmpty(discuss_perc), 
+discuss_perc <- if_else(isEmpty(discuss_perc), 
+                        "none", 
+                        paste0(discuss_perc,"%"))
+appli_perc <- if_else(isEmpty(appli_perc), 
+                      "none", 
+                      paste0(appli_perc, "%"))
+constr_perc <- if_else(isEmpty(constr_perc), 
                        "none", 
-                       paste0(discuss_perc,"%")
-                       )
-appli_perc <- ifelse(isEmpty(appli_perc), "none", paste0(appli_perc, "%"))
-constr_perc <- ifelse(isEmpty(constr_perc), "none", paste0(constr_perc, "%"))
-other_perc <- ifelse(isEmpty(other_perc), 
-                     "No respondents", 
-                     paste0(other_perc, "%")
-                     )
+                       paste0(constr_perc, "%"))
+other_perc <- if_else(isEmpty(other_perc), 
+                      "No respondents", 
+                      paste0(other_perc, "%"))
 ```
 
   
 Respondents were asked to provide details on the type of respondent they were, as well as their reason for contacting the Building Standards Service in `r la`. Of the `r resp_number` respondents in, `r named_qrtr` `r year`, `r discuss_perc` contacted the local authority to discuss their proposal before applying for a building warrant, `r appli_perc` were making an application for a warrant and `r constr_perc` contacted the service during construction. `r other_perc` contacted the service for some other reason.  
 
 
-```{r echo = FALSE}
-ggplot(data = reason_data,aes(x = Question, y = perc)) +
+```{r respondent reason plot, echo = FALSE}
+ggplot(data = reason_data,
+       aes(x = fct_reorder(Question, desc(perc)), 
+               y = perc)) +
   geom_col(fill = "cadetblue3", colour = "black") +
   geom_text(aes(label = perc, y = perc + 2.5), 
             vjust = 0,
-            position = position_dodge(width = 0.9) 
-            ) +
+            position = position_dodge(width = 0.9)) +
   coord_flip() +
   theme_classic() +
   scale_y_continuous(expand = expansion(mult = c(0, 0.1))) +
-  ggtitle(paste("Response Reason: \n", named_qrtr, year)) +
-
+  ggtitle(paste("Respondent Reason: \n", named_qrtr, year)) +
   xlab("Reason") +
   ylab("Percentage of Responses")
 ```
 \newpage
 
 # KPO 4 Over Time
-```{r echo = FALSE, comment = ""}
+```{r kpo over time text, echo = FALSE, comment = ""}
 
 # Filter data to selected council and quarters only
 kpo_over_time_dta <- kpo_data %>%
@@ -408,7 +406,7 @@ final_text <- if_else(is.na(prev_quarter) & is.na(prev_year_quarter),
     
 `r final_text`
     
-```{r echo = FALSE}
+```{r kpo over time plot, echo = FALSE}
 kpo_over_time_plot_dta <- kpo_data %>%
   filter(Quarter != "Year to Date")
 
@@ -423,54 +421,56 @@ kpo_over_time_plot_dta <- kpo_over_time_plot_dta %>%
 kpo_over_time_plot_dta <- kpo_over_time_plot_dta %>%
   arrange(`Financial Year`, Quarter, id)
 # Set the date labels as a factor to ensure they stay in order
-kpo_over_time_plot_dta$Label <- factor(kpo_over_time_plot_dta$Label, 
-                                       levels = unique(dta$Label))
+kpo_over_time_plot_dta$Label <- factor(kpo_over_time_plot_dta$Label,
+                                       levels = unique(kpo_over_time_plot_dta$Label))
 
-ggplot(data = kpo_over_time_plot_dta) +
-  geom_line(aes(x = Label,
-                y = KPO_score, 
-                group = id, 
-                colour = id),
-            lwd = 1) +
-  geom_text(aes(label = KPO_score, y = KPO_score + 0.1), 
+ggplot(data = kpo_over_time_plot_dta,
+       aes(x = Label,
+           y = KPO_score, 
+           group = id, 
+           colour = id)) +
+  geom_line(lwd = 1) +
+  geom_text(aes(label = KPO_score, 
+                y = KPO_score + 0.1), 
             vjust = 0,
             position = position_dodge(width = 0),
             show.legend = FALSE) +
-  # Span x axis labels over multiple lines
-  scale_x_discrete(breaks = function(x){x[c(TRUE, FALSE)]},
-                   labels = function(x) str_wrap(x, width = 8)) +
-  scale_color_manual(values = c("cadetblue3", "dimgrey"), name = "") +
+  scale_color_manual(values = c("cadetblue3", "dimgrey"), 
+                     name = "") +
   ggtitle("KPO 4 score - over time") +
-  ylim(0, 10) +
+  ylim(0, 10.5) +
   xlab("") +
   ylab("KPO 4 Score") +
-  theme_classic()
+  theme_classic() +
+  theme(axis.text.x = element_text(angle = 90, 
+                                   vjust = 0.5, 
+                                   hjust = 1))
 ```
   
-\newpage
-
-# Individual Questions
-
-## Time taken
-```{r echo = FALSE, comment= ""}
+```{r text function, echo = FALSE, comment = ""}
 # Create function for preparing text values for individual questions
-text_prep <- function(dataset) {
+text_prep <- function(dataset, 
+                      question, 
+                      named_value_1, 
+                      named_value_2,
+                      extra_text) {
   # Load data and split into Scotland and LA datasets
-  qstnDta <- dataset
-  qstnDta_LA <- qstnDta %>% filter(Selection == la)
-  qstnDta_scot <- qstnDta %>% filter(Selection == "Scotland")
+  qstnDta_LA <- dataset %>% 
+    filter(Selection == la)
+  qstnDta_scot <- dataset %>% 
+    filter(Selection == "Scotland")
   # Get total percentage positive
-  total_good <- filter(qstnDta_LA, value %in% c(1,2) & Selection == la) %>%
-    pull(perc_resp) %>%
-    sum()
-  # If this is above 55% then overall is positive, If less than 45% negative,   otherwise balanced
-  pos_or_neg <- ifelse(total_good > 55, 
-                       "mainly positive", 
-                       ifelse(total_good < 45, 
-                              "mainly negative", 
-                              "balanced"
-                              )
-                       )
+  total_good <- qstnDta_LA  %>%
+      filter(value %in% c(1,2)) %>% 
+      pull(perc_resp) %>%
+      sum()
+  # If this is above 55% then overall is positive, If less than 45%
+  # negative, otherwise balanced
+  pos_or_neg <- if_else(total_good > 55, 
+                        "mainly positive", 
+                        if_else(total_good < 45, 
+                               "mainly negative", 
+                               "balanced"))
   # Add "only" to the % positive if this is below 45
   if (total_good < 45) {
     total_good <- paste("only", total_good)
@@ -478,292 +478,272 @@ text_prep <- function(dataset) {
     total_good <- total_good
     }
   
-  # Get the name for the maximum value in LA dataset. 
-  # If more than one paste these together
-  max_name <- as.character(qstnDta_LA %>% 
-                             filter(n == max(n)) %>%
-                             pull(named_value)
-                           )
+  # Get the name for the maximum value in LA dataset. If more than one 
+  # paste these together
+  max_name <- qstnDta_LA %>% 
+    filter(perc_resp == max(perc_resp)) %>% 
+    pull(named_value)
+  # Get the percentage for the highest response and paste together if multiple
+  max_perc <- qstnDta_LA %>% 
+    filter(named_value %in% max_name) %>% 
+    distinct(perc_resp) %>%
+    pull(perc_resp)
+  if (length(max_name) > 1) {
+    max_perc <- paste(max_perc, "percent respectively.")
+  } else {
+    max_perc <- paste0(max_perc, " percent.")
+  }
   if (length(max_name > 1)) {
     max_name <- paste(max_name, collapse = " & ")
   }
-  # Get the percentage for the highest response and paste together if 
-  # multiple
-  max_perc <- qstnDta_LA %>% 
-    filter(n == max(n)) %>% 
-    pull(perc_resp)
-  if (length(max_perc) > 1) {
-    max_perc <- paste(paste(max_perc, collapse = " & "), 
-                      "percent respectively."
-                      )
-    } else {
-      max_perc <- paste0(max_perc, " percent.")
-      }
   # Get second highest value
-  sec_val <- sort(qstnDta_LA$n, partial = 3)[3]
+  sec_val <- sort(unique(qstnDta_LA$perc_resp), 
+                  decreasing = TRUE) %>%
+    nth(2)
   # Filter for second highest value's name
-  sec_name <- qstnDta_LA %>% 
-    filter(n == sec_val) %>% 
+  sec_name <- qstnDta_LA %>%
+    filter(perc_resp == sec_val) %>% 
     pull(named_value)
+  # Create text, accounting for more than one same value
+  if (length(sec_name) > 1) {
+    sec_perc <- paste(sec_val, "percent respectively.")
+  } else {
+    sec_perc <- paste0(sec_val, " percent.")
+  }
   if (length(sec_name) > 1) {
     sec_name <- paste(sec_name, collapse = " & ")
-    }
-  # Filter for second highest value's value
-  sec_perc <- qstnDta_LA %>% 
-    filter(n == sec_val) %>% 
-    pull(perc_resp)
-  if (length(sec_perc) > 1) {
-    sec_perc <- paste(paste(sec_perc, collapse = " & "), 
-                      "percent respectively."
-                      )
-    } else {
-      sec_perc <- paste0(sec_perc, " percent.")
-      }
-  
+  }
   # Get most frequent response for Scotland
-  scot_max_name <- as.character(qstnDta_scot %>% 
-                                  filter(n == max(n)) %>% 
-                                  pull(named_value)
-                                )
+  scot_max_name <- qstnDta_scot %>% 
+    filter(perc_resp == max(perc_resp)) %>% 
+    pull(named_value)
   if (length(scot_max_name) > 1) {
     scot_max_name <- paste(scot_max_name, collapse = " & ")
-    }
+  }
   # Get percentage for most frequent Scotland level response
   scot_max_perc <- qstnDta_scot %>% 
-    filter(n == max(n)) %>% 
+    filter(perc_resp == max(perc_resp)) %>% 
+    distinct(perc_resp) %>%
     pull(perc_resp)
-  if (length(scot_max_perc) > 1) {
-    scot_max_perc <- paste(paste(scot_max_perc, collapse = " & "), 
-                           "percent respectively."
-                           )
-    } else {
-      scot_max_perc <- paste0(scot_max_perc, " percent.")
-      }
-  
-  # Assign all objects so they can be referenced in the question dataset
-  objcts <- list(pos_or_neg,
-                 total_good,
-                 max_name,
-                 max_perc,
-                 sec_name,
-                 sec_perc,
-                 sec_name,
-                 sec_perc,
-                 scot_max_name,
-                 scot_max_perc
-                 )
-  names(objcts) <- c("pos_or_neg",
-                     "total_good",
-                     "max_name", 
-                     "max_perc",
-                     "sec_name",
-                     "sec_perc",
-                     "sec_name",
-                     "sec_perc", 
-                     "scot_max_name", 
-                     "scot_max_perc"
-                     )
-  return(objcts)
+  if (length(scot_max_name) > 1) {
+    scot_max_perc <- paste(scot_max_perc, "percent respectively.")
+  } else {  
+    scot_max_perc <- paste0(scot_max_perc, " percent.")
   }
-# Set up for time taken text
-tm <- text_prep(time_data)
+  
+   # Paste the text together
+  main_text <- paste0("In ",
+                      quarter,
+                      " ",
+                      year,
+                      ", in relation to the statement \"",
+                      question,
+                      "\" responses for ",
+                      la,
+                      " have been ",
+                      pos_or_neg, 
+                      " with ",
+                      total_good,
+                      " percent saying that ",
+                      extra_text,
+                      " ",
+                      named_value_1,
+                      " or ",
+                      named_value_2,
+                      ". The greatest proportion of respondents said ",
+                      extra_text,
+                      " ",
+                      max_name,
+                      " at ", 
+                      max_perc, 
+                      " This was followed by ", 
+                      sec_name, 
+                      " at ", 
+                      sec_perc,
+                      " For Scotland overall, most respondents said that ",
+                      extra_text,
+                      " ",
+                      scot_max_name,
+                      " at ", 
+                      scot_max_perc)
+  
+  # Text when all responses are the same
+  other_text <- paste0("In ",
+                       quarter,
+                       " ",
+                       year,
+                       ", in relation to the statement \"",
+                       question,
+                       "\" responses for ",
+                       la,
+                       " have been ",
+                       pos_or_neg, 
+                       " with ",
+                       total_good,
+                       " percent saying that ",
+                       extra_text,
+                       " ",
+                       named_value_1,
+                       " or ",
+                       named_value_2,
+                       ". The greatest proportion of respondents said ",
+                       extra_text,
+                       " ",
+                       max_name,
+                       " at ", 
+                       max_perc, 
+                       " For Scotland overall, most respondents said that ",
+                       extra_text,
+                       " ",
+                       scot_max_name,
+                       " at ", 
+                       scot_max_perc)
+  
+  # Test whether there's more than one different type of response
+    text <- ifelse(is.na(sec_val), other_text, main_text)
+}
 ```
-In `r named_qrtr` `r year`, for the question "Thinking of your engagement, how satisfied were you with the time taken to complete the process?" responses for `r la` have been `r tm$pos_or_neg` with `r tm$total_good` percent saying that they were very satisfied or satisfied. The greatest proportion of respondents said they were `r tm$max_name` at `r tm$max_perc` This was followed by `r tm$sec_name` at `r tm$sec_perc` For Scotland overall, most respondents said that they were `r tm$scot_max_name` at `r tm$scot_max_perc`  
 
-
-```{r echo = FALSE}
-ggplot(data = time_data,
-       aes(x = named_value, y = perc_resp, fill = Selection)
-       ) +
+```{r plot function, echo = FALSE}
+plot_prep <- function(data, title) {
+  ggplot(data = data,
+         aes(x = fct_reorder(named_value, value), 
+             y = perc_resp, 
+             fill = Selection)) +
   geom_bar(stat = "identity", 
            position = "dodge",
            width = 0.7,
-           colour = "black"
-           ) +
+           colour = "black") +
   geom_text(aes(label = perc_resp, y = perc_resp + 1.2), 
             vjust = 0,
-            position = position_dodge(width = 0.9)
-            ) +
-  scale_fill_manual(values = c("cadetblue3", "dimgrey"), name = "") +
+            position = position_dodge(width = 0.9)) +
+  scale_fill_manual(values = c("cadetblue3", 
+                               "dimgrey"), 
+                    name = "") +
   scale_y_continuous(expand = expansion(mult = c(0, 0.1))) +
-  ggtitle(paste("Satisfaction with time taken -", named_qrtr, year)) +
+  ggtitle(paste(title, 
+                named_qrtr, 
+                year)) +
   xlab("Responses") +
   ylab(paste("% of Responses", named_qrtr, year)) +
-
   theme_classic()
+}
 ```
+
+\newpage
+
+# Individual Questions
+
+## Time taken
+
+```{r time taken text, echo = FALSE}
+time_taken_text <- text_prep(dataset = time_data,
+                             question = "How satisfied were you with the time taken?",
+                             named_value_1 = "very satisfied",
+                             named_value_2 = "satisfied",
+                             extra_text = "they were")
+```
+`r time_taken_text` 
+
+```{r time taken plot, echo = FALSE}
+plot_prep(data = time_data, 
+          title = "Satisfaction with time taken -")
+```
+
 \newpage
 
 ## Communications
-```{r echo = FALSE, comment = ""}
-cm_txt <- text_prep(comms_data)
+```{r comms text, echo = FALSE, comment = ""}
+comms_text <- text_prep(dataset = comms_data,
+                             question = "How would you rate the standard of communication?",
+                             named_value_1 = "very good",
+                             named_value_2 = "good",
+                             extra_text = "it was")
 ```
-In `r named_qrtr` `r year`, for the question "How would you rate the standard of communication provided?" responses for `r la` have been `r cm_txt$pos_or_neg` with `r cm_txt$total_good` percent saying that it was good or very good. The greatest proportion of respondents said they felt it was `r cm_txt$max_name` at `r cm_txt$max_perc` This was followed by `r cm_txt$sec_name` at `r cm_txt$sec_perc` For Scotland overall, most respondents said that communication was `r cm_txt$scot_max_name` at `r cm_txt$scot_max_perc`  
+`r comms_text`
 
-
-```{r echo = FALSE}
-ggplot(data = comms_data,
-       aes(x = named_value, y = perc_resp, fill = Selection)
-       ) +
-  geom_bar(stat= "identity", 
-           position = "dodge",
-           width = 0.7,
-           colour = "black"
-           ) +
-  geom_text(aes(label = perc_resp, y = perc_resp + 1.2), 
-            vjust = 0, 
-            position = position_dodge(width = 0.9) 
-            ) +
-  scale_fill_manual(values = c("cadetblue3", "dimgrey"), name = "") +
-  scale_y_continuous(expand = expansion(mult = c(0, 0.1))) +
-  ggtitle(paste("Standard of Communication -", named_qrtr, year)) +
-  xlab("Responses") +
-  ylab(paste("% of Responses", named_qrtr, year)) +
-
-  theme_classic()
+```{r comms plot, echo = FALSE}
+plot_prep(data = comms_data, title = "Standard of communication -")
 ```
+
 \newpage
 
 ## Information
-```{r echo = FALSE, comment = ""}
-inf_txt <- text_prep(info_data)
+```{r info text, echo = FALSE, comment = ""}
+info_text <- text_prep(dataset = info_data,
+                       question = "Quality of the information provided",
+                       named_value_1 = "very good",
+                       named_value_2 = "good",
+                       extra_text = "it was")
 ```
-In `r named_qrtr` `r year`, for the question "How would you rate the quality of information provided?" responses for `r la` have been `r inf_txt$pos_or_neg` with `r inf_txt$total_good` percent saying that it was good or very good. The greatest proportion of respondents said they felt it was `r inf_txt$max_name` at `r inf_txt$max_perc` This was followed by `r inf_txt$sec_name` at `r inf_txt$sec_perc` For Scotland overall, most respondents said that the information they received was `r inf_txt$scot_max_name` at `r inf_txt$scot_max_perc`  
+`r info_text`
 
-```{r echo = FALSE}
-ggplot(data = info_data,
-       aes(x = named_value, y = perc_resp, fill = Selection)
-       ) +
-  geom_bar(stat= "identity", 
-           position = "dodge",
-           width = 0.7,
-           colour = "black"
-           ) +
-  geom_text(aes(label = perc_resp, y = perc_resp + 1.2), 
-            vjust = 0,
-            position = position_dodge(width = 0.9) 
-            ) +
-  scale_fill_manual(values = c("cadetblue3","dimgrey"), name = "") +
-  ggtitle(paste("Quality of information -", named_qrtr, year)) +
-  xlab("Responses") +
-  scale_y_continuous(expand = expansion(mult = c(0, 0.1))) +
-  ylab(paste("% of Responses", named_qrtr, year)) +
-  theme_classic()
+```{r info plot, echo = FALSE}
+plot_prep(data = info_data, title = "Quality of information -")
 ```
+
 \newpage
 
 ## Staff
-```{r echo = FALSE, comment = ""}
-staff_txt <- text_prep(staff_data)
+```{r staff text, echo = FALSE, comment = ""}
+staff_text <- text_prep(dataset = staff_data,
+                        question = "Service offered by staff",
+                        named_value_1 = "very good",
+                        named_value_2 = "good",
+                        extra_text = "it was")
 ```
-In `r named_qrtr` `r year`, for the question "How would you rate the service offered by staff?" responses for `r la` have been `r staff_txt$pos_or_neg` with `r staff_txt$total_good` percent saying that it was good or very good. The greatest proportion of respondents said they felt it was `r staff_txt$max_name` at `r staff_txt$max_perc` This was followed by `r staff_txt$sec_name` at `r staff_txt$sec_perc` For Scotland overall, most respondents said that the service received was `r staff_txt$scot_max_name` at `r staff_txt$scot_max_perc`  
+`r staff_text` 
 
-
-```{r echo = FALSE}
-ggplot(data = staff_data, 
-       aes(x = named_value, y = perc_resp, fill = Selection)
-       ) +
-  geom_bar(stat= "identity", 
-           position = "dodge",
-           width = 0.7,
-           colour = "black"
-           ) +
-  geom_text(aes(label = perc_resp, y = perc_resp + 1.2), 
-            vjust = 0,
-            position = position_dodge(width = 0.9) 
-            ) +
-  scale_fill_manual(values = c("cadetblue3", "dimgrey"), name = "") +
-  scale_y_continuous(expand = expansion(mult = c(0, 0.1))) +
-  ggtitle(paste("Service offered by staff -", named_qrtr, year)) +
-  xlab("Responses") +
-  ylab(paste("% of Responses", named_qrtr, year)) +
-  theme_classic()
+```{r staff plot, echo = FALSE}
+plot_prep(data = staff_data, title = "Service offered by staff -")
 ```
+
 \newpage
 
 ## Responsiveness
-```{r echo = FALSE, comment = ""}
-resp_txt <- text_prep(responsive_data)
+```{r responsiveness text, echo = FALSE, comment = ""}
+responsive_text <- text_prep(dataset = responsive_data,
+                             question = "Responsiveness to any queries or issues raised",
+                             named_value_1 = "very good",
+                             named_value_2 = "good",
+                             extra_text = "it was")
 ```
-In `r named_qrtr` `r year`, for the question "How would you rate the time taken to respond to any queries or issues raised?" responses for `r la` have been `r resp_txt$pos_or_neg` with `r resp_txt$total_good` percent saying that it was good or very good. The greatest proportion of respondents said they were `r resp_txt$max_name` at `r resp_txt$max_perc` This was followed by `r resp_txt$sec_name` at `r resp_txt$sec_perc` For Scotland overall, most respondents said that responsiveness was `r resp_txt$scot_max_name` at `r resp_txt$scot_max_perc`  
+`r responsive_text`
 
-
-```{r echo = FALSE}
-ggplot(data = responsive_data,
-       aes(x = named_value, y = perc_resp, fill = Selection)
-       ) +
-  geom_bar(stat= "identity", 
-           position = "dodge",
-           width = 0.7,
-           colour = "black"
-           ) +
-  geom_text(aes(label = perc_resp, y = perc_resp + 1.2), 
-            vjust = 0,
-            position = position_dodge(width = 0.9) 
-            ) +
-  scale_fill_manual(values = c("cadetblue3", "dimgrey"), name = "") +
-  ggtitle(paste("Responsiveness to queries or issues -", named_qrtr, year))+
-  scale_y_continuous(expand = expansion(mult = c(0, 0.1))) +
-  xlab("Responses") +
-  ylab(paste("% of Responses", named_qrtr, year)) +
-  theme_classic()
+```{r responsiveness plot, echo = FALSE}
+plot_prep(data = responsive_data,
+          title = "Responsiveness to queries or issues -")
 ```
+
 \newpage
 
 ## Treated Fairly
-```{r echo = FALSE, comment = ""}
-fair_txt <- text_prep(fair_data)
+```{r treated fairly text, echo = FALSE, comment = ""}
+fairly_text <- text_prep(dataset = fair_data,
+                         question = "To what extent would you agree that you were treated fairly?",
+                         named_value_1 = "strongly agree",
+                         named_value_2 = "agree",
+                         extra_text = "they")
 ```
-In `r named_qrtr` `r year`, for the question "To what extent would you agree that you were treated fairly?" responses for `r la` have been `r fair_txt$pos_or_neg` with `r fair_txt$total_good` percent saying that they agree or strongly agree. The greatest proportion of respondents said they `r fair_txt$max_name` with the statement at `r fair_txt$max_perc` This was followed by `r fair_txt$sec_name` at `r fair_txt$sec_perc` For Scotland overall, most respondents said that they `r fair_txt$scot_max_name` at `r fair_txt$scot_max_perc`  
+`r fairly_text` 
 
-
-```{r echo = FALSE}
-ggplot(data = fair_data,
-       aes(x = named_value, y = perc_resp, fill = Selection)
-       ) +
-  geom_bar(stat= "identity", 
-           position = "dodge",
-           width = 0.7,
-           colour = "black"
-           ) +
-  geom_text(aes(label = perc_resp, y = perc_resp + 1.2), 
-            vjust = 0,
-            position = position_dodge(width = 0.9) 
-            ) +
-  scale_fill_manual(values = c("cadetblue3", "dimgrey"), name = "") +
-  ggtitle(paste("Would you agree you were treated fairly -",
-                named_qrtr, 
-                year)) +
-  scale_y_continuous(expand = expansion(mult = c(0, 0.1))) +
-  xlab("Responses") +
-  ylab(paste("% of Responses", named_qrtr, year)) +
-  theme_classic()
+```{r treated fairly plot, echo = FALSE}
+plot_prep(data = fair_data,
+          title = "Would you agree you were treated fairly -")
 ```
+
 \newpage
 
 ## Overall Satisfaction
-```{r echo = FALSE, comment = ""}
-ovr_txt <- text_prep(overall_data)
+```{r overall satisfaction text, echo = FALSE, comment = ""}
+overall_text <- text_prep(dataset = overall_data,
+                          question = "How satisfied were you overall?",
+                          named_value_1 = "very satisfied",
+                          named_value_2 = "satisfied",
+                          extra_text = "they were")
 ```
-In `r named_qrtr` `r year`, for the question "Overall, how satisfied were you with the service provided?" responses for `r la` have been `r ovr_txt$pos_or_neg` with `r ovr_txt$total_good` percent saying that they were very satisfied or satisfied. The greatest proportion of respondents said they were `r ovr_txt$max_name` at `r ovr_txt$max_perc` This was followed by `r ovr_txt$sec_name` at `r ovr_txt$sec_perc` For Scotland overall, most respondents said that they were `r ovr_txt$scot_max_name` at `r ovr_txt$scot_max_perc`  
+`r overall_text`  
 
-```{r echo = FALSE}
-ggplot(data = overall_data,
-       aes(x = named_value, y = perc_resp, fill = Selection)
-       ) +
-  geom_bar(stat= "identity", 
-           position = "dodge",
-           width = 0.7,
-           colour = "black"
-           ) +
-  geom_text(aes(label = perc_resp, y = perc_resp + 1.2), 
-            vjust = 0,
-            position = position_dodge(width = 0.9) 
-            ) +
-  scale_fill_manual(values = c("cadetblue3", "dimgrey"), name = "") +
-  scale_y_continuous(expand = expansion(mult = c(0, 0.1))) +
-  ggtitle(paste("Overall satisfaction -", named_qrtr, year)) +
-  xlab("Responses") +
-  ylab(paste("% of Responses", named_qrtr, year)) +
-  theme_classic()
+```{r overall satisfaction plot, echo = FALSE}
+plot_prep(data = overall_data, title = "Overall satisfaction -")
 ```

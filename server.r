@@ -1373,15 +1373,13 @@ function(input, output, session) {
                                  paste("KPO 4 Score:", KPO_score),
                                  sep = "\n")),
                 lwd = 1) +
-      # Span x axis labels over multiple lines
-      scale_x_discrete(breaks = function(x){x[c(TRUE, FALSE)]},
-                       labels = function(x) str_wrap(x, width = 8)) +
       scale_color_manual(values = c("cadetblue3", "dimgrey"), name = "") +
       ggtitle("KPO 4 score - over time") +
       ylim(0, 10) +
       xlab("") +
       ylab("KPO 4 Score") +
-      theme_classic()
+      theme_classic() +
+      theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust = 1))
     ggplotly(plot, tooltip = "text")
 
   })
@@ -1504,25 +1502,23 @@ function(input, output, session) {
                               named_value_1, 
                               named_value_2,
                               named_value_3, 
-                              named_value_4
-  ) {
-    council_fltr <- local_authority()
+                              named_value_4) {
     # Filter pivot_dta to selected financial year, selected quarter and remove missing values
-    pivot_dta <- pivot_dta %>% 
-      filter(Quarter %in% qrtr() & `Financial Year` == fin_yr()) %>%
-      filter(value != "-")
-    # Set values as factor to keep in order
-    pivot_dta$`value` <- factor(pivot_dta$`value`, levels = c(1, 2, 3, 4))
+    dta <- pivot_dta %>% 
+      filter(Quarter %in% qrtr() & 
+               `Financial Year` == fin_yr() &
+               Indicator == question) %>%
+      filter(!is.na(value))
+    # Set values as numeric to keep in order
+    dta$value <- as.numeric(dta$value)
     # Calculate count for question and selected LA
-    qstnDta_LA <- pivot_dta %>% 
-      filter(Indicator == question) %>%
-      filter(`Local Authority Name` == council_fltr) %>% 
-      count(value, .drop = FALSE) %>%
-      mutate(Selection = council_fltr)
+    qstnDta_LA <- dta %>% 
+      filter(`Local Authority Name` == local_authority()) %>% 
+      count(value) %>%
+      mutate(Selection = local_authority())
     # Calculate count for question for all responses (Scotland) - bind LA count
-    qstnDta <- pivot_dta %>% 
-      filter(Indicator == question) %>%
-      count(value, .drop = FALSE) %>%
+    qstnDta <- dta %>% 
+      count(value) %>%
       mutate(Selection = "Scotland") %>%
       rbind(qstnDta_LA )
     # Get response percentages for LA and Scotland 
@@ -1531,19 +1527,19 @@ function(input, output, session) {
       mutate(perc_resp = round((n / sum(n)) * 100, 1))
     # Set labels for tickmarks to display on x axis
     # Different responses for different questions so needs to be set accordingly
-    qstnDta$named_value <- recode(qstnDta$value, 
-                                  "1" = named_value_1,
-                                  "2" = named_value_2,
-                                  "3" = named_value_3,
-                                  "4" = named_value_4
-    )
+    qstnDta <- qstnDta %>%
+      mutate(named_value = str_replace_all(value, 
+                                           c( "1" = named_value_1,
+                                              "2" = named_value_2,
+                                              "3" = named_value_3,
+                                              "4" = named_value_4)))
     # Set the council values as a factor so the data can be arranged to 
     # have the council first regardless of alphabetical order
     qstnDta$Selection <- factor(qstnDta$Selection, 
-                                levels = c(council_fltr, "Scotland")
-    )
+                                levels = c(local_authority(), "Scotland"))
     # Arrange the data so the colours will be in order
-    qstnDta <- arrange(qstnDta, value, Selection) 
+    qstnDta <- qstnDta %>% 
+      arrange(value, Selection) 
     qstnDta
   } 
   
@@ -1551,20 +1547,17 @@ function(input, output, session) {
   
   create_qstn_plot <- function(data, title) {
     plot <- ggplot(data = data) +
-      geom_bar(aes(x = named_value,
+      geom_bar(aes(x = fct_reorder(named_value, value),
                    y = perc_resp,
                    fill = Selection,
                    text = paste(Selection, 
                                 paste("Response:", named_value), 
                                 paste("% of Responses:", perc_resp),
-                                sep = "\n"
-                   )
-      ), 
-      stat = "identity", 
-      position = "dodge",
-      width = 0.7, 
-      colour = "black"
-      ) +
+                                sep = "\n")), 
+               stat = "identity", 
+               position = "dodge",
+               width = 0.7, 
+               colour = "black") +
       scale_y_continuous(expand = expansion(mult = c(0, 0.1))) +
       scale_fill_manual(values = c("cadetblue3", "dimgrey"), name = "") +
       ggtitle(paste(title, input$qrtr_selection, fin_yr())) +
@@ -1583,25 +1576,22 @@ function(input, output, session) {
                                extra_text
   ) {
     # Call data and split into Scotland and LA datasets
-    council_fltr <- local_authority()
-    qstnDta <- data
-    qstnDta_LA <- qstnDta %>% filter(Selection == council_fltr)
-    qstnDta_scot<- qstnDta %>% filter(Selection == "Scotland")
+    qstnDta_LA <- data %>%
+      filter(Selection == local_authority())
+    qstnDta_scot <- data %>%
+      filter(Selection == "Scotland")
     # Get total percentage positive 
-    total_good <- filter(qstnDta_LA, 
-                         value %in% c(1,2) & Selection == council_fltr
-    ) %>% 
+    total_good <- qstnDta_LA  %>%
+      filter(value %in% c(1,2)) %>% 
       pull(perc_resp) %>%
       sum()
     # If this is above 55% then overall is positive, 
     # If less than 45% negative, otherwise balanced
-    pos_or_neg <- ifelse(total_good > 55, 
-                         "mainly positive,", 
-                         ifelse(total_good < 45, 
-                                "mainly negative,", 
-                                "balanced,"
-                         )
-    )
+    pos_or_neg <- if_else(total_good > 55, 
+                          "mainly positive,", 
+                          if_else(total_good < 45, 
+                                  "mainly negative,", 
+                                  "balanced,"))
     # Add "only" to the % positive if this is below 45
     if (total_good < 45) {
       total_good <- paste("only", total_good)
@@ -1611,101 +1601,125 @@ function(input, output, session) {
     
     # Get the name for the maximum value in LA dataset. If more than one 
     # paste these together
-    max_name <- as.character(qstnDta_LA %>% 
-                               filter(n == max(n)) %>% 
-                               pull(named_value)
-    )
-    if (length(max_name > 1)) {
-      max_name <- paste(max_name, collapse = " & ")
-    }
+    max_name <- qstnDta_LA %>% 
+      filter(perc_resp == max(perc_resp)) %>% 
+      pull(named_value)
     # Get the percentage for the highest response and paste together if multiple
     max_perc <- qstnDta_LA %>% 
-      filter(n == max(n)) %>% 
+      filter(named_value %in% max_name) %>% 
+      distinct(perc_resp) %>%
       pull(perc_resp)
-    if (length(max_perc) > 1) {
-      max_perc <- paste(paste(max_perc, collapse = " & "), 
-                        "percent respectively."
-      )
+    if (length(max_name) > 1) {
+      max_perc <- paste(max_perc, "percent respectively.")
     } else {
       max_perc <- paste0(max_perc, " percent.")
     }
+    if (length(max_name > 1)) {
+      max_name <- paste(max_name, collapse = " & ")
+    }
     # Get second highest value
-    sec_val <- sort(qstnDta_LA$n, partial = 3)[3]
+    sec_val <- sort(unique(qstnDta_LA$perc_resp), decreasing = TRUE)[2]
     # Filter for second highest value's name
     sec_name <- qstnDta_LA %>%
-      filter(n == sec_val) %>% 
+      filter(perc_resp == sec_val) %>% 
       pull(named_value)
+    # Create text, accounting for more than one same value
+    if (length(sec_name) > 1) {
+      sec_perc <- paste(sec_val, "percent respectively.")
+    } else {
+      sec_perc <- paste0(sec_val, " percent.")
+    }
     if (length(sec_name) > 1) {
       sec_name <- paste(sec_name, collapse = " & ")
     }
-    # Filter for second highest value's percentage
-    sec_perc <- qstnDta_LA %>% 
-      filter(n == sec_val) %>% 
-      pull(perc_resp)
-    if (length(sec_perc) > 1) {
-      sec_perc <- paste(paste(sec_perc, collapse = " & "), 
-                        "percent respectively."
-      )
-    } else {
-      sec_perc <- paste0(sec_perc, " percent.")
-    }
     # Get most frequent response for Scotland
-    scot_max_name <- as.character(qstnDta_scot %>% 
-                                    filter(n == max(n)) %>% 
-                                    pull(named_value)
-    )
+    scot_max_name <- qstnDta_scot %>% 
+      filter(perc_resp == max(perc_resp)) %>% 
+      pull(named_value)
     if (length(scot_max_name) > 1) {
       scot_max_name <- paste(scot_max_name, collapse = " & ")
     }
     # Get percentage for most frequent Scotland level response
     scot_max_perc <- qstnDta_scot %>% 
-      filter(n == max(n)) %>% 
+      filter(perc_resp == max(perc_resp)) %>% 
+      distinct(perc_resp) %>%
       pull(perc_resp)
-    if (length(scot_max_perc) > 1) {
-      scot_max_perc <- paste(paste(scot_max_perc, collapse = " & "), 
-                             "percent respectively."
-      )
+    if (length(scot_max_name) > 1) {
+      scot_max_perc <- paste(scot_max_perc, "percent respectively.")
     } else {  
       scot_max_perc <- paste0(scot_max_perc, " percent.")
     }
     
     # Paste the text together
-    paste0("In ",
-           input$qrtr_selection,
-           " ",
-           fin_yr(),
-           ", ",
-           "for the question \"",
-           question,
-           "\" responses for ",
-           local_authority(),
-           " have been ",
-           pos_or_neg, 
-           " with ",
-           total_good,
-           " percent saying that ",
-           extra_text,
-           " ",
-           named_value_1,
-           " or ",
-           named_value_2,
-           ". The greatest proportion of respondents said ",
-           extra_text,
-           " ",
-           max_name,
-           " at ", 
-           max_perc, 
-           " This was followed by ", 
-           sec_name, 
-           " at ", 
-           sec_perc,
-           " For Scotland overall, most respondents said that ",
-           extra_text,
-           " ",
-           scot_max_name,
-           " at ", 
-           scot_max_perc
-    )
+    main_text <- paste0("In ",
+                       input$qrtr_selection,
+                       " ",
+                       fin_yr(),
+                       ", in relation to the statement \"",
+                       question,
+                       "\" responses for ",
+                       local_authority(),
+                       " have been ",
+                       pos_or_neg, 
+                       " with ",
+                       total_good,
+                       " percent saying that ",
+                       extra_text,
+                       " ",
+                       named_value_1,
+                       " or ",
+                       named_value_2,
+                       ". The greatest proportion of respondents said ",
+                       extra_text,
+                       " ",
+                       max_name,
+                       " at ", 
+                       max_perc, 
+                       " This was followed by ", 
+                       sec_name, 
+                       " at ", 
+                       sec_perc,
+                       " For Scotland overall, most respondents said that ",
+                       extra_text,
+                       " ",
+                       scot_max_name,
+                       " at ", 
+                       scot_max_perc)
+    
+    # Text when all responses are the same
+    other_text <- paste0("In ",
+                        input$qrtr_selection,
+                        " ",
+                        fin_yr(),
+                        ", in relation to the statement \"",
+                        question,
+                        "\" responses for ",
+                        local_authority(),
+                        " have been ",
+                        pos_or_neg, 
+                        " with ",
+                        total_good,
+                        " percent saying that ",
+                        extra_text,
+                        " ",
+                        named_value_1,
+                        " or ",
+                        named_value_2,
+                        ". The greatest proportion of respondents said ",
+                        extra_text,
+                        " ",
+                        max_name,
+                        " at ", 
+                        max_perc, 
+                        " For Scotland overall, most respondents said that ",
+                        extra_text,
+                        " ",
+                        scot_max_name,
+                        " at ", 
+                        scot_max_perc)
+    
+    # Test whether there's more than one different type of response
+    text <- if_else(is.na(sec_val), other_text, main_text)
   }
   
   # Report Download tab (Q1 - Time taken)--------------------------------------
@@ -1714,31 +1728,28 @@ function(input, output, session) {
   
   # Call function to generate data to be used in graph and text
   question_time_data_report <- reactive({
-    format_qstn_dta(question = "Thinking of your engagement, how satisfied were you with the time taken to complete the process?",
+    format_qstn_dta(question = "How satisfied were you with the time taken?",
                     named_value_1 = "very satisfied",
                     named_value_2 = "satisfied",
                     named_value_3 = "dissatisfied",
-                    named_value_4 = "very dissatisfied"
-    )
+                    named_value_4 = "very dissatisfied")
   })
   
   # Render plot 
   output$question_time_report <- renderPlotly({
     # Call function to create plot
     create_qstn_plot(data = question_time_data_report(),
-                     title = "Satisfaction with time taken -" 
-    )
+                     title = "Satisfaction with time taken -" )
   })
   
   # Render text
   output$question_time_report_text <- renderText({
     # Call function to create text
     create_qstn_text(data = question_time_data_report(),
-                     question = "Thinking of your engagement, how satisfied were you with the time taken to complete the process?",
+                     question = "How satisfied were you with the time taken?",
                      named_value_1 = "very satisfied",
                      named_value_2 = "satisfied",
-                     extra_text = "they were"
-    )
+                     extra_text = "they were")
   })
   
   # Report download tab (Q2 - Standard of communication)-----------------------
@@ -1747,31 +1758,28 @@ function(input, output, session) {
   
   # Call function to generate data to be used in graph and text
   question_comms_data_report <- reactive({
-    format_qstn_dta(question = "How would you rate the standard of communication provided?",
+    format_qstn_dta(question = "How would you rate the standard of communication?",
                     named_value_1 = "very good",
                     named_value_2 = "good",
                     named_value_3 = "poor",
-                    named_value_4 = "very poor"
-    )
+                    named_value_4 = "very poor")
   })
   
   # Render plot 
   output$question_comms_report <- renderPlotly({
     # Call function to create plot
     create_qstn_plot(data = question_comms_data_report(),
-                     title = "Standard of communication -" 
-    )
+                     title = "Standard of communication -" )
   })
   
   # Render text
   output$question_comms_report_text <- renderText({
     # Call function to create text
     create_qstn_text(data = question_comms_data_report(),
-                     question = "How would you rate the standard of communication provided?",
+                     question = "How would you rate the standard of communication?",
                      named_value_1 = "very good",
                      named_value_2 = "good",
-                     extra_text = "it was"
-    )
+                     extra_text = "it was")
   })
   
   # Report download tab (Q3 - Quality of info)---------------------------------
@@ -1784,26 +1792,23 @@ function(input, output, session) {
                     named_value_1 = "very good",
                     named_value_2 = "good",
                     named_value_3 = "poor",
-                    named_value_4 = "very poor"
-    )
+                    named_value_4 = "very poor")
   })
   
   # Render plot 
   output$question_info_report <- renderPlotly({
     # Call function to create plot
     create_qstn_plot(data = question_info_data_report(),
-                     title = "Quality of information -"
-    )
+                     title = "Quality of information -")
   })
   # Render text
   output$question_info_report_text <- renderText({
     # Call function to create text
     create_qstn_text(data = question_info_data_report(),
-                     question = "How would you rate the quality of information provided?",
+                     question = "Quality of the information provided",
                      named_value_1 = "very good",
                      named_value_2 = "good",
-                     extra_text = "it was"
-    )
+                     extra_text = "it was")
   })
   
   # Report download tab (Q4 - Service offered by staff) --------------------
@@ -1816,27 +1821,24 @@ function(input, output, session) {
                     named_value_1 = "very good",
                     named_value_2 = "good",
                     named_value_3 = "poor",
-                    named_value_4 = "very poor"
-    )
+                    named_value_4 = "very poor")
   })
   
   # Render plot 
   output$question_staff_report <- renderPlotly({
     # Call function to create plot
     create_qstn_plot(data = question_staff_data_report(),
-                     title = "Service offered by staff -"
-    )
+                     title = "Service offered by staff -")
   })
   
   # Render text
   output$question_staff_report_text <- renderText({
     # Call function to create text
     create_qstn_text(data = question_staff_data_report(),
-                     question = "How would you rate the service offered by staff",
+                     question = "Service offered by staff",
                      named_value_1 = "very good",
                      named_value_2 = "good",
-                     extra_text = "it was"
-    )
+                     extra_text = "it was")
   })
   
   # Report download tab (Q5 - Responsiveness to queries/issues)---------------
@@ -1849,27 +1851,24 @@ function(input, output, session) {
                     named_value_1 = "very good",
                     named_value_2 = "good",
                     named_value_3 = "poor",
-                    named_value_4 = "very poor"
-    )
+                    named_value_4 = "very poor")
   })
   
   # Render plot 
   output$question_responsiveness_report <- renderPlotly({
     # Call function to create plot
     create_qstn_plot(data = question_responsiveness_data_report(),
-                     title = "Responsiveness to queries or issues -"
-    )
+                     title = "Responsiveness to queries or issues -")
   })
   
   # Render text
   output$question_responsiveness_report_text <- renderText({
     # Call function to create text
     create_qstn_text(data = question_responsiveness_data_report(),
-                     question = "How would you rate the time taken to respond to any queries or issues raised?",
+                     question = "Responsiveness to any queries or issues raised",
                      named_value_1 = "very good",
                      named_value_2 = "good",
-                     extra_text = "it was"
-    )
+                     extra_text = "it was")
   })
   
   # Report download tab (Q6 - Treated fairly)-----------------------------
@@ -1882,16 +1881,14 @@ function(input, output, session) {
                     named_value_1 = "strongly agree",
                     named_value_2 = "agree",
                     named_value_3 = "disagree",
-                    named_value_4 = "strongly disagree"
-    )
+                    named_value_4 = "strongly disagree")
   })
   
   # Render plot 
   output$question_fair_report <- renderPlotly({
     # Call function to create plot
     create_qstn_plot(data = question_fairly_data_report(),
-                     title = "Would you agree you were treated fairly -"
-    )
+                     title = "Would you agree you were treated fairly -")
   })
   
   # Render text
@@ -1901,8 +1898,7 @@ function(input, output, session) {
                      question = "To what extent would you agree that you were treated fairly?",
                      named_value_1 = "strongly agree",
                      named_value_2 = "agree",
-                     extra_text = "they"
-    )
+                     extra_text = "they")
   })
   
   # Report download tab (Q7 - Overall satisfaction)---------------------------
@@ -1911,12 +1907,11 @@ function(input, output, session) {
   
   # Call function to generate data to be used in graph and text
   question_overall_data_report <- reactive({
-    format_qstn_dta(question = "Overall, how satisfied were you with the service provided?",
+    format_qstn_dta(question = "How satisfied were you overall?",
                     named_value_1 = "very satisfied",
                     named_value_2 = "satisfed",
                     named_value_3 = "dissatisfied",
-                    named_value_4 = "very dissatisfied"
-    )
+                    named_value_4 = "very dissatisfied")
   })
   
   # Render plot 
@@ -1931,11 +1926,10 @@ function(input, output, session) {
   output$question_overall_report_text <- renderText({
     # Call function to create text
     create_qstn_text(data = question_overall_data_report(),
-                     question = "Overall, how satisfied were you with the service provided?",
+                     question = "How satisfied were you overall?",
                      named_value_1 = "very satisfied",
                      named_value_2 = "satisfied",
-                     extra_text = "they were"
-    )
+                     extra_text = "they were")
   })
   
   # Report download tab (Report download)-----------------------------------
@@ -1959,31 +1953,29 @@ function(input, output, session) {
                      type_data = report_type_data(),
                      reason_data = report_reason_data(),
                      respondent_data = resp_dta(),
-                     line_data = report_line_data(),
                      time_data = question_time_data_report(),
                      comms_data = question_comms_data_report(),
                      info_data = question_info_data_report(),
                      staff_data = question_staff_data_report(),
                      responsive_data = question_responsiveness_data_report(),
                      fair_data = question_fairly_data_report(),
-                     overall_data = question_overall_data_report()
-      )
+                     overall_data = question_overall_data_report())
       
       # Knit the markdown document, passing in the `params` list, and eval 
       # it in a child of the global environment (this isolates the code in 
       # the document from the code in this app).
-      output <- rmarkdown::render(input = tempReport, 
+      output <- rmarkdown::render(input = tempReport,
+                                  output_format = "pdf_document",
                                   params = params, 
-                                  envir = new.env(parent = globalenv())
-                                  )
-      file.copy(output, file)
+                                  envir = new.env(parent = globalenv()))
+      file.copy(output, file, overwrite = TRUE)
     }
   )
   
   # Data download tab (Data download button)-----------------------------------
   # Create excel download
   output$all_data_dl <- downloadHandler(
-    filename = paste("All_Data", ".csv", sep = ""),
+    filename = paste0("All_Data", ".csv"),
     content = function(file) {
       dl_all_data <- dl_all_data()
       council_fltr <- local_authority()
