@@ -264,103 +264,6 @@ function(input, output, session) {
     }
   })
   
-  # Download Data - format data for download --------------------------------
-  
-  # This data is used in the data download page as this is to be presented in
-  # a wide un-pivoted format. It keeps the additional questions for applicable
-  # councils. 
-  
-  # Select columns based on council (ensures duplicate columns and 
-  # questions from other councils are filtered out)
-  dl_all_data <- reactive({
-    council_fltr = local_authority()
-    dl_all_data <- if (council_fltr == "Angus") {
-      fresh_dta[ ,c(7:34,92)]
-    } else
-      if (council_fltr == "City of Edinburgh") {
-        fresh_dta[ ,c(7:21,79:91)]
-      } else
-        if (council_fltr == "North Lanarkshire") {
-          fresh_dta[ ,c(7:34,51:55)] 
-        } else
-          if (council_fltr == "Orkney Islands") {
-            fresh_dta[ ,c(7:21,56:78)]
-          } else
-            if (council_fltr == "West Lothian") {
-              fresh_dta[ ,c(7:21,35:50)]
-            } else {
-              fresh_dta[,c(7:34)]
-            }
-    
-    # Add in columns with Financial Year info
-    # Formats the ended date as a year and quarter value
-    dl_all_data$Quarter <- as.yearqtr(dl_all_data$`Ended date`, 
-                                              format = "%Y-%m-%d"
-    ) 
-    # This formatting uses calender year values rather than financial so need
-    # to reduce by a quarter to format as financial years
-    dl_all_data$`Financial Year` <- dl_all_data$Quarter- 1/4
-    dl_all_data$`Financial Year` <- gsub("\\ ", 
-                                         "-", 
-                                         dl_all_data$`Financial Year`, 
-                                         perl = TRUE
-    )
-    dl_all_data$`Financial Year` <- dl_all_data %>% 
-      select(contains("Financial Year")) %>% 
-      # extracts just the year value - 1st year in the financial year
-      apply(2, function(x) gsub("-Q[0-9]", "", x)) %>% 
-      as.numeric(.) %>%
-      data.frame() %>%
-      # gets the second year value - 2nd year in the financial year
-      mutate(nxt = .+ 1) %>% 
-      # extract just the last 2 digits of the 2nd financial year
-      mutate(nxt = substr(nxt, 3, 4)) %>% 
-      # adds a separator between the 2 years to format as a financial year
-      mutate(fy = paste(., nxt, sep = "/")) %>%
-      pull(fy)
-    
-    # Adds in column with quarter info
-    # Original formatting uses calender year values rather than financial so need
-    # to reduce by a quarter to format as financial years
-    dl_all_data$Quarter <- dl_all_data$Quarter- 1/4
-    dl_all_data$Quarter <- gsub("[0-9]*\\ Q", 
-                                        "Quarter ", 
-                                        dl_all_data$Quarter, 
-                                        perl = TRUE
-    )
-    
-    # Remove redundant columns and reorder
-    dl_all_data <- dl_all_data[-c(1, 2, 4)]
-    dl_all_data <- dl_all_data[, c((ncol(dl_all_data) - 1),
-                                   ncol(dl_all_data),
-                                   2,
-                                   11,
-                                   12,
-                                   3:10,
-                                   13:(ncol(dl_all_data) - 2),
-                                   1
-    )
-    ]
-    
-    # Pivot to combine both LA columns, rename, then remove duplicates
-    dl_all_data <- dl_all_data %>% 
-      pivot_longer(cols = 4:5, names_to = "extra", values_to = "LA") %>%
-      filter(LA != "-") %>% 
-      select(-extra)
-    dl_all_data <- dl_all_data[, c(1:3,
-                                   ncol(dl_all_data),
-                                   4:(ncol(dl_all_data) - 1)
-    )
-    ]  
-    
-    # Code local authority name for councils completing survey without login
-    dl_all_data <- merge(dl_all_data, LA_names_dta)
-    dl_all_data$`Local Authority Name` <- dl_all_data$LA_names
-    dl_all_data <- dl_all_data %>% select(-LA_names)
-    dl_all_data <- dl_all_data[,c(2:4, 1, 5:ncol(dl_all_data))]
-    dl_all_data
-  })
-  
   # Respondent type & Reasons data ---------------------------------------------- 
   
   # Generate another dataframe with respondent types
@@ -420,7 +323,7 @@ function(input, output, session) {
   # This is used in the data download table and the respondent no. value box
   unpivot_data <- reactive({
    dta <- dwnld_table_dta %>%
-     # Recode responses for download and to show in table
+     # Recode responses to show in table
       mutate(across(contains(c("Agent/Designer", 
                                "Applicant", 
                                "Contractor",
@@ -1972,121 +1875,259 @@ function(input, output, session) {
     }
   )
   
+  # Download Data - format data for download --------------------------------
+  
+  # This data is used in the data download page as this is to be presented in
+  # a wide un-pivoted format. It keeps the additional questions for applicable
+  # councils. 
+  
+  # Select columns based on council (ensures duplicate columns and 
+  # questions from other councils are filtered out)
+  dl_all_data <- reactive({
+    
+    # Filter to selected LA and pivot wider - this will retain only questions 
+    # relevant to the selected council
+    dta <- clean_data %>%
+      filter(`Local Authority Name` == local_authority()) %>%
+        pivot_wider(names_from = new_col_names, values_from = value)
+
+    # Use if else statements to reorder, and rename, the columns based on LA as 
+    # some LA's have different columns.
+    # Have wrapped all of the comments columns in "contains" as if there's no
+    # responses here they will have been filtered out and so can't be selected
+    # using contains means they will be selected if there and ignored if not
+    ordered_dta <- if(local_authority() == "Angus") {
+      dta %>%
+        select("Submission date" = "Ended date",
+               "Quarter",
+               "Financial Year",
+               "Local Authority Name",
+               contains("Q1."),
+               contains("Q2."),
+               "Thinking of your engagement with Building Standards from beginning to end, how satisfied were you that the time taken to deal with your application or enquiry met the timescales that you were promised?" = "Thinking of your engagement, how satisfied were you that the time taken to deal with your application or enquiry met the timescales that you were promised?",
+               contains("Time taken comments"),
+               "How would you rate the standard of communication provided by Building Standards service following your initial contact or once your application had been submitted?" = "How would you rate the standard of communication provided service following your initial contact or once your application had been submitted?",
+               contains("Communication comments"),
+               "Quality of the information provided",
+               "Service offered by staff",
+               "Time taken to respond to any queries or issues raised",
+               contains("Information, staff, responsiveness comments"),
+               "To what extent would you agree that you were treated fairly by Building Standards?" = "To what extent would you agree that you were treated fairly?",
+               contains("Treated fairly comments"),
+               "Overall, how satisfied were you with the service provided by Building Standards?" = "Overall, how satisfied were you with the service provided?",
+               contains("Overall satisfaction comments"),
+               contains("Other comments"),
+               "If you are responding in relation to a Completion Certificate did your experience include a Remote Verification Inspection (RVI) whereby the inspection is via live or pre-recorded video?" = "Finally, if you are responding in relation to a Completion Certificate did your experience include a Remote Verification Inspection (RVI) whereby the inspection is via live or pre-recorded video?")
+    } else {
+      if(local_authority() == "City of Edinburgh") {
+        dta %>%
+          select("Submission date" = "Ended date",
+                 "Quarter",
+                 "Financial Year",
+                 "Local Authority Name",
+                 contains("Q1."),
+                 contains("Q2."),
+                 "Thinking of your engagement with Building Standards from beginning to end, how satisfied were you that the time taken to deal with your application or enquiry met the timescales that you were promised?" = "Thinking of your engagement, how satisfied were you that the time taken to deal with your application or enquiry met the timescales that you were promised?",
+                 contains("Time taken comments"),
+                 "How would you rate the standard of communication provided by Building Standards service following your initial contact or once your application had been submitted?" = "How would you rate the standard of communication provided service following your initial contact or once your application had been submitted?",
+                 contains("Communication comments"),
+                 "Quality of the information provided",
+                 "Service offered by staff",
+                 "Time taken to respond to any queries or issues raised. Our target response times are 10 days for emails and 2 days for phone calls" = "Time taken to respond to any queries or issues raised",
+                 contains("Information, staff, responsiveness comments"),
+                 "To what extent would you agree that you were treated fairly by Building Standards?" = "To what extent would you agree that you were treated fairly?",
+                 contains("Treated fairly comments"),
+                 "Overall, how satisfied were you with the service provided by Building Standards?" = "Overall, how satisfied were you with the service provided?",
+                 contains("Overall satisfaction comments"),
+                 contains("Other comments"))
+      } else {
+        if(local_authority() == "North Lanarkshire") {
+          dta %>%
+            select("Submission date" = "Ended date",
+                   "Quarter",
+                   "Financial Year",
+                   "Local Authority Name",
+                   contains("Q1."),
+                   contains("Q2."),
+                   "Thinking of your engagement with Building Standards from beginning to end, how satisfied were you that the time taken to deal with your application or enquiry met the timescales that you were promised?" = "Thinking of your engagement, how satisfied were you that the time taken to deal with your application or enquiry met the timescales that you were promised?",
+                   contains("Time taken comments"),
+                   "How would you rate the standard of communication provided by Building Standards service following your initial contact or once your application had been submitted?" = "How would you rate the standard of communication provided service following your initial contact or once your application had been submitted?",
+                   contains("Communication comments"),
+                   "Quality of the information provided",
+                   "Service offered by staff",
+                   "Time taken to respond to any queries or issues raised",
+                   contains("Information, staff, responsiveness comments"),
+                   "To what extent would you agree that you were treated fairly by Building Standards?" = "To what extent would you agree that you were treated fairly?",
+                   contains("Treated fairly comments"),
+                   "Overall, how satisfied were you with the service provided by Building Standards?" = "Overall, how satisfied were you with the service provided?",
+                   contains("Overall satisfaction comments"),
+                   contains("Other comments"),
+                   "How satisfied were you with the range of options provided by Council relating to inspections?" = "How satisfied were you with the range of options provided by [question(16082428)][variable(la)] Council relating to inspections?",
+                   "Options comments" = "How satisfied were you with the range of options provided by [question(16082428)][variable(la)] Council relating to inspections? Please explain your answer:",
+                   "How satisfied were you with the building warrant approval process?",
+                   "Approval process comments" = "How satisfied were you with the building warrant approval process? Please explain your answer:",
+                   "To what extent would you agree Council have used digital technology to make building standards processes easier for you (for example, around plan approval and site inspections)?" = "To what extent would you agree [question(16082428)][variable(la)] Council have used digital technology to make building standards processes easier for you (for example, around plan approval and site inspections)?")
+        } else {
+          if(local_authority() == "Orkney Islands") {
+            dta %>%
+              select("Submission date" = "Ended date",
+                     "Quarter",
+                     "Financial Year",
+                     "Local Authority Name",
+                     contains("Q1."),
+                     contains("Q2."),
+                     "Thinking of your engagement with Building Standards from beginning to end, how satisfied were you that the time taken to deal with your application or enquiry met the timescales that you were promised?" = "Thinking of your engagement, how satisfied were you that the time taken to deal with your application or enquiry met the timescales that you were promised?",
+                     contains("Time taken comments"),
+                     "How would you rate the standard of communication provided by Building Standards service following your initial contact or once your application had been submitted?" = "How would you rate the standard of communication provided service following your initial contact or once your application had been submitted?",
+                     contains("Communication comments"),
+                     "Did you find it easy to contact the officer/inspector/administrator you were looking for?",
+                     "Preferred method for contacting the council" = "use the comments box below to provide more information, including your preferred method for contacting the Council.",
+                     "Easy to find",
+                     "Understandable",
+                     "Ease & understanding comments" = "Please provide further information about your answers:",
+                     "Quality of the information provided",
+                     "Time taken to respond to any queries or issues raised",
+                     contains("Information, staff, responsiveness comments"),
+                     "Staff were polite and courteous",
+                     "Staff were helpful",
+                     "Staff were efficient",
+                     "Staff were knowledgeable",
+                     "Service offered by staff",
+                     "Service by staff comments" = "Service offered by staff Please explain your answers:",
+                     "To what extent would you agree that you were treated fairly by Building Standards?" = "To what extent would you agree that you were treated fairly?",
+                     contains("Treated fairly comments"),
+                     "Overall, how satisfied were you with the service provided by Building Standards?" = "Overall, how satisfied were you with the service provided?",
+                     contains("Overall satisfaction comments"),
+                     contains("Other comments"))
+          } else {
+            if(local_authority() == "West Lothian") {
+              dta %>%
+                select("Submission date" = "Ended date",
+                       "Quarter",
+                       "Financial Year",
+                       "Local Authority Name",
+                       contains("Q1."),
+                       contains("Q2."),
+                       "Thinking of your engagement with Building Standards from beginning to end, how satisfied were you that the time taken to deal with your application or enquiry met the timescales that you were promised?" = "Thinking of your engagement, how satisfied were you that the time taken to deal with your application or enquiry met the timescales that you were promised?",
+                       contains("Time taken comments"),
+                       "How would you rate the standard of communication provided by Building Standards service following your initial contact or once your application had been submitted?" = "How would you rate the standard of communication provided service following your initial contact or once your application had been submitted?",
+                       contains("Communication comments"),
+                       "Quality of the information provided",
+                       "Accuracy of the information provided as relevant to your needs",
+                       "Professionalism in terms of the knowledge and skills of our staff",
+                       "Attitude in terms of friendliness and helpfulness of our staff",
+                       "Overall service offered by staff" = "Service offered by staff",
+                       "Time taken to respond to any queries or issues raised",
+                       contains("Information, staff, responsiveness comments"),
+                       "To what extent would you agree that you were treated fairly by Building Standards?" = "To what extent would you agree that you were treated fairly?",
+                       contains("Treated fairly comments"),
+                       "Overall, how satisfied were you with the service provided by Building Standards?" = "Overall, how satisfied were you with the service provided?",
+                       contains("Overall satisfaction comments"),
+                       contains("Other comments"))
+            } else {
+              dta %>%
+                select("Submission date" = "Ended date",
+                       "Quarter",
+                       "Financial Year",
+                       "Local Authority Name",
+                       contains("Q1."),
+                       contains("Q2."),
+                       "Thinking of your engagement with Building Standards from beginning to end, how satisfied were you that the time taken to deal with your application or enquiry met the timescales that you were promised?" = "Thinking of your engagement, how satisfied were you that the time taken to deal with your application or enquiry met the timescales that you were promised?",
+                       contains("Time taken comments"),
+                       "How would you rate the standard of communication provided by Building Standards service following your initial contact or once your application had been submitted?" = "How would you rate the standard of communication provided service following your initial contact or once your application had been submitted?",
+                       contains("Communication comments"),
+                       "Quality of the information provided",
+                       "Service offered by staff",
+                       "Time taken to respond to any queries or issues raised",
+                       contains("Information, staff, responsiveness comments"),
+                       "To what extent would you agree that you were treated fairly by Building Standards?" = "To what extent would you agree that you were treated fairly?",
+                       contains("Treated fairly comments"),
+                       "Overall, how satisfied were you with the service provided by Building Standards?" = "Overall, how satisfied were you with the service provided?",
+                       contains("Overall satisfaction comments"),
+                       contains("Other comments"))
+            }
+          }
+        }
+      }
+    }
+    
+    # Tidy up respondent column names
+    ordered_dta <- ordered_dta %>%
+      rename("Agent/Designer" = "Q1.1. Agent/Designer", 
+             "Applicant" = "Q1.2. Applicant", 
+             "Contractor" = "Q1.3. Contractor",
+             "Other respondent" = "Q1.4. Other (please specify):", 
+             "To discuss your proposal" = "Q2.1. To discuss your proposal before applying for a building warrant",
+             "To make an application" = "Q2.2. To make an application for a building warrant", 
+             "During construction" = "Q2.3. During construction, including submission of a completion certificate",
+             "Other reason" = "Q2.4. Other (please specify):")
+    
+    # Recode responses to show in table
+    ordered_dta <- ordered_dta %>%
+      mutate(across(contains(c("Agent/Designer", 
+                               "Applicant", 
+                               "Contractor",
+                               "Other respondent",
+                               "To discuss your proposal",
+                               "To make an application", 
+                               "During construction",
+                               "Other reason")),
+                    ~str_replace_all(., c("0" = "No", "1" = "Yes")))) %>%
+      mutate(across(contains(c("Thinking of your engagement with Building Standards from beginning to end",
+                                "Overall, how satisfied were you with the service provided by Building Standards?",
+                                "How satisfied were you with the building warrant approval process?",
+                               "How satisfied were you with the range of options provided by Council relating to inspections?")),
+                    ~str_replace_all(.,
+                                     c("1" = "Very satisfied",
+                                       "2" ="Satisfied",
+                                       "3" = "Dissatisfied",
+                                       "4" = "Very dissatisfied")))) %>% 
+      mutate(across(contains(c("How would you rate the standard of communication provided by Building Standards service following your initial contact or once your application had been submitted?",
+                               "Quality of the information provided",
+                               "Service offered by staff",
+                               "Time taken to respond to any queries or issues raised",
+                               "Accuracy of the information provided as relevant to your needs",
+                               "Professionalism in terms of the knowledge and skills of our staff",
+                               "Attitude in terms of friendliness and helpfulness of our staff")),
+                    ~str_replace_all(.,
+                                     c("1" = "Very good",
+                                       "2" ="Good",
+                                       "3" = "Poor",
+                                       "4" = "Very poor")))) %>%
+      mutate(across(contains(c("To what extent would you agree that you were treated fairly by Building Standards?",
+                               "To what extent would you agree Council have used digital technology to make building standards processes easier for you (for example, around plan approval and site inspections)?",
+                               "Easy to find",
+                               "Understandable",
+                               "Staff were polite and courteous",
+                               "Staff were helpful",
+                               "Staff were efficient",
+                               "Staff were knowledgeable")),
+               ~str_replace_all(.,
+                               c("1" = "Strongly agree",
+                                 "2" = "Agree",
+                                 "3" = "Disagree",
+                                 "4" = "Strongly disagree")))) %>%
+      mutate(across(contains(c("Did you find it easy to contact the officer/inspector/administrator you were looking for?")), 
+               ~str_replace_all(.,
+                                c("1" = "Yes, contact made straight away",
+                                  "2" = "Yes, but took slightly longer than expected",
+                                  "3" = "No, it wasn't easy, but managed to contact the officer/inspector/administrator eventually")))) %>%
+      mutate(across(contains(c("If you are responding in relation to a Completion Certificate did your experience include a Remote Verification Inspection (RVI) whereby the inspection is via live or pre-recorded video?")),
+               ~str_replace_all(.,
+                                c("1" = "Yes",
+                                  "2" = "No",
+                                  "3" = NA)))) %>%
+      # Filter to selected quarter and financial year
+      filter(Quarter %in% qrtr() & `Financial Year` == fin_yr()) %>%
+      arrange(desc(`Submission date`))
+  })
+  
   # Data download tab (Data download button)-----------------------------------
   # Create excel download
   output$all_data_dl <- downloadHandler(
     filename = paste0("All_Data", ".csv"),
     content = function(file) {
-      dl_all_data <- dl_all_data()
-      council_fltr <- local_authority()
-      
-      dl_all_data <- dl_all_data %>% arrange(desc(`Ended date`))
-      
-      # Reorder columns so that submission date moves to start
-      dl_all_data <- dl_all_data %>% rename("Submission date" = "Ended date")
-      dl_all_data <- dl_all_data[c(ncol(dl_all_data), 1:(ncol(dl_all_data) - 1))]
-      
-      # Recode all responses for the download from a number to text, remove LA column
-      dl_all_data <- dl_all_data %>% 
-        # Filter to selected financial year and selected quarter
-        filter(Quarter %in% qrtr() & `Financial Year` == fin_yr() & `Local Authority Name` == council_fltr) %>%
-        mutate(across(contains("how satisfied"),
-                      ~recode(., 
-                              "1" = "Very satisfied", 
-                              "2"="Satisfied", 
-                              "3" = "Dissatisfied",
-                              "4" = "Very dissatisfied",  
-                              "5" = "NA"
-                      )
-        )
-        ) %>%
-        mutate(across(contains("would you rate"),
-                      ~recode(.,
-                              "1" = "Very good", 
-                              "2"="Good", 
-                              "3" = "Poor",
-                              "4" = "Very poor",  
-                              "5" = "NA"
-                      )
-        )
-        ) %>%
-        mutate(across(contains(c("quality of the information",
-                                 "accuracy of the information", 
-                                 "respond to", 
-                                 "by staff", 
-                                 "our staff"
-        )
-        ),
-        ~recode(.,
-                "1" = "Very good", 
-                "2"="Good", 
-                "3" = "Poor",
-                "4" = "Very poor",  
-                "5" = "NA"
-        )
-        )
-        ) %>%
-        mutate(across(contains(c("Staff were",
-                                 "Easy to find", 
-                                 "Understandable"
-        )
-        ),
-        ~recode(.,
-                "1" = "Strongly agree", 
-                "2"="Agree", 
-                "3" = "Neither agree nor disagree",
-                "4" = "Disagree",  
-                "5" = "Strongly disagree", 
-                "6" = "NA"
-        )
-        )
-        ) %>%
-        mutate(across(contains("would you agree"),
-                      ~recode(.,
-                              "1" = "Strongly agree", 
-                              "2"="Agree",
-                              "3" = "Disagree",  
-                              "4" = "Strongly disagree", 
-                              "5"="NA"
-                      )
-        )
-        ) %>%
-        mutate(across(contains("Did you find it easy to contact"),
-                      ~recode(., 
-                              "1" = "Yes, contact made straight away", 
-                              "2" = "Yes, but took slightly longer than expected",
-                              "3" = "No it wasn’t easy, but managed to contact the officer/inspector/administrator eventually"
-                      )
-        )
-        ) %>%
-        mutate(across(contains("Finally"),
-                      ~recode(., "1" = "Yes", "2" = "No","3" = "NA")
-        )
-        ) %>%
-        dplyr::rename("Quarter" = "Tracking Link") %>%
-        mutate(across(contains(c("Q1.1. Agent/Designer", 
-                                 "Q1.2. Applicant", 
-                                 "Q1.3. Contractor", 
-                                 "Other (please specify):",
-                                 "Q2.1. To discuss your proposal",
-                                 "Q2.2. To make an application", 
-                                 "Q2.3. During construction"
-        )
-        ),
-        ~recode(., "1" = "Yes", "0" = "No")
-        )
-        ) %>%
-        
-        select(-LA)
-      
-      # Final tidy up of column names by removing SmartSurvey variable
-      colnames(dl_all_data) <- gsub(" \\[question\\(16082428\\)\\]\\[variable\\(la\\)\\]",
-                                    "", 
-                                    colnames(dl_all_data)
-      )
-      colnames(dl_all_data) <- gsub("\\...[1-9]*$", "",colnames(dl_all_data))
-      
-      write.csv(dl_all_data, file)
+      write.csv(dl_all_data(), file)
     }
   )
   
@@ -2096,7 +2137,8 @@ function(input, output, session) {
   output$tableDisp <- DT::renderDataTable({
     unpivot_data <- unpivot_data()
     # Order by submission date
-    unpivot_data <- unpivot_data %>% arrange(desc(`Submission date`))
+    unpivot_data <- unpivot_data %>% 
+      arrange(desc(`Submission date`))
     
     # Filter to selected year and quarter
     unpivot_data <- unpivot_data %>% 
@@ -2115,17 +2157,12 @@ function(input, output, session) {
                            "function(data, type, row, meta) {",
                            "return type === 'display' && data != null && data.length > 20 ?",
                            "'<span title=\"' + data + '\">' + data.substr(0, 20) + '...</span>' : data;",
-                           "}")
-                       )
-                       ),
-                       
+                           "}"))),
                        dom = "t",
                        deferRender = TRUE,
                        scrollY = "320px",
                        scrollX = TRUE,
-                       scroller = TRUE
-                     )
-    )
+                       scroller = TRUE))
   })
   
   # Open Text tab-------------------------------------------------------------
