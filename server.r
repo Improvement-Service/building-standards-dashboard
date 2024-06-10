@@ -318,48 +318,6 @@ function(input, output, session) {
     dta
   })
   
-  # Finalise unpivot data ---------------------------------------------------
-  
-  # This is used in the data download table and the respondent no. value box
-  unpivot_data <- reactive({
-   dta <- dwnld_table_dta %>%
-     # Recode responses to show in table
-      mutate(across(contains(c("Agent/Designer", 
-                               "Applicant", 
-                               "Contractor",
-                               "Other respondent",
-                               "To discuss your proposal",
-                               "To make an application", 
-                               "During construction",
-                               "Other reason")),
-                    ~str_replace_all(., c("1" = "Yes", "0" = "No")))) %>%
-     mutate(across(c("How satisfied were you with the time taken?",
-                     "How satisfied were you overall?"),
-                     ~str_replace_all(.,
-                                      c("1" = "Very satisfied",
-                                        "2" ="Satisfied",
-                                        "3" = "Dissatisfied",
-                                        "4" = "Very dissatisfied")))) %>% 
-     mutate(across(c("How would you rate the standard of communication?",
-                     "Quality of the information provided",
-                     "Service offered by staff",
-                     "Responsiveness to any queries or issues raised"),
-                     ~str_replace_all(.,
-                                      c("1" = "Very good",
-                                        "2" ="Good",
-                                        "3" = "Poor",
-                                        "4" = "Very poor")))) %>%
-     mutate(`To what extent would you agree that you were treated fairly?` =
-              str_replace_all(`To what extent would you agree that you were treated fairly?`,
-                              c("1" = "Strongly agree",
-                                "2" ="Agree",
-                                "3" = "Disagree",
-                                "4" = "Strongly disagree"))) %>%
-     # Filter this data for selected council
-     filter(`Local Authority Name` == local_authority())
-   dta
-   })
-  
   # Create KPO4 Score Data ---------------------------------------------------
   
   # Calculated the KPO4 score for each response based on weighted responses
@@ -2023,6 +1981,7 @@ function(input, output, session) {
                        contains("Treated fairly comments"),
                        "Overall, how satisfied were you with the service provided by Building Standards?" = "Overall, how satisfied were you with the service provided?",
                        contains("Overall satisfaction comments"),
+                       "Please rate your most recent experience with the service.",
                        contains("Other comments"))
             } else {
               dta %>%
@@ -2088,7 +2047,8 @@ function(input, output, session) {
                                "Time taken to respond to any queries or issues raised",
                                "Accuracy of the information provided as relevant to your needs",
                                "Professionalism in terms of the knowledge and skills of our staff",
-                               "Attitude in terms of friendliness and helpfulness of our staff")),
+                               "Attitude in terms of friendliness and helpfulness of our staff",
+                               "Please rate your most recent experience with the service.")),
                     ~str_replace_all(.,
                                      c("1" = "Very good",
                                        "2" ="Good",
@@ -2131,20 +2091,61 @@ function(input, output, session) {
     }
   )
   
+  # Finalise unpivot data ---------------------------------------------------
+  
+  # This is used in the data download table and the respondent no. value box
+  unpivot_data <- reactive({
+    dta <- dwnld_table_dta %>%
+      # Recode responses to show in table
+      mutate(across(contains(c("Agent/Designer", 
+                               "Applicant", 
+                               "Contractor",
+                               "Other respondent",
+                               "To discuss your proposal",
+                               "To make an application", 
+                               "During construction",
+                               "Other reason")),
+                    ~str_replace_all(., c("1" = "Yes", "0" = "No")))) %>%
+      mutate(across(c("How satisfied were you with the time taken?",
+                      "How satisfied were you overall?"),
+                    ~str_replace_all(.,
+                                     c("1" = "Very satisfied",
+                                       "2" ="Satisfied",
+                                       "3" = "Dissatisfied",
+                                       "4" = "Very dissatisfied")))) %>% 
+      mutate(across(c("How would you rate the standard of communication?",
+                      "Quality of the information provided",
+                      "Service offered by staff",
+                      "Responsiveness to any queries or issues raised"),
+                    ~str_replace_all(.,
+                                     c("1" = "Very good",
+                                       "2" ="Good",
+                                       "3" = "Poor",
+                                       "4" = "Very poor")))) %>%
+      mutate(`To what extent would you agree that you were treated fairly?` =
+               str_replace_all(`To what extent would you agree that you were treated fairly?`,
+                               c("1" = "Strongly agree",
+                                 "2" ="Agree",
+                                 "3" = "Disagree",
+                                 "4" = "Strongly disagree"))) %>%
+      # Filter this data for selected council
+      filter(`Local Authority Name` == local_authority())
+    dta
+  })
+  
   # Data download tab (Data table)--------------------------------------------    
   
   # Create data table for full dataset
   output$tableDisp <- DT::renderDataTable({
-    unpivot_data <- unpivot_data()
     # Order by submission date
-    unpivot_data <- unpivot_data %>% 
+    dta <- unpivot_data() %>% 
       arrange(desc(`Submission date`))
     
     # Filter to selected year and quarter
-    unpivot_data <- unpivot_data %>% 
+    dta <- dta %>% 
       filter(Quarter %in% qrtr() & `Financial Year` == fin_yr())
     
-    tbl <- datatable(unpivot_data,
+    tbl <- datatable(dta,
                      rownames = FALSE,
                      escape = FALSE,
                      extensions = 'Scroller',
@@ -2169,21 +2170,22 @@ function(input, output, session) {
   
   # Create table to show comments for selected question 
   output$cmnt_table <- DT::renderDataTable({
-    unpivot_data <- unpivot_data()
+    dta <- unpivot_data()
     # Need to recode "other" respondent and reason answers
-    unpivot_data$`Other respondent`[unpivot_data$`Other respondent` != "No"] <- "Yes"
-    unpivot_data$`Other reason`[unpivot_data$`Other reason` != "No"] <- "Yes"
+    dta$`Other respondent`[dta$`Other respondent` != "No"] <- "Yes"
+    dta$`Other reason`[dta$`Other reason` != "No"] <- "Yes"
     
     # Order by submission date
-    unpivot_data <- unpivot_data %>% arrange(desc(`Submission date`))
+    dta <- dta %>% 
+      arrange(desc(`Submission date`))
     
-    unpivot_data$Quarter <- as.factor(unpivot_data$Quarter)
+    dta$Quarter <- as.factor(dta$Quarter)
     # store selected respondent type  
     slctn_respondent <- input$cmnts_resp_input
     # Select selected respondent reason using partial match
     slctn_reason <- input$cmnts_reason_input
     # Filter data to show comments for selected question, and respondents
-    filter_data <- unpivot_data %>% 
+    filter_data <- dta %>% 
       filter(if_any(slctn_respondent, ~ . == "Yes")) %>%
       filter(if_any(slctn_reason, ~.== "Yes")) %>%
       select(Quarter, `Financial Year`, contains(input$cmnts_slct))

@@ -310,6 +310,7 @@ dwnld_table_dta <- clean_data %>%
                                "How satisfied were you with the range of options provided by [question(16082428)][variable(la)] Council relating to inspections?",
                                "How satisfied were you with the range of options provided by [question(16082428)][variable(la)] Council relating to inspections? Please explain your answer:",
                                "Please provide further information about your answers:",
+                               "Please rate your most recent experience with the service.",
                                "Professionalism in terms of the knowledge and skills of our staff",
                                "Service offered by staff Please explain your answers:",
                                "To what extent would you agree [question(16082428)][variable(la)] Council have used digital technology to make building standards processes easier for you (for example, around plan approval and site inspections)?",
