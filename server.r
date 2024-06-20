@@ -1980,7 +1980,7 @@ function(input, output, session) {
                        contains("Treated fairly comments"),
                        "Overall, how satisfied were you with the service provided by Building Standards?" = "Overall, how satisfied were you with the service provided?",
                        contains("Overall satisfaction comments"),
-                       "Please rate your most recent experience with the service.",
+                       contains("Please rate your most recent experience with the service."),
                        contains("Other comments"))
             } else {
               dta %>%
