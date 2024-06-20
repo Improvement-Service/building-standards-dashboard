@@ -171,6 +171,8 @@ clean_data <- merge(clean_data, new_col_names_dta_2) %>%
                                             "Overall satisfaction comments",
                                           "If you have any other comments about your experience, please use this space to leave these\\:\\sPlease note that we are unable to reply to specific cases, if you would like to discuss your experience further, please contact the Council directly\\." =
                                             "Other comments",
+                                          "If you have any other comments about your experience, please use this space to leave these\\:\\r\\nPlease note that we are unable to reply to specific cases, if you would like to discuss your experience further, please contact the Council directly\\." =
+                                            "Other comments",
                                           "If you have any other comments about your experience, please use this space to leave these\\:" =
                                             "Other comments"))) %>%
  # Remove question number from start of question
