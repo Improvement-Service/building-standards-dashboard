@@ -41,6 +41,7 @@ jobs:
       - run: sudo apt-get update -y 
       # this is needed for installing r packages.
       - run: sudo apt-get install libcurl4-openssl-dev
+      - run: sudo apt -y install libfontconfig1-dev
       - run: ls -l 
         
       - name: Setup R
