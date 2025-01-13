@@ -40,8 +40,8 @@ jobs:
       # downloads the package lists from the repositories and "updates" them to get information on the newest versions
       - run: sudo apt-get update -y 
       # this is needed for installing r packages.
-      - run: sudo apt-get install libcurl4-openssl-dev
-      - run: sudo apt -y install libfontconfig1-dev
+      - run: sudo apt-get install libcurl4-openssl-dev 
+      - run: sudo apt -y install libfontconfig1-dev 
       - run: ls -l 
         
       - name: Setup R
