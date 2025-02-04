@@ -45,7 +45,7 @@ if __name__ == "__main__":
 
     sorted_list = sorted(filtered_list, key=lambda d: d.get('date_started'), reverse=True)
 
-    logging.info(f'Most recent survey is bahahaha {sorted_list[0]["date_started"]}')
+    logging.info(f'Most recent survey is {sorted_list[0]["date_started"]}')
 
     download_complete = False
     for survey_export in sorted_list:
