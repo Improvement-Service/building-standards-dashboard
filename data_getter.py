@@ -37,7 +37,7 @@ if __name__ == "__main__":
 
     logging.info(f'Got {len(survey_export_list)} surveys')
 
-    filtered_list = [x for x in survey_export_list if x.'name' == survey_name]
+    filtered_list = [x for x in survey_export_list if x.get('name') == survey_name]
     if len(filtered_list) < 1:
         raise Exception(f'ERROR: No surveys with export name {survey_name} found')
 
