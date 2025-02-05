@@ -90,7 +90,7 @@ jobs:
       - name: Authorize and deploy app - is
         run: |
             rsconnect::setAccountInfo('${{ secrets.RSCONNECT_USERIS }}', '${{ secrets.RSCONNECT_TOKENIS }}', '${{ secrets.RSCONNECT_SECRETIS }}')
-            rsconnect::deployApp(appName='building-standards-dashboard', logLevel="verbose")
+            rsconnect::deployApp(appName='building-standards-dashboard', logLevel="verbose", '${{ secrets.RSCONNECT_USERIS }}')
         shell: Rscript {0}
         
       # messages for teams channel
