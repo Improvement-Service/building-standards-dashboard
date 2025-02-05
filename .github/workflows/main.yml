@@ -93,7 +93,7 @@ jobs:
         with:
           github-token: ${{ github.token }} # this will use the runner's token.
           ms-teams-webhook-uri: ${{ secrets.MS_TEAMS_WEBHOOK_URI }}
-          notification-summary: ${{ github.repository }} has been ran successfully. 
+          notification-summary: ${{ github.repository }} has been run successfully. 
           notification-color: 06ab00
           
       - name: Notify dedicated teams channel failure
@@ -102,5 +102,5 @@ jobs:
         with:
           github-token: ${{ github.token }} # this will use the runner's token.
           ms-teams-webhook-uri: ${{ secrets.MS_TEAMS_WEBHOOK_URI }}
-          notification-summary: ${{ github.repository }} has workflow has failed.
+          notification-summary: ${{ github.repository }} workflow has failed.
           notification-color: FF0000
