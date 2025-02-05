@@ -79,11 +79,18 @@ jobs:
         run: |
           . ./venv/bin/activate 
           python data_getter.py
-          
-      - name: Authorize and deploy app
+
+#      publish to Scotland and IS accounts
+      - name: Authorize and deploy app - scotland
         run: |
             rsconnect::setAccountInfo('${{ secrets.RSCONNECT_USER }}', '${{ secrets.RSCONNECT_TOKEN }}', '${{ secrets.RSCONNECT_SECRET }}')
             rsconnect::deployApp(appName='is-building-standards-ncs', logLevel="verbose")
+        shell: Rscript {0}
+
+      - name: Authorize and deploy app - is
+        run: |
+            rsconnect::setAccountInfo('${{ secrets.RSCONNECT_USERIS }}', '${{ secrets.RSCONNECT_TOKENIS }}', '${{ secrets.RSCONNECT_SECRETIS }}')
+            rsconnect::deployApp(appName='building-standards-dashboard', logLevel="verbose")
         shell: Rscript {0}
         
       # messages for teams channel
