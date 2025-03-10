@@ -428,6 +428,18 @@ function(input, output, session) {
   
   # Create KPO4 download ---------------------------------------------------
   
+  # Create respone number breakdowns to add to download
+  KPO4_response_no <- dwnld_table_dta %>%
+    group_by(Quarter, `Financial Year`, `Local Authority Name`) %>%
+    count() %>%
+    group_by(`Financial Year`, `Local Authority Name`) %>%
+    bind_rows(summarise(., across(where(is.numeric), sum),
+                        across(where(is.character), ~"Year to Date"))) %>%
+    group_by(Quarter, `Financial Year`) %>%
+    bind_rows(summarise(., across(where(is.numeric), sum),
+                        across(where(is.character), ~"Scotland"))) %>%
+    rename(Area = `Local Authority Name`, `Response No.` = n)
+  
   # Create data frame with KPO4 scores for all LA's 
   # (this is available for SG and IS to download)
   total_la_max_sum <- scot_max %>%      
@@ -445,6 +457,9 @@ function(input, output, session) {
     rename(`KPO4 Score` = KPO_score) %>%
     mutate(Area = replace_na(Area, "Scotland")) %>%
     arrange(`Financial Year`, Quarter)
+  
+  # Join KPO4 scores with response numbers
+  total_la_max_sum <- merge(total_la_max_sum, KPO4_response_no)
   
   # Create workbook to download
   kPO_workbook <- createWorkbook()
