@@ -448,10 +448,26 @@ function(input, output, session) {
   
   # Create workbook to download
   kPO_workbook <- createWorkbook()
-  # Add sheet to the download
-  addWorksheet(kPO_workbook, "Total")
+  
+  # Add sheets to the download
+  addWorksheet(kPO_workbook, "KPO4-Qtr-LA")
   writeDataTable(kPO_workbook, 
-                 sheet = "Total", 
+                 sheet = "KPO4-Qtr-LA", 
+                 x = total_la_max_sum)
+  
+  addWorksheet(kPO_workbook, "KPO4-Qtr-Scot")
+  writeDataTable(kPO_workbook, 
+                 sheet = "KPO4-Qtr-Scot", 
+                 x = total_la_max_sum)
+  
+  addWorksheet(kPO_workbook, "KPO4-YTD-LA")
+  writeDataTable(kPO_workbook, 
+                 sheet = "KPO4-YTD-LA", 
+                 x = total_la_max_sum)
+  
+  addWorksheet(kPO_workbook, "KPO4-YTD-Scot")
+  writeDataTable(kPO_workbook, 
+                 sheet = "KPO4-YTD-Scot", 
                  x = total_la_max_sum)
   
   # Create downloadable file
