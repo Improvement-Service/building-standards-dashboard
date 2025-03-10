@@ -446,11 +446,20 @@ function(input, output, session) {
     mutate(Area = replace_na(Area, "Scotland")) %>%
     arrange(`Financial Year`, Quarter)
   
+  # Create workbook to download
+  kPO_workbook <- createWorkbook()
+  # Add sheet to the download
+  addWorksheet(kPO_workbook, "Total")
+  writeDataTable(kPO_workbook, 
+                 sheet = "Total", 
+                 x = total_la_max_sum)
+  
   # Create downloadable file
-  output$KPO_data_file <- downloadHandler(filename = paste0("KPO4_Data", ".csv"),
-  content = function(file) {
-    write.csv(total_la_max_sum, file)
-    })
+  output$KPO_data_file <- downloadHandler(filename = "KPO4_data.xlsx",
+                                          content = function(file) {
+                                            saveWorkbook(kPO_workbook,
+                                                         file, 
+                                                         overwrite = TRUE)})
   
   # Create conditionality to only show download button if IS or SG
   output$KPO_data_dl <- renderUI({
