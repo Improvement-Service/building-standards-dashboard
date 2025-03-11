@@ -461,6 +461,21 @@ function(input, output, session) {
   # Join KPO4 scores with response numbers
   total_la_max_sum <- merge(total_la_max_sum, KPO4_response_no)
   
+  # Split KPO4 scores into seperate tables to include in download
+  KPO4_qtr_la <- total_la_max_sum %>%
+    filter(Quarter != "Year to Date", Area != "Scotland") %>%
+    arrange(`Financial Year`, Quarter)
+  
+  KPO4_qtr_scot <- total_la_max_sum %>%
+    filter(Quarter != "Year to Date", Area == "Scotland") %>%
+    arrange(`Financial Year`, Quarter)
+  
+  KPO4_ytd_la <- total_la_max_sum %>%
+    filter(Quarter == "Year to Date", Area != "Scotland")
+  
+  KPO4_ytd_scot <- total_la_max_sum %>%
+    filter(Quarter == "Year to Date", Area == "Scotland")
+  
   # Create workbook to download
   kPO_workbook <- createWorkbook()
   
@@ -468,22 +483,22 @@ function(input, output, session) {
   addWorksheet(kPO_workbook, "KPO4-Qtr-LA")
   writeDataTable(kPO_workbook, 
                  sheet = "KPO4-Qtr-LA", 
-                 x = total_la_max_sum)
+                 x = KPO4_qtr_la)
   
   addWorksheet(kPO_workbook, "KPO4-Qtr-Scot")
   writeDataTable(kPO_workbook, 
                  sheet = "KPO4-Qtr-Scot", 
-                 x = total_la_max_sum)
+                 x = KPO4_qtr_scot)
   
   addWorksheet(kPO_workbook, "KPO4-YTD-LA")
   writeDataTable(kPO_workbook, 
                  sheet = "KPO4-YTD-LA", 
-                 x = total_la_max_sum)
+                 x = KPO4_ytd_la)
   
   addWorksheet(kPO_workbook, "KPO4-YTD-Scot")
   writeDataTable(kPO_workbook, 
                  sheet = "KPO4-YTD-Scot", 
-                 x = total_la_max_sum)
+                 x = KPO4_ytd_scot)
   
   # Create downloadable file
   output$KPO_data_file <- downloadHandler(filename = "KPO4_data.xlsx",
