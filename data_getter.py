@@ -17,7 +17,7 @@ if __name__ == "__main__":
 
     api_key = config['DEFAULT']['api_key']
     api_secret_key = config['DEFAULT']['api_secret_key']
-    survey_id = config['DEFAULT']['survey_id']
+    survey_id = config['DEFAULT'][1029469]
     survey_name = 'Shiny App Export'
     base_url = "https://api.smartsurvey.io/v2/surveys"
     ### END ###
