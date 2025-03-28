@@ -19,7 +19,7 @@ if __name__ == "__main__":
     api_secret_key = config['DEFAULT']['api_secret_key']
     survey_id = config['DEFAULT']['survey_id']
     survey_name = 'Shiny App Export'
-    base_url = "https://api.smartsurvey.io/v1/surveys"
+    base_url = "https://api.smartsurvey.io/v2/surveys"
     ### END ###
 
     logging.info('Trying to fetch list of surveys')
@@ -31,7 +31,7 @@ if __name__ == "__main__":
     if resp.status_code != 200:
         raise Exception(f'ERROR: failed to get survey export list from smart survey. status code: {resp.status_code}')
 
-    survey_export_list = json.loads(resp.content)
+    survey_export_list = json.loads(resp.content).get("records")
     if len(survey_export_list) < 1:
         raise Exception(f'ERROR: No surveys with id:{survey_id} found')
 
@@ -43,9 +43,9 @@ if __name__ == "__main__":
 
     logging.info(f'Got {len(filtered_list)} surveys with name matching {survey_name}')
 
-    sorted_list = sorted(filtered_list, key=lambda d: d.get('date_started'), reverse=True)
+    sorted_list = sorted(filtered_list, key=lambda d: d.get('started_date'), reverse=True)
 
-    logging.info(f'Most recent survey is {sorted_list[0]["date_started"]}')
+    logging.info(f'Most recent survey is {sorted_list[0]["started_date"]}')
 
     download_complete = False
     for survey_export in sorted_list:
@@ -56,7 +56,7 @@ if __name__ == "__main__":
             if resp.status_code != 200:
                 raise Exception(f'ERROR: failed to get survey export id:{ survey_export.get("id", "unkown") } from smart survey. status code: {resp.status_code}')
 
-            logging.info(f"Downloading survey completed on {survey_export.get('date_started', 'unknown')}")
+            logging.info(f"Downloading survey completed on {survey_export.get('started_date', 'unknown')}")
 
             f = open("survey_data.csv", "wb+")
             f.write(resp.content)
