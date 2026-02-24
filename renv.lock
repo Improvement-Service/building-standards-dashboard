@@ -153,7 +153,6 @@
         "memoise",
         "methods",
         "pkgconfig",
-        "plogr",
         "rlang"
       ],
       "Hash": "52294139fc7a21bca806b49ae2f315ca"
