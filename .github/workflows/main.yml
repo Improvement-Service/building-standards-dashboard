@@ -40,7 +40,8 @@ jobs:
       # downloads the package lists from the repositories and "updates" them to get information on the newest versions
       - run: sudo apt-get update -y 
       # this is needed for installing r packages.
-      - run: sudo apt-get install libcurl4-openssl-dev
+      - run: sudo apt-get install libcurl4-openssl-dev 
+      - run: sudo apt -y install libfontconfig1-dev 
       - run: ls -l 
         
       - name: Setup R
@@ -78,11 +79,18 @@ jobs:
         run: |
           . ./venv/bin/activate 
           python data_getter.py
-          
-      - name: Authorize and deploy app
+
+#      publish to Scotland and IS accounts
+      - name: Authorize and deploy app - scotland
         run: |
             rsconnect::setAccountInfo('${{ secrets.RSCONNECT_USER }}', '${{ secrets.RSCONNECT_TOKEN }}', '${{ secrets.RSCONNECT_SECRET }}')
             rsconnect::deployApp(appName='is-building-standards-ncs', logLevel="verbose")
+        shell: Rscript {0}
+
+      - name: Authorize and deploy app - is
+        run: |
+            rsconnect::setAccountInfo('${{ secrets.RSCONNECT_USERIS }}', '${{ secrets.RSCONNECT_TOKENIS }}', '${{ secrets.RSCONNECT_SECRETIS }}')
+            rsconnect::deployApp(appName='building-standards-ncs', logLevel="verbose", account = '${{ secrets.RSCONNECT_USERIS }}')
         shell: Rscript {0}
         
       # messages for teams channel
@@ -92,7 +100,7 @@ jobs:
         with:
           github-token: ${{ github.token }} # this will use the runner's token.
           ms-teams-webhook-uri: ${{ secrets.MS_TEAMS_WEBHOOK_URI }}
-          notification-summary: ${{ github.repository }} has been ran successfully. 
+          notification-summary: ${{ github.repository }} has been run successfully. 
           notification-color: 06ab00
           
       - name: Notify dedicated teams channel failure
@@ -101,5 +109,5 @@ jobs:
         with:
           github-token: ${{ github.token }} # this will use the runner's token.
           ms-teams-webhook-uri: ${{ secrets.MS_TEAMS_WEBHOOK_URI }}
-          notification-summary: ${{ github.repository }} has workflow has failed.
+          notification-summary: ${{ github.repository }} workflow has failed.
           notification-color: FF0000
