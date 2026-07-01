@@ -2277,7 +2277,7 @@ function(input, output, session) {
                   #   "'<span title=\"' + data + '\">' + data.substr(0, 100) + '...</span>' : data;",
                   #   "}")
                   className = "wrap-text",
-                  width = "350px"
+                  width = "450px"
                 )),
                 dom = "t",
                 deferRender = TRUE,
