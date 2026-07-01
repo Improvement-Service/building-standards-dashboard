@@ -2,7 +2,8 @@ function(input, output, session) {
   
   # Set up reactive council selection based on log in -------------------------
   user <- reactive({
-    session$user
+    # session$user
+    "n@gov.scot"
   })
   
   # LA selection generated for IS & SG users
@@ -164,9 +165,9 @@ function(input, output, session) {
                                                                     validate(need(input$LA_selection != "",
                                                                                   "Local Authority selection needed"))
                                                                     input$LA_selection
-                                                                    } 
+                                                                  } 
   })
-
+  
   
   # Creates a heading with the selected council name
   output$LA_KPO4_Heading <- renderUI({
@@ -186,7 +187,7 @@ function(input, output, session) {
                                     href="__logout__"))
     }
   })
-
+  
   # Financial Year Selection---------------------------------------------------
   
   # Create select button for financial year - will only show years where there is data available
@@ -513,9 +514,9 @@ function(input, output, session) {
                    label = "Download KPO4 Data", 
                    style = "jelly", 
                    size = "sm")
-      } else {
-        return()
-        }
+    } else {
+      return()
+    }
   })
   
   # Performance Overview Tab (Performance boxes) ------------------------------
@@ -533,7 +534,7 @@ function(input, output, session) {
                         if_else(kpo_score < 6.5,
                                 "red",
                                 "orange"))
-
+    
     valueBox(value = round(kpo_score, 1), 
              paste("Council KPO4", input$qrtr_selection, fin_yr()),
              icon = icon("chart-bar"), 
@@ -593,7 +594,7 @@ function(input, output, session) {
                                             q4_response))),
              icon = icon("user-friends"), 
              color = "light-blue")
-    })
+  })
   
   # Performance Overview tab (KPO4 bar plot) -----------------------------------
   
@@ -603,7 +604,7 @@ function(input, output, session) {
                                title_width,
                                label_size,
                                text_size
-                               ) {
+  ) {
     
     validate(need(nrow(dataset) > 0,"No respondents of this type"))
     
@@ -628,10 +629,10 @@ function(input, output, session) {
       filter(Quarter != "YTD") %>% 
       pull(KPO_score)
     clrs <- if_else(kpo_clrs > 7.5, 
-                   "palegreen3", 
-                   if_else(kpo_clrs < 6.5, 
-                          "tomato", 
-                          "tan1"))
+                    "palegreen3", 
+                    if_else(kpo_clrs < 6.5, 
+                            "tomato", 
+                            "tan1"))
     
     p <- ggplot(data = dta) +
       geom_bar(aes(x = Label, 
@@ -639,11 +640,11 @@ function(input, output, session) {
                    text = paste(paste("Quarter:", Label),
                                 paste("KPO 4 Score", KPO_score),
                                 sep = "\n")), 
-      stat = "identity",
-      position = "dodge", 
-      fill = c(clrs, rep("dimgrey", YTD)), 
-      width = 0.7, 
-      colour = "black") +
+               stat = "identity",
+               position = "dodge", 
+               fill = c(clrs, rep("dimgrey", YTD)), 
+               width = 0.7, 
+               colour = "black") +
       theme_classic() +
       # Span x axis labels over multiple lines
       scale_x_discrete(labels = function(x) str_wrap(x, width = 8)) +
@@ -745,8 +746,8 @@ function(input, output, session) {
     
     ggplotly(plot, tooltip = "text")
   })
-
-# KPO4 by Respondent Graphs -------------------------------
+  
+  # KPO4 by Respondent Graphs -------------------------------
   
   # Run function to create KPO4 plot for agents
   output$kpo_resp_graph_agent <- renderPlotly({
@@ -755,7 +756,7 @@ function(input, output, session) {
                      title_width = 31,
                      label_size = 10,
                      text_size = 8
-                     )
+    )
   })
   
   # Run function to create KPO4 plot for applicants
@@ -765,7 +766,7 @@ function(input, output, session) {
                      title_width = 31,
                      label_size = 10,
                      text_size = 8
-                     )
+    )
   })
   
   # Run function to create KPO4 plot for contractors
@@ -775,7 +776,7 @@ function(input, output, session) {
                      title_width = 31,
                      label_size = 10,
                      text_size = 8
-                     )
+    )
   })
   
   # Run function to create KPO4 plot for "other"
@@ -785,7 +786,7 @@ function(input, output, session) {
                      title_width = 31,
                      label_size = 10,
                      text_size = 8
-                     )
+    )
   })
   
   # Questions results tab (Data filtering)--------------------------------
@@ -805,7 +806,7 @@ function(input, output, session) {
       filter(`Financial Year` == fin_yr())
     dta
   })
-
+  
   # Questions Results tab (YTD plot)---------------------------------------
   
   # First graph for full breakdown of responses in year to date  
@@ -961,10 +962,10 @@ function(input, output, session) {
                                 paste("% of responses:", `% of responses`),
                                 paste("Response:", named_value),
                                 sep = "\n")),
-                   stat = "identity", 
-                   position = "stack",
-                   width = 0.7, 
-                   colour = "black") +
+               stat = "identity", 
+               position = "stack",
+               width = 0.7, 
+               colour = "black") +
       scale_y_continuous(expand = expansion(mult = c(0, 0.1))) +
       ggtitle(str_wrap(input$Qstn_tab2, width = 60)) +
       xlab("") +
@@ -978,14 +979,14 @@ function(input, output, session) {
     ggplotly(plot, tooltip = "text")
   })
   
-# Questions Results Tab (Table with respondent number per Quarter)--------------------------------------
+  # Questions Results Tab (Table with respondent number per Quarter)--------------------------------------
   output$resp_qrts <- renderTable({
     # Only want to count each respondent once, so only keep the question 
     # selected by user on page 2
     qst_ind <- if_else(input$Qstn_tab2 == "All Questions", 
                        "How satisfied were you overall?", 
                        input$Qstn_tab2
-                       )
+    )
     dta <- qstn_dataset_filtered() %>% 
       filter(Indicator == qst_ind) %>% 
       drop_na(value) %>%
@@ -1073,10 +1074,10 @@ function(input, output, session) {
                                   "equal to"))
     # Compares council KPO4 with Scotland KPO4
     abbel_kpo4 <- if_else(KPO4_ytd > scotAv_kpo4, 
-                         "higher than",
-                         if_else(KPO4_ytd < scotAv_kpo4, 
-                                 "lower than", 
-                                 "equal to"))
+                          "higher than",
+                          if_else(KPO4_ytd < scotAv_kpo4, 
+                                  "lower than", 
+                                  "equal to"))
     
     # Store value for previous financial year if there is one
     prev_fin_yr <- Years %>%
@@ -1296,7 +1297,7 @@ function(input, output, session) {
       theme_classic() +
       theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust = 1))
     ggplotly(plot, tooltip = "text")
-
+    
   })
   
   # Render text for quarter by quarter performance   
@@ -1314,11 +1315,11 @@ function(input, output, session) {
     current_quarter <- if(input$qrtr_selection == "Year to Date") {
       max_qrtr <- dta %>% 
         filter(`Financial Year` == fin_yr())
-        max(max_qrtr$Quarter)
+      max(max_qrtr$Quarter)
     } else {
       input$qrtr_selection
     }
-                               
+    
     # Store KPO score for currently selected quarter and year
     current_value <- dta %>%
       filter(Quarter == current_quarter &
@@ -1355,7 +1356,7 @@ function(input, output, session) {
     
     prev_year_quarter <- prev_year_quarter %>%
       str_replace(., "Q[0-9]\\ ", "")
-
+    
     # Create comparison of KPO4 for selected quarter with equivalent quarter
     # from previous year (if available)
     year_quarter_diff <- current_value - prev_year_quarter_value
@@ -1567,42 +1568,6 @@ function(input, output, session) {
     
     # Paste the text together
     main_text <- paste0("In ",
-                       input$qrtr_selection,
-                       " ",
-                       fin_yr(),
-                       ", in relation to the statement \"",
-                       question,
-                       "\" responses for ",
-                       local_authority(),
-                       " have been ",
-                       pos_or_neg, 
-                       " with ",
-                       total_good,
-                       " percent saying that ",
-                       extra_text,
-                       " ",
-                       named_value_1,
-                       " or ",
-                       named_value_2,
-                       ". The greatest proportion of respondents said ",
-                       extra_text,
-                       " ",
-                       max_name,
-                       " at ", 
-                       max_perc, 
-                       " This was followed by ", 
-                       sec_name, 
-                       " at ", 
-                       sec_perc,
-                       " For Scotland overall, most respondents said that ",
-                       extra_text,
-                       " ",
-                       scot_max_name,
-                       " at ", 
-                       scot_max_perc)
-    
-    # Text when all responses are the same
-    other_text <- paste0("In ",
                         input$qrtr_selection,
                         " ",
                         fin_yr(),
@@ -1626,12 +1591,48 @@ function(input, output, session) {
                         max_name,
                         " at ", 
                         max_perc, 
+                        " This was followed by ", 
+                        sec_name, 
+                        " at ", 
+                        sec_perc,
                         " For Scotland overall, most respondents said that ",
                         extra_text,
                         " ",
                         scot_max_name,
                         " at ", 
                         scot_max_perc)
+    
+    # Text when all responses are the same
+    other_text <- paste0("In ",
+                         input$qrtr_selection,
+                         " ",
+                         fin_yr(),
+                         ", in relation to the statement \"",
+                         question,
+                         "\" responses for ",
+                         local_authority(),
+                         " have been ",
+                         pos_or_neg, 
+                         " with ",
+                         total_good,
+                         " percent saying that ",
+                         extra_text,
+                         " ",
+                         named_value_1,
+                         " or ",
+                         named_value_2,
+                         ". The greatest proportion of respondents said ",
+                         extra_text,
+                         " ",
+                         max_name,
+                         " at ", 
+                         max_perc, 
+                         " For Scotland overall, most respondents said that ",
+                         extra_text,
+                         " ",
+                         scot_max_name,
+                         " at ", 
+                         scot_max_perc)
     
     # Test whether there's more than one different type of response
     text <- if_else(is.na(sec_val), other_text, main_text)
@@ -1901,8 +1902,8 @@ function(input, output, session) {
     # relevant to the selected council
     dta <- clean_data %>%
       filter(`Local Authority Name` == local_authority()) %>%
-        pivot_wider(names_from = new_col_names, values_from = value)
-
+      pivot_wider(names_from = new_col_names, values_from = value)
+    
     # Use if else statements to reorder, and rename, the columns based on LA as 
     # some LA's have different columns.
     # Have wrapped all of the comments columns in "contains" as if there's no
@@ -2087,8 +2088,8 @@ function(input, output, session) {
                                "Other reason")),
                     ~str_replace_all(., c("0" = "No", "1" = "Yes")))) %>%
       mutate(across(contains(c("Thinking of your engagement with Building Standards from beginning to end",
-                                "Overall, how satisfied were you with the service provided by Building Standards?",
-                                "How satisfied were you with the building warrant approval process?",
+                               "Overall, how satisfied were you with the service provided by Building Standards?",
+                               "How satisfied were you with the building warrant approval process?",
                                "How satisfied were you with the range of options provided by Council relating to inspections?")),
                     ~str_replace_all(.,
                                      c("1" = "Very satisfied",
@@ -2116,21 +2117,21 @@ function(input, output, session) {
                                "Staff were helpful",
                                "Staff were efficient",
                                "Staff were knowledgeable")),
-               ~str_replace_all(.,
-                               c("1" = "Strongly agree",
-                                 "2" = "Agree",
-                                 "3" = "Disagree",
-                                 "4" = "Strongly disagree")))) %>%
+                    ~str_replace_all(.,
+                                     c("1" = "Strongly agree",
+                                       "2" = "Agree",
+                                       "3" = "Disagree",
+                                       "4" = "Strongly disagree")))) %>%
       mutate(across(contains(c("Did you find it easy to contact the officer/inspector/administrator you were looking for?")), 
-               ~str_replace_all(.,
-                                c("1" = "Yes, contact made straight away",
-                                  "2" = "Yes, but took slightly longer than expected",
-                                  "3" = "No, it wasn't easy, but managed to contact the officer/inspector/administrator eventually")))) %>%
+                    ~str_replace_all(.,
+                                     c("1" = "Yes, contact made straight away",
+                                       "2" = "Yes, but took slightly longer than expected",
+                                       "3" = "No, it wasn't easy, but managed to contact the officer/inspector/administrator eventually")))) %>%
       mutate(across(contains(c("If you are responding in relation to a Completion Certificate did your experience include a Remote Verification Inspection (RVI) whereby the inspection is via live or pre-recorded video?")),
-               ~str_replace_all(.,
-                                c("1" = "Yes",
-                                  "2" = "No",
-                                  "3" = NA)))) %>%
+                    ~str_replace_all(.,
+                                     c("1" = "Yes",
+                                       "2" = "No",
+                                       "3" = NA)))) %>%
       # Filter to selected quarter and financial year
       filter(Quarter %in% qrtr() & `Financial Year` == fin_yr()) %>%
       arrange(desc(`Submission date`))
@@ -2154,12 +2155,13 @@ function(input, output, session) {
       mutate(across(contains(c("Agent/Designer", 
                                "Applicant", 
                                "Contractor",
-                               "Other respondent",
                                "To discuss your proposal",
                                "To make an application", 
-                               "During construction",
-                               "Other reason")),
+                               "During construction")),
                     ~str_replace_all(., c("1" = "Yes", "0" = "No")))) %>%
+      mutate(across(contains(c("Other reason",
+                               "Other respondent")), 
+                    ~str_replace_all(., c("^0$" = "No")))) %>% ##replace others only where full string matches "no"
       mutate(across(c("How satisfied were you with the time taken?",
                       "How satisfied were you overall?"),
                     ~str_replace_all(.,
@@ -2199,23 +2201,32 @@ function(input, output, session) {
     dta <- dta %>% 
       filter(Quarter %in% qrtr() & `Financial Year` == fin_yr())
     
+    ##create month column
+    
+    dta <- dta %>% mutate(Month = month(ymd(`Submission date`), label = TRUE, abbr = FALSE)) %>%
+      select(`Submission date`:`Financial Year`, Month,`Local Authority Name`:`Other comments`)
+    
     tbl <- datatable(dta,
                      rownames = FALSE,
                      escape = FALSE,
                      extensions = 'Scroller',
+                     class = "row-border",
                      options = list(
                        # This shortens the text labels and makes them viewable
                        # by hovering instead
                        columnDefs = list(list(
-                         targets = c(7,11,13,15,19,21,23,24),
-                         render = JS(
-                           "function(data, type, row, meta) {",
-                           "return type === 'display' && data != null && data.length > 20 ?",
-                           "'<span title=\"' + data + '\">' + data.substr(0, 20) + '...</span>' : data;",
-                           "}"))),
+                         targets = c(8,12,14,16,20,22,24,25),
+                         # render = JS(
+                         #   "function(data, type, row, meta) {",
+                         #   "return type === 'display' && data != null && data.length > 20 ?",
+                         #   "'<span title=\"' + data + '\">' + data.substr(0, 20) + '...</span>' : data;",
+                         #   "}")
+                         className = "wrap-text",
+                         width = "200px"
+                       )),
                        dom = "t",
                        deferRender = TRUE,
-                       scrollY = "320px",
+                       scrollY = "420px",
                        scrollX = TRUE,
                        scroller = TRUE))
   })
@@ -2260,16 +2271,19 @@ function(input, output, session) {
                   # This shortens the text labels and makes them viewable
                   # by hovering instead
                   targets = 3,
-                  render = JS(
-                    "function(data, type, row, meta) {",
-                    "return type === 'display' && data != null && data.length > 100 ?",
-                    "'<span title=\"' + data + '\">' + data.substr(0, 100) + '...</span>' : data;",
-                    "}"))),
+                  # render = JS(
+                  #   "function(data, type, row, meta) {",
+                  #   "return type === 'display' && data != null && data.length > 100 ?",
+                  #   "'<span title=\"' + data + '\">' + data.substr(0, 100) + '...</span>' : data;",
+                  #   "}")
+                  className = "wrap-text",
+                  width = "350px"
+                )),
                 dom = "t",
                 deferRender = TRUE,
                 scrollY = "280px",
                 scroller = TRUE))
-    })
+  })
   
   # Closing bracket for opening function ---------------------------------------  
 }
