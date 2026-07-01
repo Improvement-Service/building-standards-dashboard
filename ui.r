@@ -1,10 +1,11 @@
-ui <- dashboardPage(skin = "blue",                      
-
+ui <- dashboardPage(skin = "blue",
+                    
                     # Dashboard header ---------------------------------------------------------                    
                     dashboardHeader(title = "National Customer Survey Dashboard",
                                     titleWidth = 400),
                     # Dashboard Sidebar --------------------------------------------------------
-                    # KPO4 download button (IS & SG only)
+
+                  # KPO4 download button (IS & SG only)
                     dashboardSidebar(uiOutput("KPO_data_dl"),
                                      # LA selection (IS & SG only)
                                      uiOutput("la_select"),
@@ -50,8 +51,22 @@ ui <- dashboardPage(skin = "blue",
                                      )
                                      )
                     ),
+              
                     # Dashboard body ----------------------------------------------------------
-                    dashboardBody(tabItems(
+                    dashboardBody(
+                      
+                      ##css for wrapped text in tables      
+                      tags$head(        
+                        tags$style(HTML("
+                             .wrap-text {
+                             white-space: normal !important;
+                              word-wrap: break-word;
+                               max-width: 200px;
+                                }
+                            "))),
+                      
+                      tabItems(
+                  
                       # Performance Overview Tab ----------------------------------------------- 
                       tabItem(tabName = "PrfOvr",
                               uiOutput("LA_KPO4_Heading"),
