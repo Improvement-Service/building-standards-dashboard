@@ -80,12 +80,7 @@ jobs:
           . ./venv/bin/activate 
           python data_getter.py
 
-#      publish to Scotland and IS accounts
-      - name: Authorize and deploy app - scotland
-        run: |
-            rsconnect::setAccountInfo('${{ secrets.RSCONNECT_USER }}', '${{ secrets.RSCONNECT_TOKEN }}', '${{ secrets.RSCONNECT_SECRET }}')
-            rsconnect::deployApp(appName='is-building-standards-ncs', logLevel="verbose")
-        shell: Rscript {0}
+#      publish to IS account
 
       - name: Authorize and deploy app - is
         run: |
